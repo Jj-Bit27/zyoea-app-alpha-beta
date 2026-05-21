@@ -1,0 +1,51 @@
+scalar Time
+
+type User {
+  id: ID!
+  name: String
+  email: String
+  role: String
+  isVerified: Boolean!
+}
+
+type UserWithRestaurant {
+  id: ID!
+  name: String
+  email: String
+  role: String
+  isVerified: Boolean!
+  restaurant: Int
+}
+
+type AuthResponse {
+  accessToken: String!
+  user: User!
+  restaurant: Int
+}
+
+input RegisterInput {
+  name: String!
+  email: String!
+  password: String!
+  role: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+  restaurant: Int
+}
+
+type Mutation {
+  register(input: RegisterInput!): AuthResponse!
+  login(input: LoginInput!): AuthResponse!
+
+  verifyEmail(code: String!): User!
+  forgotPassword(email: String!): Boolean!
+  resetPassword(token: String!, password: String!): Boolean!
+}
+
+type Query {
+  # Equivalente a tu verifyToken
+  verifyToken(token: String): UserWithRestaurant
+}

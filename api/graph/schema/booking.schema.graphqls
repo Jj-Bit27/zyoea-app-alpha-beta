@@ -1,0 +1,46 @@
+scalar Time
+
+type Booking {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  userId: Int!
+  user: User!
+  tableId: Int!
+  people: Int!
+  time: Time!
+  status: String!
+}
+
+input CreateBookingInput {
+  restaurant: Int!
+  user: Int!
+  table: Int!
+  people: Int!
+  time: Time!
+  status: String!
+}
+
+input UpdateBookingInput {
+  id: ID!
+  restaurant: Int
+  user: Int
+  table: Int
+  people: Int
+  time: Time
+  status: String
+}
+
+type Query {
+  bookings(restaurant: ID!): [Booking!]!
+
+  booking(id: ID!): Booking
+}
+
+type Mutation {
+  createBooking(input: CreateBookingInput!): Booking!
+
+  updateBooking(id: ID!, input: UpdateBookingInput!): Booking!
+
+  deleteBooking(id: ID!): Boolean!
+}

@@ -1,0 +1,13 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { RestaurantsList } from "../../components/restaurant/RestaurantList";
+import { ApolloWrapper } from "../../components/ApolloWrapper";
+---
+
+<Layout title="Explorar Restaurantes">
+  <ApolloWrapper>
+    <div class="mx-auto max-w-7xl px-4 py-8">
+      <RestaurantsList client:load />
+    </div>
+  </ApolloWrapper>
+</Layout>

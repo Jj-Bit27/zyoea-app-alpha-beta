@@ -1,0 +1,12 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import BookingManager from "../../components/booking/BookingManager";
+---
+
+<Layout title="Mis Reservaciones">
+  <div class="flex min-h-screen flex-col bg-background">
+    <main class="flex-1 p-10">
+      <BookingManager client:load />
+    </main>
+  </div>
+</Layout>

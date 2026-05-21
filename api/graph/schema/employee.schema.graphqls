@@ -1,0 +1,38 @@
+scalar Time
+
+type Employee {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  position: String!
+  hireDate: Time
+  userId: Int!
+  user: User!
+}
+
+input CreateEmployeeInput {
+  name: String!
+  email: String!
+  password: String! # Obligatorio al crear
+  restaurantId: Int!
+  position: String!
+}
+
+input UpdateEmployeeInput {
+  id: ID!
+  name: String
+  email: String
+  restaurantId: Int
+  position: String
+}
+
+extend type Mutation {
+  createEmployee(input: CreateEmployeeInput!): Employee!
+  updateEmployee(input: UpdateEmployeeInput!): Employee!
+  removeEmployee(id: ID!): Boolean!
+}
+
+extend type Query {
+  employeesByRestaurant(restaurantId: ID!): [Employee!]!
+  employee(id: ID!): Employee!
+}

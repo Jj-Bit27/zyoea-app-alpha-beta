@@ -1,0 +1,24 @@
+# Dependencias
+api/node_modules/
+api/docs-tools/
+web/node_modules/
+
+# Variables de entorno (¡MUY IMPORTANTE!)
+api/.env
+web/.env
+
+api/*.env
+web/*.env
+
+api/*.exe
+
+# Archivos de compilación (si usas TypeScript o NestJS)
+dist/
+build/
+
+# Logs y errores
+api/npm-debug.log*
+api/logs/
+
+web/npm-debug.log*
+web/logs/

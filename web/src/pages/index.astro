@@ -1,0 +1,155 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { FiSearch, FiMapPin, FiClock } from "react-icons/fi";
+import { FeaturedRestaurants } from "../components/restaurant/FeaturedRestaurants";
+import { ApolloWrapper } from "../components/ApolloWrapper";
+
+const token = Astro.cookies.get("auth_token")?.value;
+
+let isLoggedIn = false;
+let isStaff = false;
+
+if (token) {
+  isLoggedIn = true;
+  try {
+    // El JWT tiene 3 partes separadas por puntos. El payload (los datos) es la de en medio [1]
+    const payloadBase64 = token.split(".")[1];
+
+    // Decodificamos el Base64 de forma nativa en Node.js
+    const payloadString = Buffer.from(payloadBase64, "base64").toString(
+      "utf-8",
+    );
+    const payload = JSON.parse(payloadString);
+
+    // Verificamos el rol (asegúrate de que coincida con cómo lo manda tu Go backend)
+    const userRole = payload?.role?.toLowerCase();
+
+    if (userRole === "staff" || userRole === "admin") {
+      isStaff = true;
+    }
+  } catch (error) {
+    console.error("Error al leer el token:", error);
+    // Si el token es inválido o está corrupto, lo tratamos como no logueado
+    isLoggedIn = false;
+  }
+}
+---
+
+<Layout title="Inicio">
+  <section class="relative bg-primary/5 py-20 lg:py-32">
+    <div
+      class="mx-auto max-w-7xl px-4 flex flex-col md:flex-row items-center gap-12"
+    >
+      <div class="flex-1 space-y-6 text-center md:text-left">
+        <h1
+          class="text-4xl md:text-6xl font-bold tracking-tight text-foreground"
+        >
+          Tu comida favorita, <br />
+          <span class="text-primary">listo para recoger</span>
+        </h1>
+        <p class="text-lg text-muted-foreground md:max-w-xl">
+          Descubre los mejores restaurantes locales, explora menús variados y
+          Haz tu pedido en minutos listo para recoger en el restaurante.
+        </p>
+        <div
+          class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start"
+        >
+          {
+            isStaff ? (
+              <a
+                href="/staff"
+                class="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
+              >
+                Ir al Panel de Staff
+              </a>
+            ) : (
+              <a
+                href="/restaurants"
+                class="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-8 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
+              >
+                Explorar Restaurantes
+              </a>
+            )
+          }
+
+          {
+            !isLoggedIn && (
+              <a
+                href="/register"
+                class="inline-flex h-12 items-center justify-center rounded-lg border border-input bg-background px-8 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                Crear cuenta
+              </a>
+            )
+          }
+        </div>
+      </div>
+      <div class="flex-1 w-full max-w-md md:max-w-full">
+        <div
+          class="relative aspect-square rounded-2xl overflow-hidden shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500"
+        >
+          <img
+            src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800"
+            alt="Comida deliciosa"
+            class="object-cover w-full h-full"
+          />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 bg-background">
+    <div class="mx-auto max-w-7xl px-4">
+      <div class="grid md:grid-cols-3 gap-8">
+        <div
+          class="flex flex-col items-center text-center p-6 rounded-xl border border-border bg-card"
+        >
+          <div class="p-4 bg-primary/10 rounded-full text-primary mb-4">
+            <FiMapPin size={32} />
+          </div>
+          <h3 class="text-xl font-bold mb-2">Cerca de ti</h3>
+          <p class="text-muted-foreground">
+            Encuentra restaurantes en tu zona para satisfacer tus antojos.
+          </p>
+        </div>
+        <div
+          class="flex flex-col items-center text-center p-6 rounded-xl border border-border bg-card"
+        >
+          <div class="p-4 bg-primary/10 rounded-full text-primary mb-4">
+            <FiClock size={32} />
+          </div>
+          <h3 class="text-xl font-bold mb-2">Sin esperas</h3>
+          <p class="text-muted-foreground">
+            Nosotros nos encargamos de que evites las filas y los retrasos y
+            solo pasas y recoger tu orden!.
+          </p>
+        </div>
+        <div
+          class="flex flex-col items-center text-center p-6 rounded-xl border border-border bg-card"
+        >
+          <div class="p-4 bg-primary/10 rounded-full text-primary mb-4">
+            <FiSearch size={32} />
+          </div>
+          <h3 class="text-xl font-bold mb-2">Variedad</h3>
+          <p class="text-muted-foreground">
+            Desde sushi hasta tacos, tenemos opciones para todos los gustos.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 bg-secondary/20">
+    <div class="mx-auto max-w-7xl px-4">
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-3xl font-bold">Variedad de Restaurantes</h2>
+        <a href="/restaurants" class="text-primary font-medium hover:underline"
+          >Ver todos &rarr;</a
+        >
+      </div>
+      <ApolloWrapper>
+        <FeaturedRestaurants client:load />
+      </ApolloWrapper>
+    </div>
+  </section>
+</Layout>

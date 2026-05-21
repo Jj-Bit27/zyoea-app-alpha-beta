@@ -1,0 +1,15 @@
+---
+// src/pages/restaurant/[id].astro
+import Layout from "../../../layouts/Layout.astro";
+import { RestaurantDetails } from "../../../components/restaurant/RestaurantDetail";
+import { ApolloWrapper } from "../../../components/ApolloWrapper";
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const restaurantId: string = String(id);
+---
+
+<Layout title="Detalles del Restaurante">
+  <RestaurantDetails client:load restaurantId={restaurantId} />
+</Layout>

@@ -1,0 +1,70 @@
+scalar Time
+
+type Order {
+  id: ID!
+  userId: Int!
+  user: User!
+  user_name: String!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  status: String!
+  type: String!
+  total: Float!
+  notes: String
+  tableId: Int
+  date: Time!
+  paid: Boolean!
+  orderDetail: OrderDetail
+}
+
+type OrderDetail {
+  id: ID!
+  order: Int!
+  productId: Int!
+  product: Product!
+  quantity: Int!
+  subtotal: Float!
+}
+
+input OrderItemInput {
+  productId: Int!
+  quantity: Int!
+  subtotal: Float!
+}
+
+input CreateOrderInput {
+  user: Int!
+  user_name: String!
+  restaurant: Int!
+  status: String!
+  type: String!
+  total: Float!
+  notes: String
+  table: Int
+  paid: Boolean
+  items: [OrderItemInput!]!
+}
+
+input UpdateOrderInput {
+  id: ID!
+  estado: String # Según tu código NestJS, solo actualizas estado
+}
+
+extend type Mutation {
+  createOrder(input: CreateOrderInput!): Order!
+  updateOrderStatus(id: ID!, status: String!): Order!
+  updateOrderPayment(id: ID!, paid: Boolean!): Order!
+  addOrderItems(orderId: ID!, items: [OrderItemInput!]!): Order!
+  removeOrderItem(orderId: ID!, itemId: ID!): Order!
+  removeOrder(id: ID!): Boolean!
+}
+
+extend type Subscription {
+  orderStatusUpdated(restaurantId: Int!): Order!
+}
+
+extend type Query {
+  ordersByRestaurant(restaurantId: ID!): [Order!]!
+  ordersOpen(restaurantId: ID!): [Order!]!
+  order(id: ID!): Order!
+}

@@ -1,0 +1,11 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { CartManager } from "../../components/order/OrderManager";
+---
+
+<Layout title="Mi Orden">
+  <div class="mx-auto max-w-7xl px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Finalizar Pedido</h1>
+    <CartManager client:load client:only="react" />
+  </div>
+</Layout>

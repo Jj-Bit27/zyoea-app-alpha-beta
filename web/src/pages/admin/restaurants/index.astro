@@ -1,0 +1,8 @@
+---
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { RestaurantsManager } from "../../../components/admin/RestaurantManager";
+---
+
+<AdminLayout title="Gestión de Restaurantes">
+  <RestaurantsManager client:load />
+</AdminLayout>

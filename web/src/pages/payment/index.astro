@@ -1,0 +1,14 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { Navbar } from "../../components/layout/Navbar";
+import { Footer } from "../../components/layout/Footer";
+import CardPaymentForm from "../../components/payment/CardPaymentForm";
+---
+
+<Layout title="Pago con Tarjeta">
+  <div class="flex min-h-screen flex-col bg-background">
+    <main class="flex-1">
+      <CardPaymentForm client:load />
+    </main>
+  </div>
+</Layout>

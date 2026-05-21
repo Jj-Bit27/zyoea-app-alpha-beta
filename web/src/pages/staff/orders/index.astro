@@ -1,0 +1,8 @@
+---
+import StaffLayout from "../../../layouts/StaffLayout.astro";
+import StaffOrderHistory from "../../../components/order/StaffOrderHistory";
+---
+
+<StaffLayout title="Historial de Órdenes">
+  <StaffOrderHistory client:load />
+</StaffLayout>

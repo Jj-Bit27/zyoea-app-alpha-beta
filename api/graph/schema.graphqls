@@ -1,0 +1,437 @@
+# graph/schema.graphqls
+
+scalar Time
+scalar Int64
+
+# --- Users (Usuarios) ---
+type User {
+  id: ID!
+  name: String
+  email: String
+  role: String
+  isVerified: Boolean!
+}
+
+type UserWithRestaurant {
+  id: ID!
+  name: String
+  email: String
+  role: String
+  isVerified: Boolean!
+  restaurant: Int
+}
+
+type AuthResponse {
+  accessToken: String!
+  user: User!
+  restaurant: Int
+}
+
+input RegisterInput {
+  name: String!
+  email: String!
+  password: String!
+  role: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+  restaurant: Int
+}
+
+# --- Restaurants (Restaurantes) ---
+type Restaurant {
+  id: ID!
+  name: String!
+  address: String!
+  email: String!
+  description: String!
+  image: String
+  phone: String!
+  hours: String!
+}
+
+input CreateRestaurantInput {
+  name: String!
+  address: String!
+  email: String!
+  description: String!
+  image: String
+  phone: String!
+  hours: String!
+}
+
+input UpdateRestaurantInput {
+  id: ID!
+  name: String
+  address: String
+  email: String
+  description: String
+  image: String
+  phone: String
+  hours: String
+}
+
+# --- Payments (Pagos) ---
+type Payment {
+  id: ID!
+  userId: String!
+  user: User!
+  stripePaymentIntentId: String!
+  stripePaymentMethodId: String
+  amount: Float!
+  currency: String!
+  status: String!
+  description: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+input CreatePaymentInput {
+  userId: String!
+  amount: Float!
+  currency: String!
+  paymentMethodId: String!
+  description: String
+}
+
+input RefundPaymentInput {
+  payment: ID!
+  amount: Float
+}
+
+# --- Products (Productos) ---
+type Product {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  categoryId: Int!
+  category: Category!
+  name: String!
+  description: String
+  ingredients: String
+  allergens: String
+  price: Float!
+  status: Boolean!
+  image: String
+}
+
+input CreateProductInput {
+  restaurant: Int!
+  category: Int!
+  name: String!
+  description: String
+  ingredients: String
+  allergens: String
+  price: Float!
+  status: Boolean!
+  image: String
+}
+
+input UpdateProductInput {
+  id: ID!
+  restaurant: Int
+  category: Int
+  name: String
+  description: String
+  ingredients: String
+  allergens: String
+  price: Float
+  status: Boolean
+  image: String
+}
+
+# --- Bookings (Reservas) ---
+type Booking {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  userId: Int!
+  user: User!
+  tableId: Int!
+  people: Int!
+  time: Time!
+  status: String!
+}
+
+input CreateBookingInput {
+  restaurant: Int!
+  user: Int!
+  table: Int!
+  people: Int!
+  time: Time!
+  status: String!
+}
+
+input UpdateBookingInput {
+  id: ID!
+  restaurant: Int
+  user: Int
+  table: Int
+  people: Int
+  time: Time
+  status: String
+}
+
+# --- Reviews (Comentarios) ---
+type Review {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  userId: Int!
+  user: User!
+  rating: Int!
+  comment: String!
+  date: Time!
+}
+
+input CreateReviewInput {
+  restaurant: Int!
+  user: Int!
+  rating: Int!
+  comment: String!
+}
+
+input UpdateReviewInput {
+  id: ID!
+  restaurant: Int
+  user: Int
+  rating: Int
+  comment: String
+}
+
+# --- Tables (Mesas) ---
+type Table {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  bookingId: Int
+  booking: Booking
+  number: Int!
+  capacity: Int!
+  status: String!
+}
+
+input CreateTableInput {
+  restaurant: Int!
+  number: Int!
+  capacity: Int!
+  status: String!
+}
+
+input UpdateTableInput {
+  id: ID!
+  restaurant: Int
+  number: Int
+  bookingId: Int
+  capacity: Int
+  status: String
+}
+
+# --- Categories (Categorias) ---
+type Category {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  name: String!
+}
+
+input CreateCategoryInput {
+  restaurant: Int!
+  name: String!
+}
+
+input UpdateCategoryInput {
+  id: ID!
+  restaurant: Int
+  name: String
+}
+
+# --- Employees (Empleados) ---
+type Employee {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  position: String!
+  hireDate: Time
+  userId: Int!
+  user: User!
+}
+
+input CreateEmployeeInput {
+  name: String!
+  email: String!
+  password: String! # Obligatorio al crear
+  role: String! # Obligatorio al crear
+  restaurantId: Int!
+  position: String!
+}
+
+input UpdateEmployeeInput {
+  id: ID!
+  name: String
+  email: String
+  restaurantId: Int
+  position: String
+}
+
+# --- Orders Ordenes) ---
+type Order {
+  id: ID!
+  userId: Int!
+  user: User!
+  user_name: String!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  status: String!
+  type: String!
+  total: Float!
+  notes: String
+  tableId: Int
+  date: Time!
+  paid: Boolean!
+  orderDetail: OrderDetail
+}
+
+type OrderDetail {
+  id: ID!
+  order: Int!
+  productId: Int!
+  product: Product!
+  quantity: Int!
+  subtotal: Float!
+}
+
+input OrderItemInput {
+  productId: Int!
+  quantity: Int!
+  subtotal: Float!
+}
+
+input CreateOrderInput {
+  user: Int!
+  user_name: String!
+  restaurant: Int!
+  status: String!
+  type: String!
+  total: Float!
+  notes: String
+  table: Int
+  paid: Boolean
+  items: [OrderItemInput!]!
+}
+
+input UpdateOrderInput {
+  id: ID!
+  estado: String # Según tu código NestJS, solo actualizas estado
+}
+
+# --- QUERIES (Lectura) ---
+type Query {
+  # --- Users (Usuarios) ---
+  verifyToken(token: String): UserWithRestaurant
+
+  # -- Restaurants (Restaurantes) --
+  restaurants: [Restaurant!]!
+  restaurant(id: ID!): Restaurant!
+
+  # --- Payments (Pagos) ---
+  payment(id: ID!): Payment
+  payments(limit: Int, offset: Int): [Payment!]!
+  userPayments(userId: String!): [Payment!]!
+
+  # -- Bookings (Reservas) --
+  bookings(restaurantId: ID!): [Booking!]!
+  bookingsUser(userId: ID!): [Booking!]!
+  booking(id: ID!): Booking!
+
+  # -- Products (Productos) --
+  products(restaurantId: ID!): [Product!]!
+  product(id: ID!): Product!
+
+  # -- Reviews (Reseñas) --
+  reviews(restaurantId: ID!): [Review!]!
+  review(id: ID!): Review!
+
+  # --- Tables (Mesas) ---
+  tables(restaurantId: ID!): [Table!]!
+  table(id: ID!): Table!
+
+  # --- Categories (Categorias) ---
+  categories(restaurantId: ID!): [Category!]!
+  category(id: ID!): Category!
+
+  # --- Employees (Empleados) ---
+  employeesByRestaurant(restaurantId: ID!): [Employee!]!
+  employee(id: ID!): Employee!
+
+  # --- Orders (Ordenes) ---
+  ordersByRestaurant(restaurantId: ID!): [Order!]!
+  ordersOpen(restaurantId: ID!): [Order!]!
+  ordersByUser(userId: ID!): [Order!]!
+  order(id: ID!): Order!
+}
+
+# --- MUTATIONS (Escritura) ---
+type Mutation {
+  # --- Users (Usuarios) ---
+  register(input: RegisterInput!): AuthResponse!
+  login(input: LoginInput!): AuthResponse!
+  verifyEmail(code: String!): User!
+  forgotPassword(email: String!): Boolean!
+  resetPassword(token: String!, password: String!): Boolean!
+
+  # -- Restaurants (Restaurantes) --
+  createRestaurant(input: CreateRestaurantInput!): Restaurant!
+  updateRestaurant(id: ID!, input: UpdateRestaurantInput!): Restaurant!
+  deleteRestaurant(id: ID!): Boolean!
+
+  # --- Payments (Pagos) ---
+  createPayment(input: CreatePaymentInput!): Payment!
+  refundPayment(input: RefundPaymentInput!): Payment!
+
+  # -- Bookings (Reservas) --
+  createBooking(input: CreateBookingInput!): Booking!
+  updateBooking(id: ID!, input: UpdateBookingInput!): Booking!
+  deleteBooking(id: ID!): Boolean!
+
+  # -- Products (Productos) --
+  createProduct(input: CreateProductInput!): Product!
+  updateProduct(id: ID!, input: UpdateProductInput!): Product!
+  deleteProduct(id: ID!): Boolean!
+
+  # -- Reviews (Reseñas) --
+  createReview(input: CreateReviewInput!): Review!
+  updateReview(id: ID!, input: UpdateReviewInput!): Review!
+  deleteReview(id: ID!): Boolean!
+
+  # --- Tables (Mesas) ---
+  createTable(input: CreateTableInput!): Table!
+  updateTable(id: ID!, input: UpdateTableInput!): Table!
+  deleteTable(id: ID!): Boolean!
+
+  # --- Categories (Categorias) ---
+  createCategory(input: CreateCategoryInput!): Category!
+  updateCategory(id: ID!, input: UpdateCategoryInput!): Category!
+  deleteCategory(id: ID!): Boolean!
+
+  # --- Employees (Empleados) ---
+  createEmployee(input: CreateEmployeeInput!): Employee!
+  updateEmployee(input: UpdateEmployeeInput!): Employee!
+  removeEmployee(id: ID!): Boolean!
+
+  # --- Orders (Ordenes) ---
+  createOrder(input: CreateOrderInput!): Order!
+  updateOrderStatus(id: ID!, status: String!): Order!
+  updateOrderPayment(id: ID!, paid: Boolean!): Order!
+  addOrderItems(orderId: ID!, items: [OrderItemInput!]!): Order!
+  removeOrderItem(orderId: ID!, itemId: ID!): Order!
+  removeOrder(id: ID!): Boolean!
+}
+
+type Subscription {
+  # El backend enviará una Order cada vez que ocurra este evento
+  orderCreated(restaurantId: Int!): Order!
+  orderStatusUpdated(restaurantId: Int!): Order!
+}

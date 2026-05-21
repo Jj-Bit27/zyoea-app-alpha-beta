@@ -1,0 +1,17 @@
+---
+import Layout from "../../../../layouts/Layout.astro";
+import { ProductCatalog } from "../../../../components/restaurant/ProductCatalog";
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const restaurantId: string = String(id);
+---
+
+<Layout title={`Menu`}>
+  <div class="flex min-h-screen flex-col bg-background">
+    <main class="flex-1">
+      <ProductCatalog restaurantId={restaurantId} client:load />
+    </main>
+  </div>
+</Layout>

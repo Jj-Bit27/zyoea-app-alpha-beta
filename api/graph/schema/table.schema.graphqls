@@ -1,0 +1,39 @@
+scalar Time
+
+type Table {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  bookingId: Int
+  booking: Booking
+  number: Int!
+  capacity: Int!
+  status: String!
+}
+
+input CreateTableInput {
+  restaurant: Int!
+  number: Int!
+  capacity: Int!
+  status: String!
+}
+
+input UpdateTableInput {
+  id: ID!
+  restaurant: Int
+  number: Int
+  bookingId: Int
+  capacity: Int
+  status: String
+}
+
+type Query {
+  tables(restaurantId: ID!): [Table!]!
+  table(id: ID!): Table!
+}
+
+type Mutation {
+  createTable(input: CreateTableInput!): Table!
+  updateTable(id: ID!, input: UpdateTableInput!): Table!
+  deleteTable(id: ID!): Boolean!
+}

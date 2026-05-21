@@ -1,0 +1,38 @@
+scalar Time
+
+type Review {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  userId: Int!
+  user: User!
+  rating: Int!
+  comment: String!
+  date: Time!
+}
+
+input CreateReviewInput {
+  restaurant: Int!
+  user: Int!
+  rating: Int!
+  comment: String!
+}
+
+input UpdateReviewInput {
+  id: ID!
+  restaurant: Int
+  user: Int
+  rating: Int
+  comment: String
+}
+
+type Query {
+  reviews(restaurantId: ID!): [Review!]!
+  review(id: ID!): Review!
+}
+
+type Mutation {
+  createReview(input: CreateReviewInput!): Review!
+  updateReview(id: ID!, input: UpdateReviewInput!): Review!
+  deleteReview(id: ID!): Boolean!
+}

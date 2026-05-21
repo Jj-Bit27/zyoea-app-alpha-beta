@@ -1,0 +1,8 @@
+---
+import StaffLayout from "../../../layouts/StaffLayout.astro";
+import { ProductsManager } from "../../../components/staff/ProductManager";
+---
+
+<StaffLayout title="Gestión de Productos">
+  <ProductsManager client:load />
+</StaffLayout>

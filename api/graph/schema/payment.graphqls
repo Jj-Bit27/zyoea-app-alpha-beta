@@ -1,0 +1,37 @@
+type Payment {
+  id: ID!
+  userId: String!
+  user: User!
+  stripePaymentIntentId: String!
+  stripePaymentMethodId: String
+  amount: Float!
+  currency: String!
+  status: String!
+  description: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+input CreatePaymentInput {
+  userId: String!
+  amount: Float!
+  currency: String!
+  paymentMethodId: String!
+  description: String
+}
+
+input RefundPaymentInput {
+  payment: ID!
+  amount: Float
+}
+
+type Query {
+  payment(id: ID!): Payment
+  payments(limit: Int, offset: Int): [Payment!]!
+  userPayments(userId: String!): [Payment!]!
+}
+
+type Mutation {
+  createPayment(input: CreatePaymentInput!): Payment!
+  refundPayment(input: RefundPaymentInput!): Payment!
+}

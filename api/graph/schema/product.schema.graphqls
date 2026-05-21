@@ -1,0 +1,52 @@
+scalar Time
+
+type Product {
+  id: ID!
+  restaurantId: Int!
+  restaurant: Restaurant!
+  categoryId: Int!
+  category: Category!
+  name: String!
+  description: String
+  ingredients: String
+  allergens: String
+  price: Float!
+  status: Boolean!
+  image: String
+}
+
+input CreateProductInput {
+  restaurant: Int!
+  category: Int!
+  name: String!
+  description: String
+  ingredients: String
+  allergens: String
+  price: Float!
+  status: Boolean!
+  image: String
+}
+
+input UpdateProductInput {
+  id: ID!
+  restaurant: Int
+  category: Int
+  name: String
+  description: String
+  ingredients: String
+  allergens: String
+  price: Float
+  status: Boolean
+  image: String
+}
+
+type Query {
+  products(restaurantId: ID!): [Product!]!
+  product(id: ID!): Product!
+}
+
+type Mutation {
+  createProduct(input: CreateProductInput!): Product!
+  updateProduct(id: ID!, input: UpdateProductInput!): Product!
+  deleteProduct(id: ID!): Boolean!
+}

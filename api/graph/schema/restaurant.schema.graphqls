@@ -1,0 +1,47 @@
+scalar Time
+
+type Restaurant {
+  id: ID!
+  name: String!
+  address: String!
+  email: String!
+  description: String!
+  image: String
+  phone: String!
+  hours: String!
+}
+
+input CreateRestaurantInput {
+  name: String!
+  address: String!
+  email: String!
+  description: String!
+  image: String
+  phone: String!
+  hours: String!
+}
+
+input UpdateRestaurantInput {
+  id: ID!
+  name: String
+  address: String
+  email: String
+  description: String
+  image: String
+  phone: String
+  hours: String
+}
+
+type Query {
+  restaurants: [Restaurant!]!
+
+  restaurant(id: ID!): Restaurant
+}
+
+type Mutation {
+  createRestaurant(input: CreateRestaurantInput!): Restaurant!
+
+  updateRestaurant(id: ID!, input: UpdateRestaurantInput!): Restaurant!
+
+  deleteRestaurant(id: ID!): Boolean!
+}

@@ -1,0 +1,34 @@
+---
+import Layout from "../../../../../layouts/Layout.astro";
+import ProductDetailManager from "../../../../../components/restaurant/ProductDetailManager";
+import { ApolloWrapper } from "../../../../../components/ApolloWrapper";
+import { IoArrowBack } from "react-icons/io5";
+
+export const prerender = false;
+
+const { id, productId } = Astro.params;
+---
+
+<Layout title="Detalle del Producto">
+  <div class="flex min-h-screen flex-col bg-background">
+    <main class="flex-1">
+      <div class="mx-auto max-w-7xl px-4 py-6">
+        <a
+          href={`/restaurants/${id}/products`}
+          class="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <IoArrowBack className="h-4 w-4" />
+          Volver al menú
+        </a>
+
+        <ApolloWrapper>
+          <ProductDetailManager
+            productId={productId!}
+            restaurantId={id!}
+            client:load
+          />
+        </ApolloWrapper>
+      </div>
+    </main>
+  </div>
+</Layout>
