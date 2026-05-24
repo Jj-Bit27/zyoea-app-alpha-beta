@@ -318,6 +318,7 @@ type User struct {
 	Email      *string `json:"email,omitempty"`
 	Role       *string `json:"role,omitempty"`
 	IsVerified bool    `json:"isVerified"`
+	Allergies  *string `json:"allergies,omitempty"`
 }
 
 type UserWithRestaurant struct {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useMutation } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
+import type { Order } from "../types";
 
 const API_URL = "http://localhost:8080";
 
@@ -16,9 +17,9 @@ const UPDATE_ORDER_STATUS = gql`
 
 export function useKitchen(restaurantId: string | undefined) {
   const wsRef = useRef<WebSocket | null>(null);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const fetchOrders = useCallback(async () => {
     if (!restaurantId) return;
@@ -28,8 +29,8 @@ export function useKitchen(restaurantId: string | undefined) {
       const data = await res.json();
       setOrders(data || []);
       setError(null);
-    } catch (err: any) {
-      setError(err);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }

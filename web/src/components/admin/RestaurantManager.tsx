@@ -20,7 +20,7 @@ function RestaurantsManagerContent() {
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
   if (error) return <div className="p-6 bg-destructive/10 text-destructive rounded-lg">{error.message}</div>;
 
-  const filteredRestaurants = restaurants.filter((r: any) =>
+  const filteredRestaurants = restaurants.filter((r) =>
     r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -69,7 +69,7 @@ function RestaurantsManagerContent() {
 
       {/* Grid de Restaurantes */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredRestaurants.map((rest: any) => (
+        {filteredRestaurants.map((rest) => (
           <Card key={rest.id} className="hover:shadow-md transition-shadow">
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-4">

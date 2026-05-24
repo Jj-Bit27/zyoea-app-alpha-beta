@@ -3,6 +3,7 @@ package tables
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
@@ -114,13 +115,14 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Table, error) 
 	sql := `SELECT id, restaurant, booking, "number", capacity, "status" FROM tables WHERE id = $1`
 
 	var b model.Table
-	var idScanned int
+	var idScanned, restID int
+	var bookingID *int
 
 	// 2. Ejecutar Query
 	err = s.DB.QueryRow(ctx, sql, dbID).Scan(
 		&idScanned,
-		&b.Restaurant,
-		&b.Booking,
+		&restID,
+		&bookingID,
 		&b.Number,
 		&b.Capacity,
 		&b.Status,
@@ -134,6 +136,15 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Table, error) 
 	}
 
 	b.ID = fmt.Sprintf("%d", idScanned)
+	b.Restaurant = &model.Restaurant{
+		ID: strconv.Itoa(restID),
+	}
+	if bookingID != nil {
+		b.Booking = &model.Booking{
+			ID: strconv.Itoa(*bookingID),
+		}
+	}
+
 	return &b, nil
 }
 
@@ -175,7 +186,7 @@ func (s *Service) Update(ctx context.Context, id string, input model.UpdateTable
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("no se encontró la mesa para actualizar")
+			return nil, errors.New("no se encontró la mesa para actualizar")
 		}
 		return nil, fmt.Errorf("error al actualizar: %w", err)
 	}

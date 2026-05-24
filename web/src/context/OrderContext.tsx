@@ -2,6 +2,15 @@ import { atom, computed } from "nanostores";
 import { useStore } from "@nanostores/react";
 import { addToast } from "../components/custom/Toast";
 
+interface AddToCartProduct {
+  id: string | number;
+  name: string;
+  price: number;
+  image?: string;
+  restaurantId?: string | number;
+  restaurantName?: string;
+}
+
 export interface CartItem {
   id: string;
   name: string;
@@ -44,7 +53,7 @@ export const $cartTotal = computed($cart, (items) =>
 // --- 4. Acciones (Ahora devuelven un objeto result) ---
 
 export const addToCart = (
-  product: any,
+  product: AddToCartProduct,
   restaurantId?: string,
   restaurantName?: string,
 ) => {

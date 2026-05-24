@@ -4,7 +4,7 @@ import {
   FiActivity,
   FiTrendingUp,
 } from "react-icons/fi";
-import { Card, CardContent, CardHeader, CardTitle } from "../custom/Card";
+import type { Order, Restaurant } from "../../types";
 import { Spinner } from "../custom/Spinner";
 import { useRestaurants } from "../../hooks/useRestaurants";
 import { ApolloWrapper } from "../ApolloWrapper";
@@ -103,7 +103,7 @@ function AdminDashboardContent() {
             </p>
           ) : (
             <div className="space-y-3">
-              {restaurants.map((rest: any) => (
+              {restaurants.map((rest: Restaurant) => (
                 <div
                   key={rest.id}
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"

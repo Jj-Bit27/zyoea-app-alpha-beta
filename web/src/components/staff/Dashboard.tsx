@@ -42,15 +42,15 @@ function DashboardContent() {
   }
 
   const activeOrders = orders.filter(
-    (o: any) => o.status !== "entregado" && o.status !== "cancelado",
+    (o) => o.status !== "entregado" && o.status !== "cancelado",
   );
   const totalRevenue = orders
-    .filter((o: any) => o.status !== "CANCELADA" && o.status !== "cancelado")
-    .reduce((sum: number, o: any) => sum + (o.total || 0), 0);
+    .filter((o) => o.status !== "CANCELADA" && o.status !== "cancelado")
+    .reduce((sum, o) => sum + (o.total || 0), 0);
   const occupiedTables = tables.filter(
-    (t: any) => t.status === "ocupada" || t.status === "occupied",
+    (t) => t.status === "ocupada" || t.status === "occupied",
   ).length;
-  const todayBookings = bookings.filter((b: any) => {
+  const todayBookings = bookings.filter((b) => {
     if (!b.time) return false;
     const bookingDate = new Date(b.time);
     const today = new Date();
@@ -130,7 +130,7 @@ function DashboardContent() {
               </p>
             ) : (
               <div className="space-y-4">
-                {orders.slice(0, 5).map((order: any) => (
+                {orders.slice(0, 5).map((order) => (
                   <div
                     key={order.id}
                     className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
@@ -171,7 +171,7 @@ function DashboardContent() {
               </p>
             ) : (
               <div className="space-y-4">
-                {bookings.slice(0, 5).map((b: any) => (
+                {bookings.slice(0, 5).map((b) => (
                   <div
                     key={b.id}
                     className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"

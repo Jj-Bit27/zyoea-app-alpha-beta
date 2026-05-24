@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react'
-import { IoAdd, IoStar, IoTrash, IoPencil } from 'react-icons/io5'
+import { IoAdd, IoStar, IoTrash } from 'react-icons/io5'
 import { Card, CardContent } from '../custom/Card'
 import { Button } from '../custom/Button'
 import { Avatar } from '../custom/Avatar'
 import { Rating } from '../custom/Rating'
 import { Modal, ModalHeader, ModalBody, ModalFooter } from '../custom/Modal'
-import { Input } from '../custom/Input'
 import { Textarea } from '../custom/Textarea'
 import { EmptyState } from '../custom/EmptyState'
 import { Spinner } from '../custom/Spinner'
@@ -14,7 +13,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useReviews } from '../../hooks/useReviews'
 import { ApolloWrapper } from '../ApolloWrapper'
 
-function ReviewManagerContent({ restaurantId, restaurantName }: { restaurantId: string, restaurantName: string }) {
+function ReviewManagerContent({ restaurantId, restaurantName, compact }: { restaurantId: string, restaurantName: string, compact?: boolean }) {
   const { user } = useAuth()
   const { showToast } = useToast()
   const { reviews, loading, error, createReview, deleteReview } = useReviews(restaurantId)
@@ -22,11 +21,13 @@ function ReviewManagerContent({ restaurantId, restaurantName }: { restaurantId: 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [newReview, setNewReview] = useState({ title: '', content: '', rating: 5 })
 
-  const userReview = useMemo(() => reviews.find((r: any) => String(r.userId) === user?.id), [reviews, user?.id])
+  const userReview = useMemo(() => reviews.find((r) => String(r.userId) === user?.id), [reviews, user?.id])
 
   const averageRating = reviews.length > 0
-    ? reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length
+    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
     : 0
+
+  const displayReviews = compact ? reviews.slice(0, 3) : reviews
 
   const handleSubmitReview = () => {
     if (!newReview.content.trim()) {
@@ -52,17 +53,21 @@ function ReviewManagerContent({ restaurantId, restaurantName }: { restaurantId: 
 
   return (
     <>
-      <div className="flex items-start justify-between gap-4 mb-8">
+      <div className={`flex items-start justify-between gap-4 ${compact ? 'mb-4' : 'mb-8'}`}>
         <div>
-          <h1 className="text-2xl font-bold">Reseñas {restaurantName ? `de ${restaurantName}` : ''}</h1>
-          <div className="mt-2 flex items-center gap-3">
+          {!compact && (
+            <h1 className="text-2xl font-bold">Reseñas {restaurantName ? `de ${restaurantName}` : ''}</h1>
+          )}
+          <div className="flex items-center gap-3 mt-1">
             <Rating value={averageRating} />
             <span className="text-lg font-semibold">{averageRating.toFixed(1)}</span>
             <span className="text-muted-foreground">({reviews.length} reseñas)</span>
           </div>
         </div>
         {user && !userReview && (
-          <Button onClick={() => setIsModalOpen(true)}><IoAdd /> Escribir Reseña</Button>
+          <Button size={compact ? 'sm' : 'default'} onClick={() => setIsModalOpen(true)}>
+            <IoAdd /> {compact ? 'Reseña' : 'Escribir Reseña'}
+          </Button>
         )}
       </div>
 
@@ -70,7 +75,7 @@ function ReviewManagerContent({ restaurantId, restaurantName }: { restaurantId: 
         <EmptyState icon={IoStar} title="Aún no hay reseñas" description="Sé el primero en compartir tu experiencia" action={user ? { label: 'Escribir Reseña', onClick: () => setIsModalOpen(true) } : undefined} />
       ) : (
         <div className="space-y-4">
-          {reviews.map((review: any) => (
+          {displayReviews.map((review) => (
             <Card key={review.id}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
@@ -116,10 +121,12 @@ function ReviewManagerContent({ restaurantId, restaurantName }: { restaurantId: 
   )
 }
 
-export default function ReviewManager({ restaurantId, restaurantName }: { restaurantId: string, restaurantName: string }) {
+export function ReviewManager({ restaurantId, restaurantName, compact }: { restaurantId: string, restaurantName: string, compact?: boolean }) {
   return (
     <ApolloWrapper>
-      <ReviewManagerContent restaurantId={restaurantId} restaurantName={restaurantName} />
+      <ReviewManagerContent restaurantId={restaurantId} restaurantName={restaurantName} compact={compact} />
     </ApolloWrapper>
   )
 }
+
+export default ReviewManager

@@ -8,6 +8,7 @@ CREATE TABLE users (
     "role" VARCHAR(40) DEFAULT 'user',
     register_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_verified BOOLEAN DEFAULT FALSE,
+    allergies TEXT,
     token_verification VARCHAR(100),
     token_expiration_verification TIMESTAMP,
     reset_token_password VARCHAR(100),

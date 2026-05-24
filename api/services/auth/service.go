@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"os"
 	"regexp"
@@ -41,10 +42,10 @@ var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`
 func (s *Service) Register(ctx context.Context, input model.RegisterInput) (*model.AuthResponse, error) {
 	// A. Validaciones manuales (Reemplazo de class-validator)
 	if len(input.Password) < 6 {
-		return nil, fmt.Errorf("la contraseña debe tener al menos 6 caracteres")
+		return nil, errors.New("la contraseña debe tener al menos 6 caracteres")
 	}
 	if !emailRegex.MatchString(strings.ToLower(input.Email)) {
-		return nil, fmt.Errorf("email inválido")
+		return nil, errors.New("email inválido")
 	}
 
 	// B. Verificar si existe
@@ -67,11 +68,11 @@ func (s *Service) Register(ctx context.Context, input model.RegisterInput) (*mod
 	sql := `
 		INSERT INTO users (name, email, password, role, token_verification, token_expiration_verification)
 		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, name, email, role, is_verified
+		RETURNING id, name, email, role, is_verified, allergies
 	`
 	err := s.DB.QueryRow(ctx, sql,
 		input.Name, input.Email, string(hashedPwd), input.Role, verificationToken, verificationExp,
-	).Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.IsVerified)
+	).Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.IsVerified, &u.Allergies)
 
 	if err != nil {
 		return nil, fmt.Errorf("error DB: %w", err)
@@ -101,9 +102,9 @@ func (s *Service) Login(ctx context.Context, input model.LoginInput) (*model.Aut
 	var storedHash string
 
 	// A. Buscar Usuario
-	sql := `SELECT id, name, email, role, password, is_verified FROM users WHERE email = $1`
+	sql := `SELECT id, name, email, role, password, is_verified, allergies FROM users WHERE email = $1`
 	err := s.DB.QueryRow(ctx, sql, input.Email).Scan(
-		&u.ID, &u.Name, &u.Email, &u.Role, &storedHash, &u.IsVerified,
+		&u.ID, &u.Name, &u.Email, &u.Role, &storedHash, &u.IsVerified, &u.Allergies,
 	)
 	if err == pgx.ErrNoRows {
 		return nil, errors.New("no existe esa cuenta")
@@ -120,15 +121,10 @@ func (s *Service) Login(ctx context.Context, input model.LoginInput) (*model.Aut
 	if u.Role != nil && (*u.Role == "staff" || *u.Role == "admin") {
 		err := s.DB.QueryRow(ctx, "SELECT r.id FROM employees e INNER JOIN restaurants r ON e.restaurant = r.id WHERE e.\"user\" = $1", u.ID).Scan(&restID)
 		if err != nil && err != pgx.ErrNoRows {
-			fmt.Printf("Error buscando restaurant del empleado: %v\n", err)
+			slog.Warn("Error buscando restaurant del empleado", "error", err)
 		}
 	}
 
-	fmt.Println(input)
-	fmt.Println(u)
-	fmt.Println(restID)
-
-	// D. Generar Token
 	dbID, err := strconv.Atoi(u.ID)
 
 	token, _ := s.generateJWT(dbID, *u.Role, restID)
@@ -149,9 +145,9 @@ func (s *Service) VerifyEmail(ctx context.Context, code string) (*model.User, er
 		UPDATE users 
 		SET is_verified = true, token_verification = NULL, token_expiration_verification = NULL
 		WHERE token_verification = $1
-		RETURNING id, name, email, role, is_verified
+		RETURNING id, name, email, role, is_verified, allergies
 	`
-	err := s.DB.QueryRow(ctx, sql, code).Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.IsVerified)
+	err := s.DB.QueryRow(ctx, sql, code).Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.IsVerified, &u.Allergies)
 	if err == pgx.ErrNoRows {
 		return nil, errors.New("el código es inválido")
 	}
@@ -227,6 +223,38 @@ func (s *Service) VerifyToken(ctx context.Context, tokenString string) (*model.U
 		if err == nil {
 			u.Restaurant = &rID
 		}
+	}
+	return &u, nil
+}
+
+// ----------------------------------------------------------------
+// GET USER
+// ----------------------------------------------------------------
+func (s *Service) GetUser(ctx context.Context, id string) (*model.User, error) {
+	var u model.User
+	sql := `SELECT id, name, email, role, is_verified, allergies FROM users WHERE id = $1`
+	err := s.DB.QueryRow(ctx, sql, id).Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.IsVerified, &u.Allergies)
+	if err == pgx.ErrNoRows {
+		return nil, errors.New("usuario no encontrado")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener usuario: %w", err)
+	}
+	return &u, nil
+}
+
+// ----------------------------------------------------------------
+// UPDATE ALLERGIES
+// ----------------------------------------------------------------
+func (s *Service) UpdateAllergies(ctx context.Context, id string, allergies string) (*model.User, error) {
+	var u model.User
+	sql := `UPDATE users SET allergies = $1 WHERE id = $2 RETURNING id, name, email, role, is_verified, allergies`
+	err := s.DB.QueryRow(ctx, sql, allergies, id).Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.IsVerified, &u.Allergies)
+	if err == pgx.ErrNoRows {
+		return nil, errors.New("usuario no encontrado")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("error al actualizar alergias: %w", err)
 	}
 	return &u, nil
 }

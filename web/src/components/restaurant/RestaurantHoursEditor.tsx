@@ -35,7 +35,7 @@ function parseHours(hours: string): HoursData {
       const result: HoursData = {};
       for (const day of DAYS) {
         if (Array.isArray(parsed[day])) {
-          result[day] = parsed[day].map((r: any) => ({
+          result[day] = parsed[day].map((r) => ({
             open: r.open || "09:00",
             close: r.close || "22:00",
           }));

@@ -3,7 +3,9 @@ package oauth
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
@@ -310,7 +312,7 @@ func (s *Service) createOrUpdateUser(ctx context.Context, email string, name str
 			u.ID,
 		).Scan(&restID)
 		if err != nil && err != pgx.ErrNoRows {
-			fmt.Printf("Error buscando restaurant del empleado (OAuth): %v\n", err)
+			slog.Warn("Error buscando restaurant del empleado (OAuth)", "error", err)
 		}
 	}
 
@@ -333,7 +335,7 @@ func (s *Service) createOrUpdateUser(ctx context.Context, email string, name str
 func (s *Service) generateJWT(userID int, role string, restID int) (string, error) {
 	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
 	if len(jwtSecret) == 0 {
-		return "", fmt.Errorf("JWT_SECRET no está configurado")
+		return "", errors.New("JWT_SECRET no está configurado")
 	}
 
 	claims := jwt.MapClaims{

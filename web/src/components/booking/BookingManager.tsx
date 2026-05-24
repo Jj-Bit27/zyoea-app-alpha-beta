@@ -16,6 +16,7 @@ import { useTables } from "../../hooks/useTables";
 import { useBookings, useBookingsByUser } from "../../hooks/useBookings";
 import { ApolloWrapper } from "../ApolloWrapper";
 import { FiTrash2 } from "react-icons/fi";
+import { Booking } from "../../types";
 
 const statusColors = {
   pending: "warning",
@@ -122,10 +123,10 @@ function BookingManagerContent() {
   const { tables: editTables } = useTables(editForm.restaurantId);
 
   const availableCreateTables = createTables.filter(
-    (t: any) => t.status === "available" || t.status === "disponible",
+    (t) => t.status === "available" || t.status === "disponible",
   );
   const availableEditTables = editTables.filter(
-    (t: any) => t.status === "available" || t.status === "disponible",
+    (t) => t.status === "available" || t.status === "disponible",
   );
 
   // Modal para crear nueva reserva
@@ -133,15 +134,15 @@ function BookingManagerContent() {
 
   // Modal para editar reserva existente
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingBooking, setEditingBooking] = useState<any>(null);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
   const userBookings = useMemo(() => {
-    return bookings.filter((b: any) => String(b.user.id) === user?.id);
+    return bookings.filter((b) => String(b.user.id) === user?.id);
   }, [bookings, user?.id]);
 
   const restaurantOptions = [
     { value: "", label: "Selecciona un restaurante" },
-    ...restaurants.map((r: any) => ({ value: r.id, label: r.name })),
+    ...restaurants.map((r) => ({ value: r.id, label: r.name })),
   ];
 
   if (!user) {
@@ -177,7 +178,7 @@ function BookingManagerContent() {
     setIsCreateModalOpen(false);
   };
 
-  const handleOpenEdit = (booking: any) => {
+  const handleOpenEdit = (booking: Booking) => {
     const bookingDate = booking.time ? new Date(booking.time) : new Date();
     const dateStr = bookingDate.toISOString().split("T")[0];
     const hours = String(bookingDate.getUTCHours()).padStart(2, "0");
@@ -239,7 +240,7 @@ function BookingManagerContent() {
         />
       ) : (
         <div className="space-y-4">
-          {userBookings.map((booking: any) => (
+          {userBookings.map((booking) => (
             <Card
               key={booking.id}
               className="group hover:shadow-lg transition-shadow"
@@ -275,7 +276,7 @@ function BookingManagerContent() {
                   <div className="flex items-center gap-1">
                     <Badge
                       variant={
-                        (statusColors as any)[booking.status] || "secondary"
+                        (statusColors as Record<string, string>)[booking.status] || "secondary"
                       }
                     >
                       {statusLabels[booking.status] || booking.status}
@@ -357,7 +358,7 @@ function BookingManagerContent() {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Seleccionar mesa</option>
-                {availableCreateTables.map((t: any) => (
+                {availableCreateTables.map((t) => (
                   <option key={t.id} value={t.id}>Mesa {t.number} ({t.capacity} pers.)</option>
                 ))}
               </select>
@@ -421,7 +422,7 @@ function BookingManagerContent() {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="">Seleccionar mesa</option>
-                {availableEditTables.map((t: any) => (
+                {availableEditTables.map((t) => (
                   <option key={t.id} value={t.id}>Mesa {t.number} ({t.capacity} pers.)</option>
                 ))}
               </select>

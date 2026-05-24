@@ -317,10 +317,10 @@ type KitchenOrderResponse struct {
 }
 
 type KitchenDetailResponse struct {
-	ID        string             `json:"id"`
-	ProductID int                `json:"productId"`
-	Quantity  int                `json:"quantity"`
-	Subtotal  float64            `json:"subtotal"`
+	ID        string                  `json:"id"`
+	ProductID int                     `json:"productId"`
+	Quantity  int                     `json:"quantity"`
+	Subtotal  float64                 `json:"subtotal"`
 	Product   *KitchenProductResponse `json:"product,omitempty"`
 }
 

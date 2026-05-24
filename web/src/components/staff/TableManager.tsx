@@ -11,7 +11,7 @@ import { addToast } from "../custom/Toast";
 import { useTables } from "../../hooks/useTables";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
-import type { Table } from "../../types/index";
+import type { Order, Table } from "../../types/index";
 import { IoQrCode, IoCash } from "react-icons/io5";
 import { QRCodeSVG } from "qrcode.react";
 import { useOrders } from "../../hooks/useOrders";
@@ -28,7 +28,7 @@ const CREATE_PAYMENT = gql`
   }
 `;
 
-const statusColors: Record<string, any> = {
+const statusColors: Record<string, string> = {
   libre: "success",
   available: "success",
   ocupada: "warning",
@@ -44,7 +44,7 @@ function TablesManagerContent() {
     useTables(restaurantId);
   const [createPayment] = useMutation(CREATE_PAYMENT);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTable, setEditingTable] = useState<any>(null);
+  const [editingTable, setEditingTable] = useState<Table | null>(null);
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [totalOrder, setTotalOrder] = useState(0);
   const [formData, setFormData] = useState({
@@ -58,10 +58,10 @@ function TablesManagerContent() {
   const { bookings } = useBookings(restaurantId);
 
   // Calcular estado real de cada mesa en base a órdenes activas y reservas
-  const getTableStatus = (table: any): string => {
+  const getTableStatus = (table: Table): string => {
     // Verificar si hay una orden activa (ABIERTA o LISTA) en esta mesa
     const hasActiveOrder = orders.some(
-      (o: any) =>
+      (o) =>
         String(o.tableId) === String(table.id) &&
         (o.status === "ABIERTA" || o.status === "LISTA"),
     );
@@ -69,7 +69,7 @@ function TablesManagerContent() {
 
     // Verificar si hay una reserva activa (pending o confirmed) para esta mesa
     const hasActiveBooking = bookings.some(
-      (b: any) =>
+      (b) =>
         String(b.tableId) === String(table.id) &&
         (b.status === "pending" || b.status === "confirmed"),
     );
@@ -78,7 +78,7 @@ function TablesManagerContent() {
     return table.status || "available";
   };
 
-  const [tableOrderDetails, setTableOrderDetails] = useState<any[] | null>(null);
+  const [tableOrderDetails, setTableOrderDetails] = useState<Order[] | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   const handleViewHistory = async (table: Table) => {
@@ -87,12 +87,12 @@ function TablesManagerContent() {
     setIsHistoryModalOpen(true);
 
     const activeOrders = orders.filter(
-      (o: any) =>
+      (o) =>
         String(o.tableId) === String(table.id) &&
         (o.status === "ABIERTA" || o.status === "LISTA"),
     );
     const amount = activeOrders.reduce(
-      (sum: number, order: any) => sum + order.total,
+      (sum, order) => sum + order.total,
       0,
     );
     setTotalOrder(amount);
@@ -103,8 +103,8 @@ function TablesManagerContent() {
         const res = await fetch(`http://localhost:8080/api/kitchen/orders?restaurantId=${restaurantId}`);
         if (res.ok) {
           const data = await res.json();
-          const tableOrders = data.filter((o: any) =>
-            activeOrders.some((ao: any) => String(ao.id) === String(o.id)),
+          const tableOrders = data.filter((o) =>
+            activeOrders.some((ao) => String(ao.id) === String(o.id)),
           );
           setTableOrderDetails(tableOrders);
         }
@@ -119,13 +119,13 @@ function TablesManagerContent() {
   const handlePayCash = async (table: Table) => {
     try {
       const activeOrders = orders.filter(
-        (o: any) =>
+        (o) =>
           o.tableId === table.id &&
           o.status !== "entregado" &&
           o.status !== "cancelado",
       );
       const mockAmount = activeOrders.reduce(
-        (sum: number, order: any) => sum + order.total,
+        (sum, order) => sum + order.total,
         0,
       );
       await createPayment({
@@ -170,7 +170,7 @@ function TablesManagerContent() {
       </div>
     );
 
-  const handleOpenModal = (table?: any) => {
+  const handleOpenModal = (table?: Table) => {
     if (table) {
       setEditingTable(table);
       setFormData({
@@ -180,7 +180,7 @@ function TablesManagerContent() {
       });
     } else {
       setEditingTable(null);
-      const maxNumber = Math.max(...tables.map((t: any) => t.number), 0);
+      const maxNumber = Math.max(...tables.map((t) => t.number), 0);
       setFormData({
         number: String(maxNumber + 1),
         capacity: "4",
@@ -231,15 +231,15 @@ function TablesManagerContent() {
 
   const stats = {
     total: tables.length,
-    libre: tables.filter((t: any) => {
+    libre: tables.filter((t) => {
       const s = getTableStatus(t);
       return s === "libre" || s === "available";
     }).length,
-    ocupada: tables.filter((t: any) => {
+    ocupada: tables.filter((t) => {
       const s = getTableStatus(t);
       return s === "ocupada" || s === "occupied";
     }).length,
-    reservada: tables.filter((t: any) => {
+    reservada: tables.filter((t) => {
       const s = getTableStatus(t);
       return s === "reservada" || s === "reserved";
     }).length,
@@ -291,8 +291,8 @@ function TablesManagerContent() {
       {/* Tables Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {tables
-          .sort((a: any, b: any) => a.number - b.number)
-          .map((table: any) => {
+          .sort((a, b) => a.number - b.number)
+          .map((table) => {
             const computedStatus = getTableStatus(table);
             const isOccupied = computedStatus === "occupied" || computedStatus === "ocupada";
             const isReserved = computedStatus === "reserved" || computedStatus === "reservada";
@@ -331,7 +331,7 @@ function TablesManagerContent() {
                     >
                       {table.number}
                     </div>
-                    <Badge variant={statusVariant as any} className="mb-2">
+                    <Badge variant={statusVariant as "warning" | "primary" | "success"} className="mb-2">
                       {statusLabel}
                     </Badge>
                     <p className="text-sm text-muted-foreground flex items-center justify-center gap-1">
@@ -390,7 +390,7 @@ function TablesManagerContent() {
               </div>
             ) : tableOrderDetails && tableOrderDetails.length > 0 ? (
               <div className="space-y-4">
-                {tableOrderDetails.map((ord: any) => (
+                {tableOrderDetails.map((ord) => (
                   <div key={ord.id} className="bg-warning/10 border border-warning p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-bold">Orden #{ord.id}</h3>
@@ -400,7 +400,7 @@ function TablesManagerContent() {
                     </div>
                     {ord.orderDetail && ord.orderDetail.length > 0 ? (
                       <div className="space-y-2 mb-3">
-                        {ord.orderDetail.map((det: any) => (
+                        {ord.orderDetail.map((det) => (
                           <div key={det.id} className="flex items-center justify-between bg-white/50 dark:bg-black/10 rounded px-3 py-2 text-sm">
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-foreground">{det.quantity}</span>

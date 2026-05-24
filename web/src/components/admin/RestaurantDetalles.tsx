@@ -20,6 +20,7 @@ import { ApolloWrapper } from "../ApolloWrapper";
 import { Spinner } from "../custom/Spinner";
 import { useEmployees } from "../../hooks/useEmployees";
 import { addToast } from "../custom/Toast";
+import { Employee, Restaurant } from "../../types";
 
 interface RestaurantData {
   name: string;
@@ -44,7 +45,7 @@ export function RestaurantDetailContent({ id }: { id: string }) {
   const { orders } = useOrders(id);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
-  const [editingAdmin, setEditingAdmin] = useState<any>(null);
+  const [editingAdmin, setEditingAdmin] = useState<Employee | null>(null);
 
   const [formData, setFormData] = useState<RestaurantData>({
     name: "",
@@ -78,18 +79,18 @@ export function RestaurantDetailContent({ id }: { id: string }) {
   };
 
   const activeOrders = orders.filter(
-    (o: any) => o.status !== "entregado" && o.status !== "cancelado",
+    (o) => o.status !== "entregado" && o.status !== "cancelado",
   );
   const totalRevenue = orders.reduce(
-    (sum: number, o: any) => sum + (o.total || 0),
+    (sum: number, o) => sum + (o.total || 0),
     0,
   );
 
   console.log(employees);
 
-  const admins = employees.filter((emp: any) => emp.user.role == "admin");
+  const admins = employees.filter((emp) => emp.user.role == "admin");
 
-  const handleOpenEditModal = (restaurant?: any) => {
+  const handleOpenEditModal = (restaurant?: Restaurant) => {
     if (restaurant) {
       setFormData({
         name: restaurant.name,
@@ -104,7 +105,7 @@ export function RestaurantDetailContent({ id }: { id: string }) {
     setIsEditModalOpen(true);
   };
 
-  const handleOpenAdminModal = (admin?: any) => {
+  const handleOpenAdminModal = (admin?: Employee) => {
     if (admin) {
       setEditingAdmin(admin);
       setAdminFormData({

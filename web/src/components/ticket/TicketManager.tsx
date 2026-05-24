@@ -8,11 +8,12 @@ import { Spinner } from '../custom/Spinner'
 import { useAuth } from '../../context/AuthContext'
 import { useUserPayments } from '../../hooks/usePayments'
 import { ApolloWrapper } from '../ApolloWrapper'
+import type { Payment } from '../../types'
 
 function TicketManagerContent() {
   const { user } = useAuth()
   const { payments, loading } = useUserPayments(user?.id || '')
-  const [selectedPayment, setSelectedPayment] = useState<any>(null)
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
 
   if (!user) {
     return (
@@ -45,7 +46,7 @@ function TicketManagerContent() {
       <p className="mt-1 text-muted-foreground">Historial de tus pagos</p>
 
         <div className="mt-6 space-y-4">
-          {payments.map((payment: any) => (
+          {payments.map((payment) => (
             <Card
               key={payment.id}
               hoverable

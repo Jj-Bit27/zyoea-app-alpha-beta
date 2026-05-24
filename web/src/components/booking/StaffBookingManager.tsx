@@ -13,6 +13,7 @@ import { Spinner } from "../custom/Spinner";
 import { useAuth } from "../../context/AuthContext";
 import { useBookings } from "../../hooks/useBookings";
 import { ApolloWrapper } from "../ApolloWrapper";
+import { Booking } from "../../types";
 
 const statusColors = {
   pending: "warning",
@@ -36,10 +37,10 @@ function StaffBookingManagerContent() {
   // Separar activas e historial
   const { active, history } = useMemo(() => {
     const active = bookings.filter(
-      (b: any) => b.status === "pending" || b.status === "confirmed",
+      (b) => b.status === "pending" || b.status === "confirmed",
     );
     const history = bookings.filter(
-      (b: any) => b.status === "cancelled" || b.status === "completed",
+      (b) => b.status === "cancelled" || b.status === "completed",
     );
     return { active, history };
   }, [bookings]);
@@ -80,7 +81,7 @@ function StaffBookingManagerContent() {
     });
   };
 
-  const renderBooking = (booking: any, showDelete: boolean) => (
+  const renderBooking = (booking: Booking, showDelete: boolean) => (
     <Card key={booking.id} className="group hover:shadow-lg transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
@@ -91,7 +92,7 @@ function StaffBookingManagerContent() {
               </h3>
               <Badge
                 variant={
-                  (statusColors as any)[booking.status] || "secondary"
+                  (statusColors as Record<string, string>)[booking.status] || "secondary"
                 }
               >
                 {statusLabels[booking.status] || booking.status}
@@ -149,7 +150,7 @@ function StaffBookingManagerContent() {
             Reservas Activas ({active.length})
           </h2>
           <div className="space-y-3">
-            {active.map((b: any) => renderBooking(b, true))}
+            {active.map((b) => renderBooking(b, true))}
           </div>
         </div>
       )}
@@ -161,7 +162,7 @@ function StaffBookingManagerContent() {
             Historial ({history.length})
           </h2>
           <div className="space-y-3 opacity-75">
-            {history.map((b: any) => renderBooking(b, false))}
+            {history.map((b) => renderBooking(b, false))}
           </div>
         </div>
       )}

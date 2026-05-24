@@ -16,6 +16,7 @@ import { addToast } from "../custom/Toast";
 import { useCategories } from "../../hooks/useCategories";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
+import type { Category } from "../../types";
 
 function CategoriesManagerContent() {
   const { user } = useAuth();
@@ -31,7 +32,7 @@ function CategoriesManagerContent() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [formData, setFormData] = useState({ name: "" });
 
   if (!restaurantId)
@@ -56,11 +57,11 @@ function CategoriesManagerContent() {
       </div>
     );
 
-  const filteredCategories = categories.filter((cat: any) =>
+  const filteredCategories = categories.filter((cat) =>
     cat.name?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const handleOpenModal = (category?: any) => {
+  const handleOpenModal = (category?: Category) => {
     if (category) {
       setEditingCategory(category);
       setFormData({ name: category.name });
@@ -120,7 +121,7 @@ function CategoriesManagerContent() {
 
       {/* Categories Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredCategories.map((category: any) => (
+        {filteredCategories.map((category) => (
           <Card
             key={category.id}
             className="group hover:shadow-lg transition-shadow"

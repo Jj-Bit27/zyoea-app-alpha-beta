@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
-import type { EmployeeData } from "../types";
+import type { CreateEmployeeInput, EmployeeData, UpdateEmployeeInput } from "../types";
 
 const GET_EMPLOYEES = gql`
   query employeesByRestaurant($restaurantId: ID!) {
@@ -79,11 +79,11 @@ export function useEmployees(restaurantId: string) {
     onError: (err) => addToast(err.message, "error"),
   });
 
-  const createEmployee = (input: any) => {
+  const createEmployee = (input: CreateEmployeeInput) => {
     createMutation({ variables: { input } });
   };
 
-  const updateEmployee = (input: any) => {
+  const updateEmployee = (input: UpdateEmployeeInput) => {
     updateMutation({ variables: { input } });
   };
 

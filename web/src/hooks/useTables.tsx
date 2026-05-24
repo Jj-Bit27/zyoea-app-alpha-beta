@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
-import type { TableData } from "../types";
+import type { CreateTableInput, TableData, UpdateTableInput } from "../types";
 
 const GET_TABLES = gql`
   query tables($restaurantId: ID!) {
@@ -68,11 +68,11 @@ export function useTables(restaurantId: string) {
     onError: (err) => addToast(err.message, "error"),
   });
 
-  const createTable = (input: any) => {
+  const createTable = (input: CreateTableInput) => {
     createMutation({ variables: { input } });
   };
 
-  const updateTable = (id: string, input: any) => {
+  const updateTable = (id: string, input: UpdateTableInput) => {
     updateMutation({ variables: { id, input } });
   };
 

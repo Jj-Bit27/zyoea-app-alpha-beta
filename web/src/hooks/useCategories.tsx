@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
-import type { CategoryByIdData, CategoryData } from "../types";
+import type { CategoryByIdData, CategoryData, CreateCategoryInput, UpdateCategoryInput } from "../types";
 
 // 1. Definimos todas las consultas aquí (centralizado)
 const GET_CATEGORIES = gql`
@@ -86,11 +86,11 @@ export function useCategories(restaurantId: string) {
     onError: (err) => addToast(err.message, "error"),
   });
 
-  const createCategory = (categoryData: any) => {
+  const createCategory = (categoryData: CreateCategoryInput) => {
     createMutation({ variables: { input: categoryData } });
   };
 
-  const updateCategory = (id: string, categoryData: any) => {
+  const updateCategory = (id: string, categoryData: UpdateCategoryInput) => {
     updateMutation({ variables: { id, input: categoryData } });
   };
 

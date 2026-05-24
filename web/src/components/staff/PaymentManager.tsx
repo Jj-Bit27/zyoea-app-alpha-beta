@@ -10,6 +10,7 @@ import { addToast } from "../custom/Toast";
 import { useOrders } from "../../hooks/useOrders";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
+import type { Order } from "../../types";
 
 function PaymentsManagerContent() {
   const { user } = useAuth();
@@ -17,7 +18,7 @@ function PaymentsManagerContent() {
   const { orders, loading, error, updateOrder } = useOrders(restaurantId);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [receivedAmount, setReceivedAmount] = useState("");
 
@@ -30,16 +31,16 @@ function PaymentsManagerContent() {
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
   if (error) return <div className="p-6 bg-destructive/10 text-destructive rounded-lg">{error.message}</div>;
 
-  const pendingOrders = orders.filter((o: any) => !o.paid && o.status !== "CANCELADA");
-  const completedOrders = orders.filter((o: any) => o.paid);
-  const cancelledOrders = orders.filter((o: any) => o.status === "CANCELADA");
+  const pendingOrders = orders.filter((o) => !o.paid && o.status !== "CANCELADA");
+  const completedOrders = orders.filter((o) => o.paid);
+  const cancelledOrders = orders.filter((o) => o.status === "CANCELADA");
 
-  const filteredPending = pendingOrders.filter((o: any) =>
+  const filteredPending = pendingOrders.filter((o) =>
     String(o.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
     (o.tableId && String(o.tableId).includes(searchTerm))
   );
 
-  const handleOpenPayment = (order: any) => {
+  const handleOpenPayment = (order: Order) => {
     setSelectedOrder(order);
     setReceivedAmount("");
     setIsModalOpen(true);
@@ -90,7 +91,7 @@ function PaymentsManagerContent() {
             <div className="p-3 bg-primary/20 rounded-lg text-primary"><FiDollarSign size={24} /></div>
             <div>
               <p className="text-2xl font-bold text-foreground">
-                ${pendingOrders.reduce((sum: number, o: any) => sum + (o.total || 0), 0).toFixed(2)}
+                ${pendingOrders.reduce((sum, o) => sum + (o.total || 0), 0).toFixed(2)}
               </p>
               <p className="text-sm text-muted-foreground">Total pendiente</p>
             </div>
@@ -115,7 +116,7 @@ function PaymentsManagerContent() {
           </CardContent></Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredPending.map((order: any) => (
+            {filteredPending.map((order) => (
               <Card key={order.id} className="border-warning border">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
@@ -141,7 +142,7 @@ function PaymentsManagerContent() {
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">Órdenes Canceladas</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {cancelledOrders.map((order: any) => (
+            {cancelledOrders.map((order) => (
               <Card key={order.id} className="border-destructive/30 opacity-75">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">

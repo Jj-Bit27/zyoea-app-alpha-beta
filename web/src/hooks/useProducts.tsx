@@ -1,10 +1,10 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
-import type { ProductData } from "../types";
+import type { CreateProductInput, Product, ProductData, UpdateProductInput } from "../types";
 
 interface ProductByIdData {
-  product: any;
+  product: Product;
 }
 
 // 1. Definimos todas las consultas aquí (centralizado)
@@ -116,11 +116,11 @@ export function useProducts(restaurantId: string) {
     onError: (err) => addToast(err.message, "error"),
   });
 
-  const createProduct = (productData: any) => {
+  const createProduct = (productData: CreateProductInput) => {
     createMutation({ variables: { input: productData } });
   };
 
-  const updateProduct = (id: string, productData: any) => {
+  const updateProduct = (id: string, productData: UpdateProductInput) => {
     updateMutation({ variables: { id, input: productData } });
   };
 

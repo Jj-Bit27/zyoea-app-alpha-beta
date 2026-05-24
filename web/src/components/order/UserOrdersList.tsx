@@ -122,8 +122,8 @@ function CardPaymentScreen({
       await updatePayment(order.id, true);
       addToast("¡Pago con tarjeta exitoso!", "success");
       onSuccess();
-    } catch (err: any) {
-      addToast(err.message || "Error al procesar el pago", "error");
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : "Error al procesar el pago", "error");
     }
   };
 
@@ -202,8 +202,8 @@ function CashWaitingScreen({
       await updatePayment(order.id, true);
       addToast("¡Pago en efectivo registrado!", "success");
       onSuccess();
-    } catch (err: any) {
-      addToast(err.message || "Error al registrar el pago", "error");
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : "Error al registrar el pago", "error");
     }
   };
 
@@ -262,7 +262,7 @@ function EditOrderPanel({
 
   const selectedItems = Object.entries(quantities).filter(([, qty]) => qty > 0);
   const addedTotal = selectedItems.reduce((sum, [id, qty]) => {
-    const p = products.find((p: any) => String(p.id) === id);
+    const p = products.find((p) => String(p.id) === id);
     return sum + (p ? p.price * qty : 0);
   }, 0);
 
@@ -273,7 +273,7 @@ function EditOrderPanel({
     }
     try {
       const items = selectedItems.map(([id, qty]) => {
-        const p = products.find((p: any) => String(p.id) === id)!;
+        const p = products.find((p) => String(p.id) === id)!;
         return {
           productId: parseInt(id),
           quantity: qty,
@@ -284,8 +284,8 @@ function EditOrderPanel({
       addToast("Productos agregados a tu orden", "success");
       refetch();
       onSaved();
-    } catch (err: any) {
-      addToast(err.message || "Error al agregar productos", "error");
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : "Error al agregar productos", "error");
     }
   };
 
@@ -297,8 +297,8 @@ function EditOrderPanel({
       addToast("Producto eliminado", "success");
       refetch();
       onSaved();
-    } catch (err: any) {
-      addToast(err.message || "Error al eliminar producto", "error");
+    } catch (err: unknown) {
+      addToast(err instanceof Error ? err.message : "Error al eliminar producto", "error");
     } finally {
       setRemovingItemId(null);
     }
@@ -329,7 +329,7 @@ function EditOrderPanel({
             Productos actuales
           </p>
           <div className="space-y-1">
-            {existingDetails.map((detail: any) => (
+            {existingDetails.map((detail) => (
               <div
                 key={detail.id}
                 className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2"
@@ -370,7 +370,7 @@ function EditOrderPanel({
           <p className="text-sm text-muted-foreground">Cargando productos...</p>
         ) : (
           <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-            {products.map((product: any) => (
+            {products.map((product) => (
               <div
                 key={product.id}
                 className="flex items-center justify-between py-2 border-b border-border last:border-0"

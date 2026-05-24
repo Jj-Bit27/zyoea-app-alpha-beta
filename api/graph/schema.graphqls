@@ -10,6 +10,7 @@ type User {
   email: String
   role: String
   isVerified: Boolean!
+  allergies: String
 }
 
 type UserWithRestaurant {
@@ -331,6 +332,7 @@ input UpdateOrderInput {
 type Query {
   # --- Users (Usuarios) ---
   verifyToken(token: String): UserWithRestaurant
+  user(id: ID!): User!
 
   # -- Restaurants (Restaurantes) --
   restaurants: [Restaurant!]!
@@ -381,6 +383,7 @@ type Mutation {
   verifyEmail(code: String!): User!
   forgotPassword(email: String!): Boolean!
   resetPassword(token: String!, password: String!): Boolean!
+  updateUserAllergies(id: ID!, allergies: String!): User!
 
   # -- Restaurants (Restaurantes) --
   createRestaurant(input: CreateRestaurantInput!): Restaurant!

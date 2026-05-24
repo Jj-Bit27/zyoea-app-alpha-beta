@@ -1,12 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client/react"; // ✅ Importación correcta
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
-import {
-  type Restaurant,
-  type RestaurantByIdData,
-  type RestaurantData,
-} from "../types";
-import { useEffect } from "react";
+import type { CreateRestaurantInput, RestaurantByIdData, RestaurantData, UpdateRestaurantInput } from "../types";
 
 // --- DEFINICIÓN DE GRAPHQL (Igual que antes) ---
 const GET_RESTAURANTS = gql`
@@ -86,17 +81,17 @@ export function useRestaurants() {
   const [createMutation] = useMutation(CREATE_RESTAURANT, {
     refetchQueries: [{ query: GET_RESTAURANTS }],
     onCompleted: () => addToast("Restaurante creado", "success"),
-    onError: (err: any) => addToast(err.message, "error"),
+    onError: (err) => addToast(err.message, "error"),
   });
 
   // --- ELIMINAR ---
   const [deleteMutation] = useMutation(DELETE_RESTAURANT, {
     refetchQueries: [{ query: GET_RESTAURANTS }],
     onCompleted: () => addToast("Restaurante eliminado", "info"),
-    onError: (err: any) => addToast(err.message, "error"),
+    onError: (err) => addToast(err.message, "error"),
   });
 
-  const createRestaurant = (input: any) => {
+  const createRestaurant = (input: CreateRestaurantInput) => {
     createMutation({ variables: { input } });
   };
 
@@ -131,10 +126,10 @@ export function useRestaurantById(id: string) {
   const [updateMutation] = useMutation(UPDATE_RESTAURANT, {
     refetchQueries: [{ query: GET_RESTAURANT, variables: { id: id } }],
     onCompleted: () => addToast("Restaurante actualizado", "success"),
-    onError: (err: any) => addToast(err.message, "error"),
+    onError: (err) => addToast(err.message, "error"),
   });
 
-  const updateRestaurant = (input: any) => {
+  const updateRestaurant = (input: UpdateRestaurantInput) => {
     updateMutation({ variables: { id, input } });
   };
 

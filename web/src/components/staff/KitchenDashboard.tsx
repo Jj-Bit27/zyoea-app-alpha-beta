@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { Order } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
 import { Spinner } from "../custom/Spinner";
@@ -8,11 +9,11 @@ function KitchenDashboardContent() {
   const { user } = useAuth();
   const restaurantId = user?.restaurantId && user.restaurantId !== "0" ? user.restaurantId : undefined;
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const { orders, loading, error, refetch, updateStatus } = useKitchen(restaurantId);
 
-  const filteredOrders = orders.filter((order: any) => {
+  const filteredOrders = orders.filter((order) => {
     if (statusFilter === "ALL") return true;
     return order.status === statusFilter;
   });
@@ -91,7 +92,7 @@ function KitchenDashboardContent() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredOrders.map((order: any) => {
+          {filteredOrders.map((order) => {
             const config = STATUS_CONFIG[order.status] || STATUS_CONFIG.ABIERTA;
             return (
               <div
@@ -160,7 +161,7 @@ function KitchenDashboardContent() {
                   </h4>
                   {order.orderDetail && order.orderDetail.length > 0 ? (
                     <div className="space-y-3">
-                      {order.orderDetail.map((detail: any) => (
+                      {order.orderDetail.map((detail) => (
                         <div key={detail.id} className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <span className="text-lg font-bold text-foreground min-w-[2rem] text-center">
@@ -292,7 +293,7 @@ function KitchenDashboardContent() {
                   Productos ({selectedOrder.orderDetail?.length || 0})
                 </h3>
                 <div className="space-y-2">
-                  {selectedOrder.orderDetail?.map((detail: any) => (
+                  {selectedOrder.orderDetail?.map((detail) => (
                     <div
                       key={detail.id}
                       className="flex items-center justify-between bg-muted/50 rounded-lg p-3"
@@ -344,10 +345,10 @@ function KitchenDashboardContent() {
       )}
 
       {/* Notification */}
-      {orders.filter((o: any) => o.status === "ABIERTA").length > 0 && (
+      {orders.filter((o) => o.status === "ABIERTA").length > 0 && (
         <div className="fixed bottom-4 right-4 animate-bounce">
           <div className="bg-yellow-500 text-white px-4 py-2 rounded-full shadow-lg text-sm font-medium">
-            🔔 {orders.filter((o: any) => o.status === "ABIERTA").length} orden(es) en preparación
+            🔔 {orders.filter((o) => o.status === "ABIERTA").length} orden(es) en preparación
           </div>
         </div>
       )}

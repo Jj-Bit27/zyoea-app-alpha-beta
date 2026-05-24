@@ -45,8 +45,9 @@ function PaymentFlowContent() {
       await updatePayment(order.id, true);
       setIsComplete(true);
       addToast("Pago registrado exitosamente", "success");
-    } catch (err: any) {
-      addToast(err.message || "Error al procesar el pago", "error");
+    } catch (err: unknown) {
+      const apolloErr = err as { graphQLErrors?: Array<{ message?: string }>; message?: string };
+      addToast(apolloErr.message || "Error al procesar el pago", "error");
     } finally {
       setIsProcessing(false);
     }
@@ -70,8 +71,9 @@ function PaymentFlowContent() {
 
       setIsComplete(true);
       addToast("Pago con tarjeta procesado exitosamente", "success");
-    } catch (err: any) {
-      addToast(err.message || "Error al procesar el pago", "error");
+    } catch (err: unknown) {
+      const apolloErr = err as { graphQLErrors?: Array<{ message?: string }>; message?: string };
+      addToast(apolloErr.message || "Error al procesar el pago", "error");
     } finally {
       setIsProcessing(false);
     }

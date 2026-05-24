@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
+import type { Table } from "../types";
 
 // ─── GraphQL ───────────────────────────────────────────
 const GET_TABLES = gql`
@@ -84,7 +85,7 @@ export function useStaffOrder(restaurantId: string) {
   const products = productData?.products || [];
 
   const availableTables = tables.filter(
-    (t: any) => t.status === "available" || t.status === "disponible",
+    (t: Table) => t.status === "available" || t.status === "disponible",
   );
 
   const createOrder = async (input: CreateOrderVars) => {
@@ -109,7 +110,7 @@ export function calcCartTotal(cart: StaffCartItem[]): number {
   return cart.reduce((sum, item) => sum + item.subtotal, 0);
 }
 
-export function addToCart(cart: StaffCartItem[], product: any): StaffCartItem[] {
+export function addToCart(cart: StaffCartItem[], product: { id: string; name: string; price: number }): StaffCartItem[] {
   const existing = cart.find((item) => item.productId === parseInt(product.id));
   if (existing) {
     return cart.map((item) =>

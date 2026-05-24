@@ -18,7 +18,7 @@ function TableSelectorContent({ onSelect }: TableSelectorProps) {
   const { tables, loading: tableLoading } = useTables(selectedRestaurant);
 
   const availableTables = tables.filter(
-    (t: any) => t.status === "available" || t.status === "disponible",
+    (t) => t.status === "available" || t.status === "disponible",
   );
 
   const handleConfirm = () => {
@@ -26,8 +26,8 @@ function TableSelectorContent({ onSelect }: TableSelectorProps) {
       addToast("Selecciona un restaurante y una mesa", "error");
       return;
     }
-    const rest = restaurants.find((r: any) => r.id === selectedRestaurant);
-    const table = tables.find((t: any) => t.id === selectedTable);
+    const rest = restaurants.find((r) => r.id === selectedRestaurant);
+    const table = tables.find((t) => t.id === selectedTable);
     if (rest && table) {
       localStorage.setItem(
         "Frugis_table",
@@ -57,7 +57,7 @@ function TableSelectorContent({ onSelect }: TableSelectorProps) {
           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="">Selecciona un restaurante</option>
-          {restaurants.map((r: any) => (
+          {restaurants.map((r) => (
             <option key={r.id} value={r.id}>{r.name} — {r.address || ""}</option>
           ))}
         </select>
@@ -72,7 +72,7 @@ function TableSelectorContent({ onSelect }: TableSelectorProps) {
             <p className="text-sm text-muted-foreground italic py-4 text-center">No hay mesas disponibles</p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {availableTables.map((t: any) => (
+              {availableTables.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setSelectedTable(t.id)}

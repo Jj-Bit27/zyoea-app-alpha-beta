@@ -11,6 +11,7 @@ import { addToast } from "../custom/Toast";
 import { useEmployees } from "../../hooks/useEmployees";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
+import type { Employee } from "../../types";
 
 function EmployeesManagerContent() {
   const { user } = useAuth();
@@ -26,7 +27,7 @@ function EmployeesManagerContent() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState<any>(null);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -56,7 +57,7 @@ function EmployeesManagerContent() {
       </div>
     );
 
-  const filteredEmployees = employees.filter((emp: any) => {
+  const filteredEmployees = employees.filter((emp) => {
     const name = emp.user?.name || "";
     const email = emp.user?.email || "";
     return (
@@ -65,7 +66,7 @@ function EmployeesManagerContent() {
     );
   });
 
-  const handleOpenModal = (employee?: any) => {
+  const handleOpenModal = (employee?: Employee) => {
     if (employee) {
       setEditingEmployee(employee);
       setFormData({
@@ -142,7 +143,7 @@ function EmployeesManagerContent() {
 
       {/* Employees Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredEmployees.map((employee: any) => (
+        {filteredEmployees.map((employee) => (
           <Card key={employee.id}>
             <CardContent className="p-4">
               <div className="flex items-start gap-4">

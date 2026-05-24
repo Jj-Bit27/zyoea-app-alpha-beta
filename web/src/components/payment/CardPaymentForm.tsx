@@ -83,11 +83,12 @@ function CardPaymentFormContent() {
 
       setIsComplete(true);
       addToast("Pago procesado exitosamente", "success");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error procesando pago:", err);
+      const apolloErr = err as { graphQLErrors?: Array<{ message?: string }>; message?: string };
       addToast(
-        err?.graphQLErrors?.[0]?.message ||
-          err?.message ||
+        apolloErr?.graphQLErrors?.[0]?.message ||
+          apolloErr?.message ||
           "Error al procesar el pago",
         "error",
       );

@@ -3,6 +3,7 @@
 import { Navbar } from "../components/layout/Navbar";
 import { Footer } from "../components/layout/Footer";
 import { ToastContainer } from "../components/custom/Toast";
+import { CookieConsent } from "../components/CookieConsent";
 import { ClientRouter } from "astro:transitions";
 import "../styles/global.css";
 
@@ -61,5 +62,6 @@ const currentPath = Astro.url.pathname;
     <Footer />
 
     <ToastContainer client:load client:only="react" />
+    <CookieConsent client:load client:only="react" />
   </body>
 </html>

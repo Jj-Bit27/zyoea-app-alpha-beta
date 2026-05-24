@@ -29,13 +29,13 @@ export function CartManagerContent() {
   const restaurantId = cart.length > 0 ? cart[0].restaurantId : "";
   const { tables: allTables } = useTables(restaurantId);
   const availableTables = allTables.filter(
-    (t: any) => t.status === "available" || t.status === "disponible",
+    (t) => t.status === "available" || t.status === "disponible",
   );
 
   const activeOrder = useMemo(() => {
     if (!restaurantId) return null;
     return userOrders.find(
-      (o: any) =>
+      (o) =>
         String(o.restaurantId) === restaurantId &&
         (o.status === "ABIERTA" || o.status === "LISTA"),
     ) || null;
@@ -88,11 +88,12 @@ export function CartManagerContent() {
         addToast("¡Pedido enviado con éxito!", "success");
         clearCart();
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creando la orden:", error);
+      const err = error as { graphQLErrors?: Array<{ message: string }>; message?: string };
       const message =
-        error?.graphQLErrors?.[0]?.message ||
-        error?.message ||
+        err?.graphQLErrors?.[0]?.message ||
+        err?.message ||
         "Hubo un problema al procesar tu pedido";
       addToast(message, "error");
     }
@@ -265,7 +266,7 @@ export function CartManagerContent() {
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Sin mesa asignada</option>
-                  {availableTables.map((t: any) => (
+                  {availableTables.map((t) => (
                     <option key={t.id} value={t.id}>
                       Mesa {t.number} ({t.capacity} pers.)
                     </option>

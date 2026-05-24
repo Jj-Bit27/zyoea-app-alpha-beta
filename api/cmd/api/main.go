@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -75,6 +76,10 @@ func main() {
 		log.Fatalf("Error fatal en base de datos: %v", err)
 	}
 	defer dbPool.Close()
+
+	if err := database.RunMigrations(context.Background(), dbPool); err != nil {
+		log.Fatalf("Error aplicando migraciones: %v", err)
+	}
 
 	// cmd/api/main.go
 	rdb := database.NewRedisClient()

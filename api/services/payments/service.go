@@ -3,6 +3,7 @@ package payments
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -205,7 +206,7 @@ func (s *Service) Refund(ctx context.Context, id string, amount *float64) (*mode
 	}
 
 	if payment.Status != "succeeded" {
-		return nil, fmt.Errorf("solo se pueden reembolsar pagos exitosos")
+		return nil, errors.New("solo se pueden reembolsar pagos exitosos")
 	}
 
 	// Crear reembolso en Stripe
@@ -262,7 +263,7 @@ func (s *Service) UpdateStatus(ctx context.Context, id string, status string) (*
 	payment, err := s.scanPaymentRow(row)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("pago no encontrado")
+			return nil, errors.New("pago no encontrado")
 		}
 		return nil, fmt.Errorf("error al actualizar estado: %w", err)
 	}
@@ -337,10 +338,11 @@ func (s *Service) scanPayment(rows pgx.Rows) (*model.Payment, error) {
 	var id int
 	var createdAt, updatedAt time.Time
 	var stripePaymentMethodID, description *string
+	var userID int
 
 	err := rows.Scan(
 		&id,
-		&p.User,
+		&userID,
 		&p.StripePaymentIntentID,
 		&stripePaymentMethodID,
 		&p.Amount,
@@ -356,6 +358,7 @@ func (s *Service) scanPayment(rows pgx.Rows) (*model.Payment, error) {
 	}
 
 	p.ID = fmt.Sprintf("%d", id)
+	p.UserID = fmt.Sprintf("%d", userID)
 	p.StripePaymentMethodID = stripePaymentMethodID
 	p.Description = description
 	p.CreatedAt = createdAt.Format(time.RFC3339)
@@ -369,10 +372,11 @@ func (s *Service) scanPaymentRow(row pgx.Row) (*model.Payment, error) {
 	var id int
 	var createdAt, updatedAt time.Time
 	var stripePaymentMethodID, description *string
+	var userID int
 
 	err := row.Scan(
 		&id,
-		&p.User,
+		&userID,
 		&p.StripePaymentIntentID,
 		&stripePaymentMethodID,
 		&p.Amount,
@@ -388,6 +392,7 @@ func (s *Service) scanPaymentRow(row pgx.Row) (*model.Payment, error) {
 	}
 
 	p.ID = fmt.Sprintf("%d", id)
+	p.UserID = fmt.Sprintf("%d", userID)
 	p.StripePaymentMethodID = stripePaymentMethodID
 	p.Description = description
 	p.CreatedAt = createdAt.Format(time.RFC3339)

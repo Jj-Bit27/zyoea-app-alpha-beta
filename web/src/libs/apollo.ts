@@ -1,7 +1,7 @@
-import { ApolloClient, InMemoryCache, HttpLink } from "@apollo/client";
+import { ApolloClient, InMemoryCache, HttpLink, type NormalizedCacheObject } from "@apollo/client";
 
 // Singleton para asegurar una sola instancia en el cliente
-let client: any = null;
+let client: ApolloClient<NormalizedCacheObject> | null = null;
 
 export function getApolloClient() {
   if (!client || typeof window === "undefined") {

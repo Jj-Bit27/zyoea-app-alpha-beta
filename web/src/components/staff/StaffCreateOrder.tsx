@@ -6,6 +6,7 @@ import { Spinner } from "../custom/Spinner";
 import { useAuth } from "../../context/AuthContext";
 import { useStaffOrder, calcCartTotal, addToCart, removeFromCart, deleteFromCart } from "../../hooks/useStaffOrder";
 import type { StaffCartItem } from "../../hooks/useStaffOrder";
+import type { Order, Product } from "../../types";
 
 function StaffCreateOrderContent() {
   const { user } = useAuth();
@@ -13,13 +14,13 @@ function StaffCreateOrderContent() {
   const [selectedTable, setSelectedTable] = useState("");
   const [notes, setNotes] = useState("");
   const [cart, setCart] = useState<StaffCartItem[]>([]);
-  const [orderResult, setOrderResult] = useState<any>(null);
+  const [orderResult, setOrderResult] = useState<Order | null>(null);
 
   const restaurantId = user?.restaurantId || "";
   const { tables, products, loading, creating, createOrder } =
     useStaffOrder(restaurantId);
 
-  const handleAddToCart = (product: any) => setCart((prev) => addToCart(prev, product));
+  const handleAddToCart = (product: Pick<Product, "id" | "name" | "price">) => setCart((prev) => addToCart(prev, product));
   const handleRemoveFromCart = (pid: number) => setCart((prev) => removeFromCart(prev, pid));
   const handleDeleteFromCart = (pid: number) => setCart((prev) => deleteFromCart(prev, pid));
   const total = calcCartTotal(cart);
@@ -84,7 +85,7 @@ function StaffCreateOrderContent() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 md:p-6 space-y-6">
+    <div className="w-full max-w-full mx-auto p-4 md:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Nueva Orden</h1>
         <p className="text-sm text-muted-foreground mt-1">Crea una orden para un cliente presencial</p>
@@ -105,7 +106,7 @@ function StaffCreateOrderContent() {
             className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">Sin mesa (para llevar)</option>
-            {tables.map((t: any) => (
+            {tables.map((t) => (
               <option key={t.id} value={t.id}>Mesa {t.number} ({t.capacity} pers.)</option>
             ))}
           </select>
@@ -126,8 +127,8 @@ function StaffCreateOrderContent() {
         ) : products.length === 0 ? (
           <p className="text-sm text-muted-foreground italic py-4 text-center">No hay productos disponibles</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-            {products.filter((p: any) => p.status !== false).map((product: any) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 max-h-96 overflow-y-auto">
+            {products.filter((p) => p.status !== false).map((product) => (
               <button key={product.id} onClick={() => handleAddToCart(product)}
                 className="flex items-center justify-between p-3 rounded-lg border border-border bg-background hover:bg-accent transition-colors text-left"
               >

@@ -13,6 +13,7 @@ import { useProducts } from "../../hooks/useProducts";
 import { useCategories } from "../../hooks/useCategories";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
+import type { Product, Category } from "../../types";
 
 interface FormData {
   name: string;
@@ -41,7 +42,7 @@ function ProductsManagerContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<FormData>({
     name: "",
     description: "",
@@ -75,7 +76,7 @@ function ProductsManagerContent() {
       </div>
     );
 
-  const filteredProducts = products.filter((product: any) => {
+  const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name
       ?.toLowerCase()
       .includes(searchTerm.toLowerCase());
@@ -84,7 +85,7 @@ function ProductsManagerContent() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleOpenModal = (product?: any) => {
+  const handleOpenModal = (product?: Product) => {
     if (product) {
       setEditingProduct(product);
       setFormData({
@@ -163,7 +164,7 @@ function ProductsManagerContent() {
 
   const categoryOptions = [
     { value: "", label: "Todas las categorías" },
-    ...categories.map((c: any) => ({ value: c.id, label: c.name })),
+    ...categories.map((c) => ({ value: c.id, label: c.name })),
   ];
 
   return (
@@ -204,7 +205,7 @@ function ProductsManagerContent() {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredProducts.map((product: any) => (
+        {filteredProducts.map((product) => (
           <Card
             key={product.id}
             className={`overflow-hidden transition-opacity ${!product.status ? "opacity-75" : ""}`}
@@ -316,7 +317,7 @@ function ProductsManagerContent() {
               }
               options={[
                 { value: "", label: "Selecciona una categoría" },
-                ...categories.map((c: any) => ({ value: c.id, label: c.name })),
+                ...categories.map((c) => ({ value: c.id, label: c.name })),
               ]}
             />
             <Input

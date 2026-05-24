@@ -8,8 +8,9 @@ import { Spinner } from "../custom/Spinner";
 import { useBookings } from "../../hooks/useBookings";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
+import type { Booking } from "../../types";
 
-const statusColors: Record<string, any> = {
+const statusColors: Record<string, string> = {
   pendiente: "warning",
   pending: "warning",
   confirmada: "success",
@@ -38,7 +39,7 @@ function BookingsManagerContent() {
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
   if (error) return <div className="p-6 bg-destructive/10 text-destructive rounded-lg">{error.message}</div>;
 
-  const filteredBookings = bookings.filter((b: any) => {
+  const filteredBookings = bookings.filter((b) => {
     const name = b.user?.name || "";
     const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !filterStatus || b.status === filterStatus;
@@ -46,12 +47,12 @@ function BookingsManagerContent() {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  const groupedByDate = filteredBookings.reduce((acc: Record<string, any[]>, b: any) => {
+  const groupedByDate = filteredBookings.reduce((acc: Record<string, Booking[]>, b) => {
     const date = b.time ? b.time.split("T")[0] : "Sin fecha";
     if (!acc[date]) acc[date] = [];
     acc[date].push(b);
     return acc;
-  }, {});
+  }, {} as Record<string, Booking[]>);
 
   const formatDate = (dateStr: string) => {
     if (dateStr === "Sin fecha") return dateStr;
@@ -103,7 +104,7 @@ function BookingsManagerContent() {
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-warning">
-              {filteredBookings.filter((b: any) => b.status === "pending" || b.status === "pendiente").length}
+              {filteredBookings.filter((b) => b.status === "pending" || b.status === "pendiente").length}
             </p>
             <p className="text-sm text-muted-foreground">Pendientes</p>
           </CardContent>
@@ -111,7 +112,7 @@ function BookingsManagerContent() {
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-success">
-              {filteredBookings.filter((b: any) => b.status === "confirmed" || b.status === "confirmada").length}
+              {filteredBookings.filter((b) => b.status === "confirmed" || b.status === "confirmada").length}
             </p>
             <p className="text-sm text-muted-foreground">Confirmadas</p>
           </CardContent>
@@ -119,7 +120,7 @@ function BookingsManagerContent() {
         <Card>
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-destructive">
-              {filteredBookings.filter((b: any) => b.status === "cancelled" || b.status === "cancelada").length}
+              {filteredBookings.filter((b) => b.status === "cancelled" || b.status === "cancelada").length}
             </p>
             <p className="text-sm text-muted-foreground">Canceladas</p>
           </CardContent>
@@ -137,7 +138,7 @@ function BookingsManagerContent() {
                 {formatDate(date)}
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(dayBookings as any[]).sort((a: any, b: any) => (a.time || "").localeCompare(b.time || "")).map((booking: any) => (
+                {(dayBookings).sort((a, b) => (a.time || "").localeCompare(b.time || "")).map((booking) => (
                   <Card key={booking.id}>
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between mb-3">

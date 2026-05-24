@@ -84,40 +84,41 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddOrderItems      func(childComplexity int, orderID string, items []*model.OrderItemInput) int
-		CreateBooking      func(childComplexity int, input model.CreateBookingInput) int
-		CreateCategory     func(childComplexity int, input model.CreateCategoryInput) int
-		CreateEmployee     func(childComplexity int, input model.CreateEmployeeInput) int
-		CreateOrder        func(childComplexity int, input model.CreateOrderInput) int
-		CreatePayment      func(childComplexity int, input model.CreatePaymentInput) int
-		CreateProduct      func(childComplexity int, input model.CreateProductInput) int
-		CreateRestaurant   func(childComplexity int, input model.CreateRestaurantInput) int
-		CreateReview       func(childComplexity int, input model.CreateReviewInput) int
-		CreateTable        func(childComplexity int, input model.CreateTableInput) int
-		DeleteBooking      func(childComplexity int, id string) int
-		DeleteCategory     func(childComplexity int, id string) int
-		DeleteProduct      func(childComplexity int, id string) int
-		DeleteRestaurant   func(childComplexity int, id string) int
-		DeleteReview       func(childComplexity int, id string) int
-		DeleteTable        func(childComplexity int, id string) int
-		ForgotPassword     func(childComplexity int, email string) int
-		Login              func(childComplexity int, input model.LoginInput) int
-		RefundPayment      func(childComplexity int, input model.RefundPaymentInput) int
-		Register           func(childComplexity int, input model.RegisterInput) int
-		RemoveEmployee     func(childComplexity int, id string) int
-		RemoveOrder        func(childComplexity int, id string) int
-		RemoveOrderItem    func(childComplexity int, orderID string, itemID string) int
-		ResetPassword      func(childComplexity int, token string, password string) int
-		UpdateBooking      func(childComplexity int, id string, input model.UpdateBookingInput) int
-		UpdateCategory     func(childComplexity int, id string, input model.UpdateCategoryInput) int
-		UpdateEmployee     func(childComplexity int, input model.UpdateEmployeeInput) int
-		UpdateOrderPayment func(childComplexity int, id string, paid bool) int
-		UpdateOrderStatus  func(childComplexity int, id string, status string) int
-		UpdateProduct      func(childComplexity int, id string, input model.UpdateProductInput) int
-		UpdateRestaurant   func(childComplexity int, id string, input model.UpdateRestaurantInput) int
-		UpdateReview       func(childComplexity int, id string, input model.UpdateReviewInput) int
-		UpdateTable        func(childComplexity int, id string, input model.UpdateTableInput) int
-		VerifyEmail        func(childComplexity int, code string) int
+		AddOrderItems       func(childComplexity int, orderID string, items []*model.OrderItemInput) int
+		CreateBooking       func(childComplexity int, input model.CreateBookingInput) int
+		CreateCategory      func(childComplexity int, input model.CreateCategoryInput) int
+		CreateEmployee      func(childComplexity int, input model.CreateEmployeeInput) int
+		CreateOrder         func(childComplexity int, input model.CreateOrderInput) int
+		CreatePayment       func(childComplexity int, input model.CreatePaymentInput) int
+		CreateProduct       func(childComplexity int, input model.CreateProductInput) int
+		CreateRestaurant    func(childComplexity int, input model.CreateRestaurantInput) int
+		CreateReview        func(childComplexity int, input model.CreateReviewInput) int
+		CreateTable         func(childComplexity int, input model.CreateTableInput) int
+		DeleteBooking       func(childComplexity int, id string) int
+		DeleteCategory      func(childComplexity int, id string) int
+		DeleteProduct       func(childComplexity int, id string) int
+		DeleteRestaurant    func(childComplexity int, id string) int
+		DeleteReview        func(childComplexity int, id string) int
+		DeleteTable         func(childComplexity int, id string) int
+		ForgotPassword      func(childComplexity int, email string) int
+		Login               func(childComplexity int, input model.LoginInput) int
+		RefundPayment       func(childComplexity int, input model.RefundPaymentInput) int
+		Register            func(childComplexity int, input model.RegisterInput) int
+		RemoveEmployee      func(childComplexity int, id string) int
+		RemoveOrder         func(childComplexity int, id string) int
+		RemoveOrderItem     func(childComplexity int, orderID string, itemID string) int
+		ResetPassword       func(childComplexity int, token string, password string) int
+		UpdateBooking       func(childComplexity int, id string, input model.UpdateBookingInput) int
+		UpdateCategory      func(childComplexity int, id string, input model.UpdateCategoryInput) int
+		UpdateEmployee      func(childComplexity int, input model.UpdateEmployeeInput) int
+		UpdateOrderPayment  func(childComplexity int, id string, paid bool) int
+		UpdateOrderStatus   func(childComplexity int, id string, status string) int
+		UpdateProduct       func(childComplexity int, id string, input model.UpdateProductInput) int
+		UpdateRestaurant    func(childComplexity int, id string, input model.UpdateRestaurantInput) int
+		UpdateReview        func(childComplexity int, id string, input model.UpdateReviewInput) int
+		UpdateTable         func(childComplexity int, id string, input model.UpdateTableInput) int
+		UpdateUserAllergies func(childComplexity int, id string, allergies string) int
+		VerifyEmail         func(childComplexity int, code string) int
 	}
 
 	Order struct {
@@ -197,6 +198,7 @@ type ComplexityRoot struct {
 		Reviews               func(childComplexity int, restaurantID string) int
 		Table                 func(childComplexity int, id string) int
 		Tables                func(childComplexity int, restaurantID string) int
+		User                  func(childComplexity int, id string) int
 		UserPayments          func(childComplexity int, userID string) int
 		VerifyToken           func(childComplexity int, token *string) int
 	}
@@ -240,6 +242,7 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
+		Allergies  func(childComplexity int) int
 		Email      func(childComplexity int) int
 		ID         func(childComplexity int) int
 		IsVerified func(childComplexity int) int
@@ -263,6 +266,7 @@ type MutationResolver interface {
 	VerifyEmail(ctx context.Context, code string) (*model.User, error)
 	ForgotPassword(ctx context.Context, email string) (bool, error)
 	ResetPassword(ctx context.Context, token string, password string) (bool, error)
+	UpdateUserAllergies(ctx context.Context, id string, allergies string) (*model.User, error)
 	CreateRestaurant(ctx context.Context, input model.CreateRestaurantInput) (*model.Restaurant, error)
 	UpdateRestaurant(ctx context.Context, id string, input model.UpdateRestaurantInput) (*model.Restaurant, error)
 	DeleteRestaurant(ctx context.Context, id string) (bool, error)
@@ -295,6 +299,7 @@ type MutationResolver interface {
 }
 type QueryResolver interface {
 	VerifyToken(ctx context.Context, token *string) (*model.UserWithRestaurant, error)
+	User(ctx context.Context, id string) (*model.User, error)
 	Restaurants(ctx context.Context) ([]*model.Restaurant, error)
 	Restaurant(ctx context.Context, id string) (*model.Restaurant, error)
 	Payment(ctx context.Context, id string) (*model.Payment, error)
@@ -847,6 +852,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateTable(childComplexity, args["id"].(string), args["input"].(model.UpdateTableInput)), true
+	case "Mutation.updateUserAllergies":
+		if e.complexity.Mutation.UpdateUserAllergies == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateUserAllergies_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateUserAllergies(childComplexity, args["id"].(string), args["allergies"].(string)), true
 	case "Mutation.verifyEmail":
 		if e.complexity.Mutation.VerifyEmail == nil {
 			break
@@ -1347,6 +1363,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Tables(childComplexity, args["restaurantId"].(string)), true
+	case "Query.user":
+		if e.complexity.Query.User == nil {
+			break
+		}
+
+		args, err := ec.field_Query_user_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
 	case "Query.userPayments":
 		if e.complexity.Query.UserPayments == nil {
 			break
@@ -1540,6 +1567,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Table.Status(childComplexity), true
 
+	case "User.allergies":
+		if e.complexity.User.Allergies == nil {
+			break
+		}
+
+		return e.complexity.User.Allergies(childComplexity), true
 	case "User.email":
 		if e.complexity.User.Email == nil {
 			break
@@ -1763,6 +1796,7 @@ type User {
   email: String
   role: String
   isVerified: Boolean!
+  allergies: String
 }
 
 type UserWithRestaurant {
@@ -2084,6 +2118,7 @@ input UpdateOrderInput {
 type Query {
   # --- Users (Usuarios) ---
   verifyToken(token: String): UserWithRestaurant
+  user(id: ID!): User!
 
   # -- Restaurants (Restaurantes) --
   restaurants: [Restaurant!]!
@@ -2134,6 +2169,7 @@ type Mutation {
   verifyEmail(code: String!): User!
   forgotPassword(email: String!): Boolean!
   resetPassword(token: String!, password: String!): Boolean!
+  updateUserAllergies(id: ID!, allergies: String!): User!
 
   # -- Restaurants (Restaurantes) --
   createRestaurant(input: CreateRestaurantInput!): Restaurant!
@@ -2614,6 +2650,22 @@ func (ec *executionContext) field_Mutation_updateTable_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateUserAllergies_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "allergies", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["allergies"] = arg1
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_verifyEmail_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2872,6 +2924,17 @@ func (ec *executionContext) field_Query_userPayments_args(ctx context.Context, r
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_verifyToken_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3020,6 +3083,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(_ context.Context, fi
 				return ec.fieldContext_User_role(ctx, field)
 			case "isVerified":
 				return ec.fieldContext_User_isVerified(ctx, field)
+			case "allergies":
+				return ec.fieldContext_User_allergies(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -3224,6 +3289,8 @@ func (ec *executionContext) fieldContext_Booking_user(_ context.Context, field g
 				return ec.fieldContext_User_role(ctx, field)
 			case "isVerified":
 				return ec.fieldContext_User_isVerified(ctx, field)
+			case "allergies":
+				return ec.fieldContext_User_allergies(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -3707,6 +3774,8 @@ func (ec *executionContext) fieldContext_Employee_user(_ context.Context, field 
 				return ec.fieldContext_User_role(ctx, field)
 			case "isVerified":
 				return ec.fieldContext_User_isVerified(ctx, field)
+			case "allergies":
+				return ec.fieldContext_User_allergies(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -3847,6 +3916,8 @@ func (ec *executionContext) fieldContext_Mutation_verifyEmail(ctx context.Contex
 				return ec.fieldContext_User_role(ctx, field)
 			case "isVerified":
 				return ec.fieldContext_User_isVerified(ctx, field)
+			case "allergies":
+				return ec.fieldContext_User_allergies(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -3941,6 +4012,61 @@ func (ec *executionContext) fieldContext_Mutation_resetPassword(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_resetPassword_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateUserAllergies(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateUserAllergies,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateUserAllergies(ctx, fc.Args["id"].(string), fc.Args["allergies"].(string))
+		},
+		nil,
+		ec.marshalNUser2ᚖapiᚋgraphᚋmodelᚐUser,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateUserAllergies(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_User_isVerified(ctx, field)
+			case "allergies":
+				return ec.fieldContext_User_allergies(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateUserAllergies_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5678,6 +5804,8 @@ func (ec *executionContext) fieldContext_Order_user(_ context.Context, field gra
 				return ec.fieldContext_User_role(ctx, field)
 			case "isVerified":
 				return ec.fieldContext_User_isVerified(ctx, field)
+			case "allergies":
+				return ec.fieldContext_User_allergies(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -6328,6 +6456,8 @@ func (ec *executionContext) fieldContext_Payment_user(_ context.Context, field g
 				return ec.fieldContext_User_role(ctx, field)
 			case "isVerified":
 				return ec.fieldContext_User_isVerified(ctx, field)
+			case "allergies":
+				return ec.fieldContext_User_allergies(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -6992,6 +7122,61 @@ func (ec *executionContext) fieldContext_Query_verifyToken(ctx context.Context, 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_verifyToken_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_user,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().User(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalNUser2ᚖapiᚋgraphᚋmodelᚐUser,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "isVerified":
+				return ec.fieldContext_User_isVerified(ctx, field)
+			case "allergies":
+				return ec.fieldContext_User_allergies(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_user_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -8860,6 +9045,8 @@ func (ec *executionContext) fieldContext_Review_user(_ context.Context, field gr
 				return ec.fieldContext_User_role(ctx, field)
 			case "isVerified":
 				return ec.fieldContext_User_isVerified(ctx, field)
+			case "allergies":
+				return ec.fieldContext_User_allergies(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -9506,6 +9693,35 @@ func (ec *executionContext) fieldContext_User_isVerified(_ context.Context, fiel
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_allergies(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_allergies,
+		func(ctx context.Context) (any, error) {
+			return obj.Allergies, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_allergies(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -12635,6 +12851,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "updateUserAllergies":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateUserAllergies(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createRestaurant":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createRestaurant(ctx, field)
@@ -13214,6 +13437,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_verifyToken(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "user":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_user(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -13997,6 +14242,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "allergies":
+			out.Values[i] = ec._User_allergies(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

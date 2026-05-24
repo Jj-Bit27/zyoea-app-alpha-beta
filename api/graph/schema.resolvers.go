@@ -8,7 +8,6 @@ import (
 	"api/graph/generated"
 	"api/graph/model"
 	"context"
-	"fmt"
 )
 
 // Register is the resolver for the register field.
@@ -34,6 +33,11 @@ func (r *mutationResolver) ForgotPassword(ctx context.Context, email string) (bo
 // ResetPassword is the resolver for the resetPassword field.
 func (r *mutationResolver) ResetPassword(ctx context.Context, token string, password string) (bool, error) {
 	return r.AuthService.ResetPassword(ctx, token, password)
+}
+
+// UpdateUserAllergies is the resolver for the updateUserAllergies field.
+func (r *mutationResolver) UpdateUserAllergies(ctx context.Context, id string, allergies string) (*model.User, error) {
+	return r.AuthService.UpdateAllergies(ctx, id, allergies)
 }
 
 // CreateRestaurant is the resolver for the createRestaurant field.
@@ -224,6 +228,11 @@ func (r *queryResolver) VerifyToken(ctx context.Context, token *string) (*model.
 	return r.AuthService.VerifyToken(ctx, *token)
 }
 
+// User is the resolver for the user field.
+func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
+	return r.AuthService.GetUser(ctx, id)
+}
+
 // ---------------------------------------------------------
 // RESTAURANTS RESOLVERS (Restaurantes)
 // ---------------------------------------------------------
@@ -375,8 +384,14 @@ func (r *subscriptionResolver) OrderCreated(ctx context.Context, restaurantID in
 	go func() {
 		<-ctx.Done() // Esperar a que el cliente se vaya
 		r.mu.Lock()
-		// (Aquí deberías borrar el canal del mapa para limpiar memoria,
-		//  por simplicidad lo omito pero es un loop para filtrar el slice)
+		observers := r.OrderObservers[restaurantID]
+		for i, observer := range observers {
+			if observer == ch {
+				r.OrderObservers[restaurantID] = append(observers[:i], observers[i+1:]...)
+				break
+			}
+		}
+		close(ch)
 		r.mu.Unlock()
 	}()
 
@@ -386,7 +401,27 @@ func (r *subscriptionResolver) OrderCreated(ctx context.Context, restaurantID in
 
 // OrderStatusUpdated is the resolver for the orderStatusUpdated field.
 func (r *subscriptionResolver) OrderStatusUpdated(ctx context.Context, restaurantID int) (<-chan *model.Order, error) {
-	panic(fmt.Errorf("not implemented: OrderStatusUpdated - orderStatusUpdated"))
+	ch := make(chan *model.Order, 1)
+
+	r.mu.Lock()
+	r.OrderObservers[restaurantID] = append(r.OrderObservers[restaurantID], ch)
+	r.mu.Unlock()
+
+	go func() {
+		<-ctx.Done()
+		r.mu.Lock()
+		observers := r.OrderObservers[restaurantID]
+		for i, observer := range observers {
+			if observer == ch {
+				r.OrderObservers[restaurantID] = append(observers[:i], observers[i+1:]...)
+				break
+			}
+		}
+		close(ch)
+		r.mu.Unlock()
+	}()
+
+	return ch, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

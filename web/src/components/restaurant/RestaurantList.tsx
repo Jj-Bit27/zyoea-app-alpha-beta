@@ -8,6 +8,7 @@ import { useRestaurants } from "../../hooks/useRestaurants"; // Importamos el ho
 import { ApolloWrapper } from "../ApolloWrapper"; // ¡Importante!
 import { Spinner } from "../custom/Spinner"; // Componente de carga
 import { useAuth } from "../../context/AuthContext";
+import type { Restaurant } from "../../types";
 
 const categories = [
   "Todas",
@@ -47,7 +48,7 @@ function RestaurantsListContent() {
   }
 
   // 3. Lógica de filtrado (Cliente)
-  const filtered = restaurants.filter((r: any) => {
+  const filtered = restaurants.filter((r: Restaurant) => {
     // Usamos ?. para evitar errores si algún campo viene null del backend
     const matchesSearch = r.name
       ?.toLowerCase()
@@ -110,7 +111,7 @@ function RestaurantsListContent() {
 
       {/* Grid de Resultados */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filtered.map((rest: any) => (
+        {filtered.map((rest: Restaurant) => (
           <div key={rest.id} className="group relative">
             {/* Envolvemos en un div relativo para posicionar botones flotantes si queremos */}
             <a href={`/restaurants/${rest.id}`} className="block h-full">

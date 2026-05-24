@@ -11,6 +11,7 @@ import { useProducts } from "../../hooks/useProducts";
 import { useCategories } from "../../hooks/useCategories";
 import { ApolloWrapper } from "../ApolloWrapper";
 import { useRestaurantById } from "../../hooks/useRestaurants";
+import type { Product } from "../../types";
 
 export function ProductCatalogContent({
   restaurantId,
@@ -40,7 +41,7 @@ export function ProductCatalogContent({
     });
   }, [products, restaurantId, searchQuery, selectedCategory]);
 
-  const handleAddToOrder = (product: any) => {
+  const handleAddToOrder = (product: Product) => {
     if (!user) {
       showToast("Inicia sesión para agregar productos", "warning");
       window.location.href = "/login";

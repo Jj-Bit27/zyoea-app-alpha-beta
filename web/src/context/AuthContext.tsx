@@ -12,6 +12,7 @@ export interface User {
   avatar?: string;
   restaurantId?: string;
   token?: string;
+  allergies?: string;
 }
 
 export const $user = atom<User | null>(null);
@@ -99,11 +100,9 @@ export const login = async (email: string, password: string) => {
     localStorage.setItem("Frugis_user", JSON.stringify(mappedUser));
     document.cookie = `auth_token=${data.login.accessToken}; path=/; max-age=86400`;
     addToast(`Bienvenido de nuevo, ${mappedUser.name}`, "success");
-  } catch (err: any) {
-    const message =
-      err?.graphQLErrors?.[0]?.message ||
-      err?.message ||
-      "Error al iniciar sesión";
+  } catch (err: unknown) {
+    const apolloErr = err as { graphQLErrors?: Array<{ message?: string }>; message?: string };
+    const message = apolloErr?.graphQLErrors?.[0]?.message || apolloErr?.message || "Error al iniciar sesión";
     addToast(message, "error");
     throw new Error(message);
   }
@@ -131,11 +130,9 @@ export const register = async (
     localStorage.setItem("Frugis_user", JSON.stringify(mappedUser));
     document.cookie = `auth_token=${data.register.accessToken}; path=/; max-age=86400`;
     addToast("Cuenta creada exitosamente", "success");
-  } catch (err: any) {
-    const message =
-      err?.graphQLErrors?.[0]?.message ||
-      err?.message ||
-      "Error al registrarse";
+  } catch (err: unknown) {
+    const apolloErr = err as { graphQLErrors?: Array<{ message?: string }>; message?: string };
+    const message = apolloErr?.graphQLErrors?.[0]?.message || apolloErr?.message || "Error al registrarse";
     addToast(message, "error");
     throw new Error(message);
   }

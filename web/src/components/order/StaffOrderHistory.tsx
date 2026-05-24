@@ -1,8 +1,10 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useOrders } from "../../hooks/useOrders";
+import type { Order } from "../../types";
 import { Card, CardContent, CardHeader, CardTitle } from "../custom/Card";
 import { Button } from "../custom/Button";
+
 import { Input } from "../custom/Input";
 import { Badge } from "../custom/Badge";
 import { ApolloWrapper } from "../ApolloWrapper";
@@ -43,7 +45,7 @@ function StaffOrderHistoryContent() {
     const fifteenDaysAgo = new Date();
     fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
 
-    return orders.filter((order: any) => {
+    return orders.filter((order) => {
       // Filtro de 15 días
       const orderDate = new Date(order.date);
       if (orderDate < fifteenDaysAgo) return false;
@@ -64,11 +66,11 @@ function StaffOrderHistoryContent() {
   // Estadísticas rápidas
   const stats = useMemo(() => {
     const total = filteredOrders.reduce(
-      (sum: number, o: any) => sum + o.total,
+      (sum, o) => sum + o.total,
       0,
     );
-    const paid = filteredOrders.filter((o: any) => o.paid).length;
-    const pending = filteredOrders.filter((o: any) => !o.paid).length;
+    const paid = filteredOrders.filter((o) => o.paid).length;
+    const pending = filteredOrders.filter((o) => !o.paid).length;
     return { total, paid, pending, count: filteredOrders.length };
   }, [filteredOrders]);
 
@@ -243,7 +245,7 @@ function StaffOrderHistoryContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOrders.map((order: any) => {
+                  {filteredOrders.map((order) => {
                     const config = statusConfig[order.status] || {
                       label: order.status,
                       variant: "secondary" as const,

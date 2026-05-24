@@ -1,11 +1,57 @@
+import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useUserAllergies } from "../../hooks/useUserAllergies";
+import { ApolloWrapper } from "../ApolloWrapper";
 import { Button } from "../custom/Button";
 import { Input } from "../custom/Input";
+import { Textarea } from "../custom/Textarea";
 import { Avatar } from "../custom/Avatar";
-import { FiLogOut, FiSettings } from "react-icons/fi";
+import { addToast } from "../custom/Toast";
+import { FiLogOut, FiAlertTriangle } from "react-icons/fi";
 
-export function UserProfile() {
+const ALLERGEN_OPTIONS = [
+  "Gluten", "Lactosa", "Huevo", "Cacahuate", "Frutos secos",
+  "Soja", "Pescado", "Mariscos", "Apio", "Mostaza",
+  "Sésamo", "Sulfitos", "Altramuces", "Moluscos",
+];
+
+export function UserProfileContent() {
   const { user, logout } = useAuth();
+  const { allergies: savedAllergies, updateAllergies, saving } = useUserAllergies(user?.id);
+  const [allergies, setAllergies] = useState("");
+  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (savedAllergies) {
+      setAllergies(savedAllergies);
+      setSelectedAllergens(savedAllergies.split(",").map((s) => s.trim()).filter(Boolean));
+    }
+  }, [savedAllergies]);
+
+  const toggleAllergen = (allergen: string) => {
+    setSelectedAllergens((prev) => {
+      const next = prev.includes(allergen)
+        ? prev.filter((a) => a !== allergen)
+        : [...prev, allergen];
+      const str = next.join(", ");
+      setAllergies(str);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    if (!user?.id) return;
+    try {
+      const result = await updateAllergies(allergies);
+      if (result?.allergies !== undefined) {
+        user.allergies = result.allergies;
+        localStorage.setItem("Frugis_user", JSON.stringify(user));
+      }
+      addToast("Alergias guardadas correctamente", "success");
+    } catch {
+      addToast("Error al guardar alergias", "error");
+    }
+  };
 
   if (!user) {
     if (typeof window !== "undefined") window.location.href = "/login";
@@ -23,11 +69,6 @@ export function UserProfile() {
             {user.role}
           </div>
         </div>
-        {/**
-        <Button variant="outline" size="icon" title="Configuración">
-          <FiSettings />
-        </Button>
-         */}
       </div>
 
       <div className="space-y-4">
@@ -36,6 +77,46 @@ export function UserProfile() {
           <Input label="Nombre" defaultValue={user.name} disabled readOnly />
           <Input label="Email" defaultValue={user.email} disabled readOnly />
         </div>
+      </div>
+
+      <div className="space-y-4 p-6 bg-card rounded-xl border border-border">
+        <div className="flex items-center gap-2">
+          <FiAlertTriangle className="text-amber-500" size={20} />
+          <h3 className="text-lg font-bold">Mis Alergias e Intolerancias</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Selecciona los ingredientes o alérgenos a los que eres alérgico.
+          Esta información se usará para advertirte en el menú del restaurante.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {ALLERGEN_OPTIONS.map((allergen) => (
+            <button
+              key={allergen}
+              type="button"
+              onClick={() => toggleAllergen(allergen)}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                selectedAllergens.includes(allergen)
+                  ? "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/40 dark:text-amber-300"
+                  : "bg-background text-muted-foreground border-border hover:bg-accent"
+              }`}
+            >
+              {allergen}
+            </button>
+          ))}
+        </div>
+        <Textarea
+          label="O escribe manualmente otros alérgenos (separados por coma)"
+          value={allergies}
+          onChange={(e) => {
+            setAllergies(e.target.value);
+            setSelectedAllergens(e.target.value.split(",").map((s) => s.trim()).filter(Boolean));
+          }}
+          placeholder="Ej: gluten, lactosa, cacahuate"
+          rows={2}
+        />
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? "Guardando..." : "Guardar mis alergias"}
+        </Button>
       </div>
 
       <div className="pt-8 border-t border-border">
@@ -48,5 +129,13 @@ export function UserProfile() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export function UserProfile() {
+  return (
+    <ApolloWrapper>
+      <UserProfileContent />
+    </ApolloWrapper>
   );
 }

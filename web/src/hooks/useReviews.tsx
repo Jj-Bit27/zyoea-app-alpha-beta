@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
-import type { ReviewsData } from "../types";
+import type { CreateReviewInput, ReviewsData, UpdateReviewInput } from "../types";
 
 const GET_REVIEWS = gql`
   query reviews($restaurantId: ID!) {
@@ -71,11 +71,11 @@ export function useReviews(restaurantId: string) {
     onError: (err) => addToast(err.message, "error"),
   });
 
-  const createReview = (input: any) => {
+  const createReview = (input: CreateReviewInput) => {
     createMutation({ variables: { input } });
   };
 
-  const updateReview = (id: string, input: any) => {
+  const updateReview = (id: string, input: UpdateReviewInput) => {
     updateMutation({ variables: { id, input } });
   };
 

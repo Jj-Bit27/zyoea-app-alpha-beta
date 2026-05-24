@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
-import type { BookingData } from "../types";
+import type { BookingData, BookingsUserData, CreateBookingInput, UpdateBookingInput } from "../types";
 
 const GET_BOOKINGS = gql`
   query bookings($restaurantId: ID!) {
@@ -94,11 +94,11 @@ export function useBookings(restaurantId: string) {
     onError: (err) => addToast(err.message, "error"),
   });
 
-  const createBooking = (input: any) => {
+  const createBooking = (input: CreateBookingInput) => {
     createMutation({ variables: { input } });
   };
 
-  const updateBooking = (id: string, input: any) => {
+  const updateBooking = (id: string, input: UpdateBookingInput) => {
     updateMutation({ variables: { id, input } });
   };
 
@@ -119,7 +119,7 @@ export function useBookings(restaurantId: string) {
 }
 
 export function useBookingsByUser(userId: string) {
-  const { data, loading, error, refetch } = useQuery<BookingData>(GET_BOOKINGS_USER, {
+  const { data, loading, error, refetch } = useQuery<BookingsUserData>(GET_BOOKINGS_USER, {
     variables: { userId },
     skip: !userId,
   });
@@ -140,7 +140,7 @@ export function useBookingsByUser(userId: string) {
     onError: (err) => addToast(err.message, "error"),
   });
 
-  const updateBooking = (id: string, input: any) => {
+  const updateBooking = (id: string, input: UpdateBookingInput) => {
     updateMutation({ variables: { id, input } });
   };
 

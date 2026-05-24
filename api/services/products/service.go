@@ -1,9 +1,9 @@
-// internal/products/service.go
 package products
 
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -21,15 +21,40 @@ type Service struct {
 }
 
 func NewService(db *pgxpool.Pool, rdb *redis.Client) *Service {
-	return &Service{
-		DB:    db,
-		Redis: rdb, // Inyectamos Redis
-	}
+	return &Service{DB: db, Redis: rdb}
 }
 
-// ---------------------------------------------------------
-// CREAR
-// ---------------------------------------------------------
+const productSelect = `SELECT p.id, p."name", p."description", p.price, p.ingredients, p.allergens, p."status", p.image,
+	r.id, r."name",
+	c.id, c."name"`
+
+const productFrom = `FROM products p
+	INNER JOIN restaurants r ON p.restaurant = r.id
+	INNER JOIN categories c ON p.category = c.id`
+
+func scanProduct(scanner interface {
+	Scan(dest ...interface{}) error
+}) (*model.Product, error) {
+	var b model.Product
+	var r model.Restaurant
+	var c model.Category
+	var id int
+
+	err := scanner.Scan(
+		&id, &b.Name, &b.Description, &b.Price, &b.Ingredients, &b.Allergens, &b.Status, &b.Image,
+		&r.ID, &r.Name,
+		&c.ID, &c.Name,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	b.ID = fmt.Sprintf("%d", id)
+	b.Restaurant = &r
+	b.Category = &c
+	return &b, nil
+}
+
 func (s *Service) Create(ctx context.Context, input model.CreateProductInput) (*model.Product, error) {
 	var id int
 	sql := `
@@ -77,35 +102,22 @@ func (s *Service) Create(ctx context.Context, input model.CreateProductInput) (*
 	return &b, nil
 }
 
-// ---------------------------------------------------------
-// OBTENER TODOS
-// ---------------------------------------------------------
 func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([]*model.Product, error) {
 	dbID, err := strconv.Atoi(restaurant)
-
 	if err != nil {
 		return nil, fmt.Errorf("el identificador del restaurante debe ser un número: %w", err)
 	}
 
 	key := fmt.Sprintf("products:restaurant:%d", dbID)
-
 	val, err := s.Redis.Get(ctx, key).Result()
 	if err == nil {
-		// Si encontramos datos, los convertimos de JSON a Structs
 		var products []*model.Product
 		if err := json.Unmarshal([]byte(val), &products); err == nil {
 			return products, nil
 		}
 	}
 
-	sql := `SELECT 
-			p.id, p."name", p."description", p.price, p.ingredients, p.allergens, p."status", p.image,
-			r.id, r."name",
-			c.id, c."name"
-		FROM products p
-		INNER JOIN restaurants r ON p.restaurant = r.id
-		INNER JOIN categories c ON p.category = c.id
-		WHERE p.restaurant = $1`
+	sql := productSelect + ` ` + productFrom + ` WHERE p.restaurant = $1`
 
 	rows, err := s.DB.Query(ctx, sql, dbID)
 	if err != nil {
@@ -115,79 +127,37 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([
 
 	var results []*model.Product
 	for rows.Next() {
-		var b model.Product
-		var r model.Restaurant
-		var c model.Category
-		var id int
-		err := rows.Scan(
-			&id, &b.Name, &b.Description, &b.Price, &b.Ingredients, &b.Allergens, &b.Status, &b.Image,
-			&r.ID, &r.Name, // Datos del restaurante
-			&c.ID, &c.Name, // Datos de la categoría
-		)
+		b, err := scanProduct(rows)
 		if err != nil {
 			return nil, err
 		}
-		b.ID = fmt.Sprintf("%d", id)
-
-		b.Restaurant = &r
-		b.Category = &c
-		results = append(results, &b)
+		results = append(results, b)
 	}
-	data, _ := json.Marshal(results)
 
+	data, _ := json.Marshal(results)
 	s.Redis.Set(ctx, key, data, 10*time.Minute)
 	return results, nil
 }
 
-// ---------------------------------------------------------
-// OBTENER UNO EN ESPECÍFICO (GetByID)
-// ---------------------------------------------------------
 func (s *Service) FindOne(ctx context.Context, id string) (*model.Product, error) {
-	// 1. Convertir ID de string (GraphQL) a int (Postgres)
 	dbID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, fmt.Errorf("el ID debe ser un número: %w", err)
 	}
 
 	key := fmt.Sprintf("product:%d", dbID)
-
 	val, err := s.Redis.Get(ctx, key).Result()
 	if err == nil {
-		// Si encontramos datos, los convertimos de JSON a Structs
 		var product *model.Product
 		if err := json.Unmarshal([]byte(val), &product); err == nil {
 			return product, nil
 		}
 	}
 
-	sql := `SELECT 
-			p.id, p."name", p."description", p.price, p.ingredients, p.allergens, p."status", p.image,
-			r.id, r."name",
-			c.id, c."name"
-		FROM products p
-		INNER JOIN restaurants r ON p.restaurant = r.id
-		INNER JOIN categories c ON p.category = c.id
-		WHERE p.id = $1`
+	sql := productSelect + ` ` + productFrom + ` WHERE p.id = $1`
 
-	var b model.Product
-	var r model.Restaurant
-	var c model.Category
-	var idScanned int
-
-	// 2. Ejecutar Query
-	err = s.DB.QueryRow(ctx, sql, dbID).Scan(
-		&idScanned,
-		&b.Name,
-		&b.Description,
-		&b.Price,
-		&b.Ingredients,
-		&b.Allergens,
-		&b.Status,
-		&b.Image,
-		&r.ID, &r.Name, // Datos del restaurante
-		&c.ID, &c.Name, // Datos de la categoría
-	)
-
+	row := s.DB.QueryRow(ctx, sql, dbID)
+	b, err := scanProduct(row)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, err
@@ -195,25 +165,17 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Product, error
 		return nil, err
 	}
 
-	b.ID = fmt.Sprintf("%d", idScanned)
-	b.Restaurant = &r
-	b.Category = &c
-	data, _ := json.Marshal(&b)
-
+	data, _ := json.Marshal(b)
 	s.Redis.Set(ctx, key, data, 10*time.Minute)
-	return &b, nil
+	return b, nil
 }
 
-// ---------------------------------------------------------
-// EDITAR (Update)
-// ---------------------------------------------------------
 func (s *Service) Update(ctx context.Context, id string, input model.UpdateProductInput) (*model.Product, error) {
 	dbID, err := strconv.Atoi(id)
 	if err != nil {
 		return nil, fmt.Errorf("ID inválido: %w", err)
 	}
 
-	// Usamos RETURNING para obtener los datos actualizados y confirmar que se hizo
 	sql := `
 		WITH updated_product AS (
 			UPDATE products 
@@ -230,14 +192,7 @@ func (s *Service) Update(ctx context.Context, id string, input model.UpdateProdu
 		INNER JOIN categories c ON p.category = c.id;
 	`
 
-	var b model.Product
-	var r model.Restaurant
-	var c model.Category
-	var idScanned int
-
-	// Asumiendo que el input de update tiene campos opcionales, aquí asumimos que envías todo.
-	// Si son opcionales (punteros), necesitarías lógica extra para construir la query dinámicamente.
-	err = s.DB.QueryRow(ctx, sql,
+	row := s.DB.QueryRow(ctx, sql,
 		input.Restaurant,
 		input.Category,
 		input.Name,
@@ -247,48 +202,31 @@ func (s *Service) Update(ctx context.Context, id string, input model.UpdateProdu
 		input.Allergens,
 		input.Status,
 		input.Image,
-		dbID, // El ID va al final por el WHERE
-	).Scan(&idScanned,
-		&b.Name,
-		&b.Description,
-		&b.Price,
-		&b.Ingredients,
-		&b.Allergens,
-		&b.Status,
-		&b.Image,
-		&r.ID, &r.Name, // Datos del restaurante
-		&c.ID, &c.Name)
-
+		dbID,
+	)
+	b, err := scanProduct(row)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, fmt.Errorf("no se encontró el producto para actualizar")
+			return nil, errors.New("no se encontró el producto para actualizar")
 		}
 		return nil, fmt.Errorf("error al actualizar: %w", err)
 	}
 
-	restID, err := strconv.Atoi(r.ID)
+	restID, _ := strconv.Atoi(b.Restaurant.ID)
 
 	cacheKey := fmt.Sprintf("products:restaurant:%d", input.Restaurant)
 	cacheKeyProduct := fmt.Sprintf("product:%d", restID)
 
-	b.Restaurant = &r
-	b.Category = &c
-
 	_, err = s.Redis.Get(ctx, cacheKey).Result()
 	if err == nil {
-		err = s.Redis.Del(ctx, cacheKey, cacheKeyProduct).Err()
-		data, _ := json.Marshal(&b)
-
+		s.Redis.Del(ctx, cacheKey, cacheKeyProduct)
+		data, _ := json.Marshal(b)
 		s.Redis.Set(ctx, cacheKey, data, 10*time.Minute)
 	}
 
-	b.ID = fmt.Sprintf("%d", idScanned)
-	return &b, nil
+	return b, nil
 }
 
-// ---------------------------------------------------------
-// ELIMINAR (Delete)
-// ---------------------------------------------------------
 func (s *Service) Delete(ctx context.Context, id string) (bool, error) {
 	dbID, err := strconv.Atoi(id)
 	if err != nil {
@@ -298,12 +236,10 @@ func (s *Service) Delete(ctx context.Context, id string) (bool, error) {
 	sql := `DELETE FROM products WHERE id = $1 RETURNING restaurant`
 
 	var restaurantID int
-
 	err = s.DB.QueryRow(ctx, sql, dbID).Scan(&restaurantID)
 	if err != nil {
-		// Si da el error "ErrNoRows", significa que el ID de la categoría no existía
 		if err == pgx.ErrNoRows {
-			return false, nil // Retornamos falso, no se borró nada
+			return false, nil
 		}
 		return false, fmt.Errorf("error al eliminar producto: %w", err)
 	}
@@ -313,5 +249,5 @@ func (s *Service) Delete(ctx context.Context, id string) (bool, error) {
 
 	s.Redis.Del(ctx, cacheKey, cacheKeyProduct)
 
-	return true, nil // Se borró con éxito
+	return true, nil
 }
