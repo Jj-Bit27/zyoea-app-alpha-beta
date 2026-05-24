@@ -1,9 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+
+	"github.com/joho/godotenv"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -15,14 +19,15 @@ import (
 	"api/database"
 	"api/graph"
 	"api/graph/generated"
+	"api/graph/model"
 	websocket "api/libs"
 	"api/services/auth"
 	"api/services/bookings"
 	"api/services/categories"
 	"api/services/employees"
+	"api/services/oauth"
 	"api/services/orders"
-
-	//"api/services/payments"
+	"api/services/payments"
 	"api/services/products"
 	"api/services/restaurants"
 	"api/services/reviews"
@@ -32,7 +37,32 @@ import (
 // --- Puerto por Defecto ---
 const defaultPort = "8080"
 
+func buildOAuthRedirectURL(authResponse *model.AuthResponse) string {
+	baseURL := "http://localhost:4321/auth/callback"
+	params := url.Values{}
+	params.Add("access_token", authResponse.AccessToken)
+	params.Add("user_id", authResponse.User.ID)
+	if authResponse.User.Name != nil {
+		params.Add("user_name", *authResponse.User.Name)
+	}
+	if authResponse.User.Email != nil {
+		params.Add("user_email", *authResponse.User.Email)
+	}
+	if authResponse.User.Role != nil {
+		params.Add("user_role", *authResponse.User.Role)
+	}
+	if authResponse.Restaurant != nil {
+		params.Add("restaurant", fmt.Sprintf("%d", *authResponse.Restaurant))
+	}
+	return baseURL + "?" + params.Encode()
+}
+
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error cargando el archivo .env")
+	}
+
 	// --- Configuracion del Puerto ---
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -53,7 +83,16 @@ func main() {
 
 	// --- Inicializar Servicios (Clean Architecture) ---
 	authService := auth.NewService(dbPool)
-	//paymentService := payments.NewService(dbPool, stripeKey)
+	oauthService := oauth.NewService(dbPool)
+
+	// Obtener la clave de Stripe de variables de entorno
+	stripeKey := os.Getenv("STRIPE_SECRET_KEY")
+	log.Printf("Key de stripe: %s", stripeKey)
+	if stripeKey == "" {
+		log.Fatalf("STRIPE_SECRET_KEY no está configurada en variables de entorno")
+	}
+	paymentService := payments.NewService(dbPool, stripeKey)
+
 	restaurantService := restaurants.NewService(dbPool, rdb)
 	employeeService := employees.NewService(dbPool)
 	categoryService := categories.NewService(dbPool, rdb)
@@ -66,8 +105,8 @@ func main() {
 	// --- Inicializar Servidor GraphQL (Inyectando el servicio) ---
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 		Resolvers: &graph.Resolver{
-			AuthService: authService,
-			//PaymentService:    paymentService,
+			AuthService:       authService,
+			PaymentService:    paymentService,
 			RestaurantService: restaurantService,
 			EmployeeService:   employeeService,
 			CategoryService:   categoryService,
@@ -100,6 +139,21 @@ func main() {
 		srv.ServeHTTP(c.Writer, c.Request)
 	})
 
+	// REST endpoint for kitchen orders with details
+	router.GET("/api/kitchen/orders", func(c *gin.Context) {
+		restaurantId := c.Query("restaurantId")
+		if restaurantId == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "restaurantId is required"})
+			return
+		}
+		orders, err := orderService.FindOpenOrdersWithDetails(c.Request.Context(), restaurantId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, orders)
+	})
+
 	// WebSocket en tiempo real para cocina (registrado en Gin, no en DefaultServeMux)
 	router.GET("/ws/orders", func(c *gin.Context) {
 		hub.HandleConnection(c.Writer, c.Request)
@@ -110,6 +164,83 @@ func main() {
 	})
 
 	router.StaticFS("/docs", http.Dir("./docs-tools/public"))
+
+	// --- OAuth2 Routes ---
+	// Google OAuth
+	router.GET("/auth/google", func(c *gin.Context) {
+		authURL, state := oauthService.GetGoogleAuthURL()
+		// Guardar estado en cookie para validación posterior
+		c.SetCookie("oauth_state", state, 600, "/", "", false, true)
+		c.Redirect(http.StatusFound, authURL)
+	})
+
+	router.GET("/auth/google/callback", func(c *gin.Context) {
+		state := c.Query("state")
+		code := c.Query("code")
+
+		if !oauthService.ValidateOAuthState(state) {
+			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error=invalid_state")
+			return
+		}
+
+		authResponse, err := oauthService.HandleGoogleCallback(c.Request.Context(), code)
+		if err != nil {
+			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error="+url.QueryEscape(err.Error()))
+			return
+		}
+
+		c.Redirect(http.StatusFound, buildOAuthRedirectURL(authResponse))
+	})
+
+	// Facebook OAuth
+	router.GET("/auth/facebook", func(c *gin.Context) {
+		authURL, state := oauthService.GetFacebookAuthURL()
+		c.SetCookie("oauth_state", state, 600, "/", "", false, true)
+		c.Redirect(http.StatusFound, authURL)
+	})
+
+	router.GET("/auth/facebook/callback", func(c *gin.Context) {
+		state := c.Query("state")
+		code := c.Query("code")
+
+		if !oauthService.ValidateOAuthState(state) {
+			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error=invalid_state")
+			return
+		}
+
+		authResponse, err := oauthService.HandleFacebookCallback(c.Request.Context(), code)
+		if err != nil {
+			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error="+url.QueryEscape(err.Error()))
+			return
+		}
+
+		c.Redirect(http.StatusFound, buildOAuthRedirectURL(authResponse))
+	})
+
+	// Twitter (X) OAuth
+	router.GET("/auth/twitter", func(c *gin.Context) {
+		authURL, state := oauthService.GetTwitterAuthURL()
+		c.SetCookie("oauth_state", state, 600, "/", "", false, true)
+		c.Redirect(http.StatusFound, authURL)
+	})
+
+	router.GET("/auth/twitter/callback", func(c *gin.Context) {
+		state := c.Query("state")
+		code := c.Query("code")
+
+		if !oauthService.ValidateOAuthState(state) {
+			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error=invalid_state")
+			return
+		}
+
+		authResponse, err := oauthService.HandleTwitterCallback(c.Request.Context(), code)
+		if err != nil {
+			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error="+url.QueryEscape(err.Error()))
+			return
+		}
+
+		c.Redirect(http.StatusFound, buildOAuthRedirectURL(authResponse))
+	})
 
 	router.NoRoute(func(c *gin.Context) {
 		c.File("./static/404.html")

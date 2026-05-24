@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FiSave, FiClock, FiMapPin, FiPhone, FiMail } from "react-icons/fi";
+import { FiSave, FiMapPin, FiPhone, FiMail } from "react-icons/fi";
 import { Button } from "../custom/Button";
 import { Input } from "../custom/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "../custom/Card";
@@ -8,6 +8,7 @@ import { Spinner } from "../custom/Spinner";
 import { useRestaurantById } from "../../hooks/useRestaurants";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
+import { RestaurantHoursEditor } from "../restaurant/RestaurantHoursEditor";
 
 function ConfigManagerContent() {
   const { user } = useAuth();
@@ -175,21 +176,10 @@ function ConfigManagerContent() {
                 className="pl-10"
               />
             </div>
-            <div className="relative">
-              <FiClock
-                className="absolute left-3 top-9 text-muted-foreground"
-                size={18}
-              />
-              <Input
-                label="Horario"
-                value={config.hours}
-                onChange={(e) =>
-                  setConfig({ ...config, hours: e.target.value })
-                }
-                placeholder="Lun-Dom 12:00-22:00"
-                className="pl-10"
-              />
-            </div>
+            <RestaurantHoursEditor
+              hours={config.hours}
+              onChange={(val) => setConfig({ ...config, hours: val })}
+            />
           </CardContent>
         </Card>
       </div>

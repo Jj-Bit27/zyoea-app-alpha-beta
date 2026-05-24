@@ -11,7 +11,8 @@ import { EmptyState } from "../custom/EmptyState";
 import { Spinner } from "../custom/Spinner";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../custom/Toast";
-import { useRestaurants } from "../../hooks/useRestaurants";
+import { useRestaurants, useRestaurantById } from "../../hooks/useRestaurants";
+import { useTables } from "../../hooks/useTables";
 import { useBookings, useBookingsByUser } from "../../hooks/useBookings";
 import { ApolloWrapper } from "../ApolloWrapper";
 import { FiTrash2 } from "react-icons/fi";
@@ -30,7 +31,12 @@ const statusLabels: Record<string, string> = {
   completed: "Completada",
 };
 
-const timeOptions = [
+const guestOptions = Array.from({ length: 10 }, (_, i) => ({
+  value: String(i + 1),
+  label: `${i + 1} persona${i > 0 ? "s" : ""}`,
+}));
+
+const fallbackTimeOptions = [
   { value: "12:00", label: "12:00 PM" },
   { value: "13:00", label: "1:00 PM" },
   { value: "14:00", label: "2:00 PM" },
@@ -40,24 +46,71 @@ const timeOptions = [
   { value: "21:00", label: "9:00 PM" },
 ];
 
-const guestOptions = Array.from({ length: 10 }, (_, i) => ({
-  value: String(i + 1),
-  label: `${i + 1} persona${i > 0 ? "s" : ""}`,
-}));
-
 const emptyForm = {
   restaurantId: "",
   date: "",
   time: "",
   guests: "2",
   notes: "",
-  tableId: "1",
+  tableId: "",
 };
+
+const DAY_KEYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+function generateTimeSlots(hoursStr: string | undefined | null, dateStr: string): { value: string; label: string }[] {
+  if (!hoursStr || !dateStr) return [];
+  try {
+    const hours = JSON.parse(hoursStr);
+    const date = new Date(dateStr + "T12:00:00");
+    const dayKey = DAY_KEYS[date.getDay()];
+    const ranges = hours[dayKey];
+    if (!ranges || ranges.length === 0) return [];
+
+    const slots: { value: string; label: string }[] = [];
+    const now = new Date();
+    const todayStr = now.toISOString().split("T")[0];
+    const isToday = dateStr === todayStr;
+
+    for (const range of ranges) {
+      const [openH, openM] = range.open.split(":").map(Number);
+      const [closeH, closeM] = range.close.split(":").map(Number);
+      const openMinutes = openH * 60 + openM;
+      const closeMinutes = closeH * 60 + closeM;
+
+      for (let m = openMinutes; m < closeMinutes; m += 60) {
+        const h = Math.floor(m / 60);
+        const min = m % 60;
+        const timeStr = `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+
+        if (isToday) {
+          const currentMinutes = now.getHours() * 60 + now.getMinutes();
+          if (m <= currentMinutes) continue;
+        }
+
+        const hour12 = h % 12 || 12;
+        const ampm = h < 12 ? "AM" : "PM";
+        slots.push({ value: timeStr, label: `${hour12}:${String(min).padStart(2, "0")} ${ampm}` });
+      }
+    }
+
+    return slots;
+  } catch {
+    return [];
+  }
+}
 
 function BookingManagerContent() {
   const { user } = useAuth();
   const { showToast } = useToast();
   const { restaurants, loading: loadingRestaurants } = useRestaurants();
+  const [createForm, setCreateForm] = useState(emptyForm);
+  const [editForm, setEditForm] = useState(emptyForm);
+
+  const { restaurant: createRestaurant } = useRestaurantById(createForm.restaurantId);
+  const { restaurant: editRestaurant } = useRestaurantById(editForm.restaurantId);
+
+  const createTimeOptions = generateTimeSlots(createRestaurant?.hours, createForm.date);
+  const editTimeOptions = generateTimeSlots(editRestaurant?.hours, editForm.date);
 
   const [selectedRestaurantId, setSelectedRestaurantId] = useState("");
   const { createBooking } = useBookings(selectedRestaurantId);
@@ -65,14 +118,22 @@ function BookingManagerContent() {
     user?.id.toString() ?? "",
   );
 
+  const { tables: createTables } = useTables(createForm.restaurantId);
+  const { tables: editTables } = useTables(editForm.restaurantId);
+
+  const availableCreateTables = createTables.filter(
+    (t: any) => t.status === "available" || t.status === "disponible",
+  );
+  const availableEditTables = editTables.filter(
+    (t: any) => t.status === "available" || t.status === "disponible",
+  );
+
   // Modal para crear nueva reserva
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [createForm, setCreateForm] = useState(emptyForm);
 
   // Modal para editar reserva existente
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<any>(null);
-  const [editForm, setEditForm] = useState(emptyForm);
 
   const userBookings = useMemo(() => {
     return bookings.filter((b: any) => String(b.user.id) === user?.id);
@@ -276,7 +337,7 @@ function BookingManagerContent() {
               onChange={(e) =>
                 setCreateForm({ ...createForm, time: e.target.value })
               }
-              options={timeOptions}
+              options={createTimeOptions.length > 0 ? createTimeOptions : fallbackTimeOptions}
             />
             <Select
               label="Número de personas"
@@ -286,15 +347,21 @@ function BookingManagerContent() {
               }
               options={guestOptions}
             />
-            <Input
-              label="Número de Mesa"
-              type="number"
-              value={createForm.tableId}
-              onChange={(e) =>
-                setCreateForm({ ...createForm, tableId: e.target.value })
-              }
-              placeholder="1"
-            />
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Mesa</label>
+              <select
+                value={createForm.tableId}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, tableId: e.target.value })
+                }
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Seleccionar mesa</option>
+                {availableCreateTables.map((t: any) => (
+                  <option key={t.id} value={t.id}>Mesa {t.number} ({t.capacity} pers.)</option>
+                ))}
+              </select>
+            </div>
             <Textarea
               label="Notas especiales (opcional)"
               value={createForm.notes}
@@ -334,7 +401,7 @@ function BookingManagerContent() {
               onChange={(e) =>
                 setEditForm({ ...editForm, time: e.target.value })
               }
-              options={timeOptions}
+              options={editTimeOptions.length > 0 ? editTimeOptions : fallbackTimeOptions}
             />
             <Select
               label="Número de personas"
@@ -344,15 +411,21 @@ function BookingManagerContent() {
               }
               options={guestOptions}
             />
-            <Input
-              label="Número de Mesa"
-              type="number"
-              value={editForm.tableId}
-              onChange={(e) =>
-                setEditForm({ ...editForm, tableId: e.target.value })
-              }
-              placeholder="1"
-            />
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Mesa</label>
+              <select
+                value={editForm.tableId}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, tableId: e.target.value })
+                }
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Seleccionar mesa</option>
+                {availableEditTables.map((t: any) => (
+                  <option key={t.id} value={t.id}>Mesa {t.number} ({t.capacity} pers.)</option>
+                ))}
+              </select>
+            </div>
           </div>
         </ModalBody>
         <ModalFooter>

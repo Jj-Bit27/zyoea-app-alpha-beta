@@ -30,8 +30,9 @@ function PaymentsManagerContent() {
   if (loading) return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
   if (error) return <div className="p-6 bg-destructive/10 text-destructive rounded-lg">{error.message}</div>;
 
-  const pendingOrders = orders.filter((o: any) => !o.paid);
+  const pendingOrders = orders.filter((o: any) => !o.paid && o.status !== "CANCELADA");
   const completedOrders = orders.filter((o: any) => o.paid);
+  const cancelledOrders = orders.filter((o: any) => o.status === "CANCELADA");
 
   const filteredPending = pendingOrders.filter((o: any) =>
     String(o.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -134,6 +135,32 @@ function PaymentsManagerContent() {
           </div>
         )}
       </div>
+
+      {/* Cancelled Orders */}
+      {cancelledOrders.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Órdenes Canceladas</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {cancelledOrders.map((order: any) => (
+              <Card key={order.id} className="border-destructive/30 opacity-75">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold text-foreground">#{order.id}</h3>
+                      <p className="text-sm text-muted-foreground">{order.user_name} — Mesa {order.tableId || "—"}</p>
+                    </div>
+                    <Badge variant="destructive">Cancelada</Badge>
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-border">
+                    <p className="text-lg font-bold text-muted-foreground line-through">${order.total}</p>
+                    <span className="text-xs text-destructive font-medium">No cobrable</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Payment Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>

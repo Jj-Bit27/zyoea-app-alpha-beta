@@ -44,10 +44,9 @@ function DashboardContent() {
   const activeOrders = orders.filter(
     (o: any) => o.status !== "entregado" && o.status !== "cancelado",
   );
-  const totalRevenue = orders.reduce(
-    (sum: number, o: any) => sum + (o.total || 0),
-    0,
-  );
+  const totalRevenue = orders
+    .filter((o: any) => o.status !== "CANCELADA" && o.status !== "cancelado")
+    .reduce((sum: number, o: any) => sum + (o.total || 0), 0);
   const occupiedTables = tables.filter(
     (t: any) => t.status === "ocupada" || t.status === "occupied",
   ).length;

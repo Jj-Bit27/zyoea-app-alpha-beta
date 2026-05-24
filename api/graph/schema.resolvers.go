@@ -8,6 +8,7 @@ import (
 	"api/graph/generated"
 	"api/graph/model"
 	"context"
+	"fmt"
 )
 
 // Register is the resolver for the register field.
@@ -203,14 +204,14 @@ func (r *mutationResolver) AddOrderItems(ctx context.Context, orderID string, it
 	return r.OrderService.AddItems(ctx, orderID, items)
 }
 
-// RemoveOrder is the resolver for the removeOrder field.
-func (r *mutationResolver) RemoveOrder(ctx context.Context, id string) (bool, error) {
-	return r.OrderService.Delete(ctx, id)
-}
-
 // RemoveOrderItem is the resolver for the removeOrderItem field.
 func (r *mutationResolver) RemoveOrderItem(ctx context.Context, orderID string, itemID string) (*model.Order, error) {
 	return r.OrderService.RemoveItem(ctx, orderID, itemID)
+}
+
+// RemoveOrder is the resolver for the removeOrder field.
+func (r *mutationResolver) RemoveOrder(ctx context.Context, id string) (bool, error) {
+	return r.OrderService.Delete(ctx, id)
 }
 
 // ---------------------------------------------------------
@@ -381,6 +382,11 @@ func (r *subscriptionResolver) OrderCreated(ctx context.Context, restaurantID in
 
 	// 4. Devolver el canal a gqlgen para que lo convierta en WebSocket
 	return ch, nil
+}
+
+// OrderStatusUpdated is the resolver for the orderStatusUpdated field.
+func (r *subscriptionResolver) OrderStatusUpdated(ctx context.Context, restaurantID int) (<-chan *model.Order, error) {
+	panic(fmt.Errorf("not implemented: OrderStatusUpdated - orderStatusUpdated"))
 }
 
 // Mutation returns generated.MutationResolver implementation.

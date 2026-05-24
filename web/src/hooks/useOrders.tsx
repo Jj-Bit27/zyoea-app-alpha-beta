@@ -136,6 +136,22 @@ const ADD_ORDER_ITEMS = gql`
   }
 `;
 
+const REMOVE_ORDER_ITEM = gql`
+  mutation removeOrderItem($orderId: ID!, $itemId: ID!) {
+    removeOrderItem(orderId: $orderId, itemId: $itemId) {
+      id
+      total
+      status
+      orderDetail {
+        id
+        productId
+        quantity
+        subtotal
+      }
+    }
+  }
+`;
+
 // ==================== HOOKS ====================
 
 /**
@@ -299,6 +315,26 @@ export function useAddOrderItems() {
 
   return {
     addItems,
+    loading,
+    error,
+  };
+}
+
+/**
+ * Hook para eliminar un producto de una orden existente
+ */
+export function useRemoveOrderItem() {
+  const [mutation, { loading, error }] = useMutation(REMOVE_ORDER_ITEM);
+
+  const removeItem = async (orderId: string, itemId: string) => {
+    const { data } = await mutation({
+      variables: { orderId, itemId },
+    });
+    return data?.removeOrderItem;
+  };
+
+  return {
+    removeItem,
     loading,
     error,
   };

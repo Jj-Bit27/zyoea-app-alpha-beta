@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -11,7 +12,7 @@ import (
 // NewPostgresConnection inicializa y devuelve el pool de conexiones
 func NewPostgresConnection() (*pgxpool.Pool, error) {
 	// Reemplaza con tus credenciales reales
-	databaseURL := "postgres://user:password@localhost:32768/db"
+	databaseURL := os.Getenv("DATABASE_URL")
 
 	dbPool, err := pgxpool.New(context.Background(), databaseURL)
 

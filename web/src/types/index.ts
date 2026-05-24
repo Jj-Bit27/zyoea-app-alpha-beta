@@ -100,7 +100,7 @@ export interface Order {
   tableId?: string;
   total: number;
   paid: boolean;
-  type: "dine-in" | "takeaway" | "delivery";
+  type: "dine_in" | "takeaway" | "delivery" | "app";
   notes?: string;
   createdAt: Date;
   updatedAt: Date;

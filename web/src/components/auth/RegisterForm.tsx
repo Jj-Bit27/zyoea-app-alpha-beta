@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IoRestaurant, IoLogoGoogle, IoLogoFacebook } from "react-icons/io5";
+import { IoRestaurant, IoLogoGoogle, IoLogoFacebook, IoLogoTwitter } from "react-icons/io5";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "../custom/Button";
 import { Input } from "../custom/Input";
@@ -118,17 +118,21 @@ export function RegisterForm() {
               </div>
             </div>
 
-            {/*
-            <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" type="button">
-                <IoLogoGoogle className="mr-2 h-4 w-4" />
-                Google
+            
+            <div className="grid grid-cols-3 gap-3">
+              <Button variant="outline" type="button" onClick={() => window.location.href = 'http://localhost:8080/auth/google'}>
+                  <IoLogoGoogle className="mr-2 h-4 w-4" />
+                  Google
               </Button>
-              <Button variant="outline" type="button">
-                <IoLogoFacebook className="mr-2 h-4 w-4" />
-                Facebook
+              <Button variant="outline" type="button" onClick={() => window.location.href = 'http://localhost:8080/auth/facebook'}>
+                  <IoLogoFacebook className="mr-2 h-4 w-4" />
+                  Facebook
               </Button>
-            </div> */}
+              <Button variant="outline" type="button" onClick={() => window.location.href = 'http://localhost:8080/auth/twitter'}>
+                  <IoLogoTwitter className="mr-2 h-4 w-4" />
+                  X
+              </Button>
+            </div> 
 
             <div className="mt-4 text-center text-sm text-muted-foreground">
               ¿Ya tienes una cuenta?{" "}

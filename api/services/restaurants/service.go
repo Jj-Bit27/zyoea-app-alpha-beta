@@ -249,8 +249,8 @@ func (s *Service) Delete(ctx context.Context, id string) (bool, error) {
 		return false, fmt.Errorf("error al eliminar el restaurante: %w", err)
 	}
 
-	cacheKey := ":restaurant:all"
-	cacheKeyRestaurant := fmt.Sprintf("bookings:%d", dbID)
+	cacheKey := "restaurants:all"
+	cacheKeyRestaurant := fmt.Sprintf("restaurant:%d", dbID)
 
 	err = s.Redis.Del(ctx, cacheKey, cacheKeyRestaurant).Err()
 

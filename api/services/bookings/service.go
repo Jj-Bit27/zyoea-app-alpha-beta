@@ -58,16 +58,25 @@ func (s *Service) Create(ctx context.Context, input model.CreateBookingInput) (*
 	b.Time = input.Time
 	b.Status = input.Status
 
-	cacheKey := fmt.Sprintf("bookings:restaurant:%d", &b.RestaurantID)
-	cacheKeyUser := fmt.Sprintf("bookings:user:%d", &b.UserID)
+	cacheKeyRestaurant := fmt.Sprintf("bookings:restaurant:%d", b.RestaurantID)
+	cacheKeyUser := fmt.Sprintf("bookings:user:%d", b.UserID)
 	cacheKeyBooking := fmt.Sprintf("bookings:%d", id)
 
-	_, err = s.Redis.Get(ctx, cacheKey).Result()
+	_, err = s.Redis.Get(ctx, cacheKeyRestaurant).Result()
 	if err == nil {
-		err = s.Redis.Del(ctx, cacheKey, cacheKeyUser, cacheKeyBooking).Err()
+		err = s.Redis.Del(ctx, cacheKeyRestaurant, cacheKeyUser, cacheKeyBooking).Err()
 	}
 
 	return &b, nil
+}
+
+// ---------------------------------------------------------
+// AUTO-EXPIRAR RESERVAS VENCIDAS
+// ---------------------------------------------------------
+func (s *Service) autoExpirePastBookings(ctx context.Context) error {
+	sql := `UPDATE bookings SET status = 'cancelled' WHERE status = 'pending' AND "time" < NOW()`
+	_, err := s.DB.Exec(ctx, sql)
+	return err
 }
 
 // ---------------------------------------------------------
@@ -80,6 +89,11 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([
 	}
 
 	key := fmt.Sprintf("bookings:restaurant:%d", dbID)
+
+	// Auto-expire past pending bookings before reading
+	if err := s.autoExpirePastBookings(ctx); err != nil {
+		fmt.Printf("error auto-expirado reservas: %v\n", err)
+	}
 
 	val, err := s.Redis.Get(ctx, key).Result()
 	if err == nil {
@@ -145,6 +159,11 @@ func (s *Service) FindAllByUser(ctx context.Context, user string) ([]*model.Book
 	}
 
 	key := fmt.Sprintf("bookings:user:%d", dbID)
+
+	// Auto-expire past pending bookings before reading
+	if err := s.autoExpirePastBookings(ctx); err != nil {
+		fmt.Printf("error auto-expirado reservas: %v\n", err)
+	}
 
 	val, err := s.Redis.Get(ctx, key).Result()
 	if err == nil {

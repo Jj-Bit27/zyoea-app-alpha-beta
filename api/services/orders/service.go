@@ -256,7 +256,13 @@ func (s *Service) UpdatePaidStatus(ctx context.Context, id string, paid bool) (*
 	if tag.RowsAffected() == 0 {
 		return nil, errors.New("pedido no encontrado")
 	}
-	return s.FindOne(ctx, id)
+	updated, err := s.FindOne(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	restID := strconv.Itoa(updated.RestaurantID)
+	s.Hub.BroadcastToRestaurant(restID, updated)
+	return updated, nil
 }
 
 // ---------------------------------------------------------
@@ -292,6 +298,106 @@ func (s *Service) FindOpenOrdersByRestaurant(ctx context.Context, restaurantID s
 		orders = append(orders, &o)
 	}
 	return orders, nil
+}
+
+// KitchenOrderResponse is the JSON shape for the kitchen REST endpoint
+type KitchenOrderResponse struct {
+	ID       string                  `json:"id"`
+	UserID   int                     `json:"userId"`
+	UserName string                  `json:"user_name"`
+	RestID   int                     `json:"restaurantId"`
+	Status   string                  `json:"status"`
+	Type     string                  `json:"type"`
+	Total    float64                 `json:"total"`
+	Notes    *string                 `json:"notes,omitempty"`
+	TableID  *int                    `json:"tableId,omitempty"`
+	Date     time.Time               `json:"date"`
+	Paid     bool                    `json:"paid"`
+	Details  []KitchenDetailResponse `json:"orderDetail"`
+}
+
+type KitchenDetailResponse struct {
+	ID        string             `json:"id"`
+	ProductID int                `json:"productId"`
+	Quantity  int                `json:"quantity"`
+	Subtotal  float64            `json:"subtotal"`
+	Product   *KitchenProductResponse `json:"product,omitempty"`
+}
+
+type KitchenProductResponse struct {
+	ID    string  `json:"id"`
+	Name  string  `json:"name"`
+	Price float64 `json:"price"`
+	Image *string `json:"image,omitempty"`
+}
+
+func (s *Service) FindOpenOrdersWithDetails(ctx context.Context, restaurantID string) ([]KitchenOrderResponse, error) {
+	orders, err := s.FindOpenOrdersByRestaurant(ctx, restaurantID)
+	if err != nil {
+		return nil, err
+	}
+	if len(orders) == 0 {
+		return []KitchenOrderResponse{}, nil
+	}
+
+	var ids []int
+	for _, o := range orders {
+		id, _ := strconv.Atoi(o.ID)
+		ids = append(ids, id)
+	}
+
+	detailSQL := `SELECT od.id, od.order_id, od.product_id, od.quantity, od.subtotal,
+		COALESCE(p.id::text, ''), COALESCE(p.name, ''), COALESCE(p.price, 0), p.image
+		FROM order_details od
+		LEFT JOIN products p ON od.product_id = p.id
+		WHERE od.order_id = ANY($1)
+		ORDER BY od.id`
+
+	dRows, err := s.DB.Query(ctx, detailSQL, ids)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching order details: %w", err)
+	}
+	defer dRows.Close()
+
+	detailMap := make(map[int][]KitchenDetailResponse)
+	for dRows.Next() {
+		var d KitchenDetailResponse
+		var prod KitchenProductResponse
+		var orderID int
+		var image *string
+		err := dRows.Scan(&d.ID, &orderID, &d.ProductID, &d.Quantity, &d.Subtotal,
+			&prod.ID, &prod.Name, &prod.Price, &image)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning detail row: %w", err)
+		}
+		prod.Image = image
+		d.Product = &prod
+		detailMap[orderID] = append(detailMap[orderID], d)
+	}
+
+	result := make([]KitchenOrderResponse, 0, len(orders))
+	for _, o := range orders {
+		oid, _ := strconv.Atoi(o.ID)
+		details := detailMap[oid]
+		if details == nil {
+			details = []KitchenDetailResponse{}
+		}
+		result = append(result, KitchenOrderResponse{
+			ID:       o.ID,
+			UserID:   o.UserID,
+			UserName: o.UserName,
+			RestID:   o.RestaurantID,
+			Status:   o.Status,
+			Type:     o.Type,
+			Total:    o.Total,
+			Notes:    o.Notes,
+			TableID:  o.TableID,
+			Date:     o.Date,
+			Paid:     o.Paid,
+			Details:  details,
+		})
+	}
+	return result, nil
 }
 
 // ---------------------------------------------------------
@@ -333,13 +439,13 @@ func (s *Service) FindAllByUser(ctx context.Context, userID string) ([]*model.Or
 // 10. ADD ITEMS TO EXISTING ORDER (Agregar productos a orden existente)
 // ---------------------------------------------------------
 func (s *Service) AddItems(ctx context.Context, orderID string, items []*model.OrderItemInput) (*model.Order, error) {
-	// Verificar que la orden existe y está abierta
+	// Verificar que la orden existe y está abierta o lista
 	order, err := s.FindOne(ctx, orderID)
 	if err != nil {
 		return nil, err
 	}
-	if order.Status != "ABIERTA" {
-		return nil, errors.New("solo se pueden agregar productos a órdenes abiertas")
+	if order.Status != "ABIERTA" && order.Status != "LISTA" {
+		return nil, errors.New("solo se pueden agregar productos a órdenes abiertas o en preparación")
 	}
 
 	tx, err := s.DB.Begin(ctx)
@@ -371,7 +477,15 @@ func (s *Service) AddItems(ctx context.Context, orderID string, items []*model.O
 		return nil, err
 	}
 
-	return s.FindOne(ctx, orderID)
+	updatedOrder, err := s.FindOne(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+
+	restID := strconv.Itoa(updatedOrder.RestaurantID)
+	s.Hub.BroadcastToRestaurant(restID, updatedOrder)
+
+	return updatedOrder, nil
 }
 
 // ---------------------------------------------------------

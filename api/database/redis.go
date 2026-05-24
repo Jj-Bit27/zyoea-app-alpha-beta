@@ -9,7 +9,7 @@ import (
 func NewRedisClient() *redis.Client {
 	addr := os.Getenv("REDIS_ADDR")
 	if addr == "" {
-		addr = "localhost:32769" // Fallback para desarrollo local sin docker
+		addr = "localhost:6379" // Fallback para desarrollo local sin docker
 	}
 
 	rdb := redis.NewClient(&redis.Options{

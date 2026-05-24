@@ -78,20 +78,42 @@ function TablesManagerContent() {
     return table.status || "available";
   };
 
-  const handleViewHistory = (table: Table) => {
+  const [tableOrderDetails, setTableOrderDetails] = useState<any[] | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  const handleViewHistory = async (table: Table) => {
+    setSelectedTable(table);
+    setTableOrderDetails(null);
+    setIsHistoryModalOpen(true);
+
     const activeOrders = orders.filter(
       (o: any) =>
-        o.tableId === table.id &&
-        o.status !== "entregado" &&
-        o.status !== "cancelado",
+        String(o.tableId) === String(table.id) &&
+        (o.status === "ABIERTA" || o.status === "LISTA"),
     );
-    const mockAmount = activeOrders.reduce(
+    const amount = activeOrders.reduce(
       (sum: number, order: any) => sum + order.total,
       0,
     );
-    setSelectedTable(table);
-    setTotalOrder(mockAmount);
-    setIsHistoryModalOpen(true);
+    setTotalOrder(amount);
+
+    if (activeOrders.length > 0) {
+      setLoadingDetails(true);
+      try {
+        const res = await fetch(`http://localhost:8080/api/kitchen/orders?restaurantId=${restaurantId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const tableOrders = data.filter((o: any) =>
+            activeOrders.some((ao: any) => String(ao.id) === String(o.id)),
+          );
+          setTableOrderDetails(tableOrders);
+        }
+      } catch (e) {
+        console.error("Error fetching order details", e);
+      } finally {
+        setLoadingDetails(false);
+      }
+    }
   };
 
   const handlePayCash = async (table: Table) => {
@@ -362,19 +384,48 @@ function TablesManagerContent() {
         </ModalHeader>
         <ModalBody>
           <div className="space-y-4">
-            {selectedTable?.status === "occupied" ? (
-              <div className="bg-warning/10 border border-warning p-4 rounded-lg">
-                <h3 className="font-bold mb-2">Orden Activa</h3>
-                <p className="text-xl font-black text-warning font-mono">
-                  Total: {totalOrder || 250}
-                </p>
-                <Button
-                  className="mt-4 w-full flex items-center justify-center gap-2"
-                  variant="ghost"
-                  onClick={() => handlePayCash(selectedTable)}
-                >
-                  <IoCash /> Registrar Pago Efectivo
-                </Button>
+            {loadingDetails ? (
+              <div className="flex justify-center py-6">
+                <Spinner size="md" />
+              </div>
+            ) : tableOrderDetails && tableOrderDetails.length > 0 ? (
+              <div className="space-y-4">
+                {tableOrderDetails.map((ord: any) => (
+                  <div key={ord.id} className="bg-warning/10 border border-warning p-4 rounded-lg">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-bold">Orden #{ord.id}</h3>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 font-medium">
+                        {ord.status === "ABIERTA" ? "En preparación" : "Lista"}
+                      </span>
+                    </div>
+                    {ord.orderDetail && ord.orderDetail.length > 0 ? (
+                      <div className="space-y-2 mb-3">
+                        {ord.orderDetail.map((det: any) => (
+                          <div key={det.id} className="flex items-center justify-between bg-white/50 dark:bg-black/10 rounded px-3 py-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-foreground">{det.quantity}</span>
+                              <span className="text-muted-foreground">×</span>
+                              <span className="text-foreground">{det.product?.name || `Producto #${det.productId}`}</span>
+                            </div>
+                            <span className="font-medium text-foreground">${det.subtotal?.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic mb-3">Sin productos registrados</p>
+                    )}
+                    <p className="text-xl font-black text-warning font-mono">
+                      Total: ${ord.total?.toFixed(2)}
+                    </p>
+                    <Button
+                      className="mt-3 w-full flex items-center justify-center gap-2"
+                      variant="ghost"
+                      onClick={() => handlePayCash(selectedTable!)}
+                    >
+                      <IoCash /> Registrar Pago Efectivo
+                    </Button>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="bg-secondary p-4 rounded-lg text-center">

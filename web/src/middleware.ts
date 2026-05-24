@@ -79,6 +79,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   }
 
+  // /auth/callback debe ser público siempre (para procesar OAuth)
+  if (url.pathname.startsWith("/auth/callback")) {
+    return next();
+  }
+
   if (
     url.pathname.startsWith("/register") ||
     url.pathname.startsWith("/login")

@@ -118,7 +118,10 @@ func (s *Service) Login(ctx context.Context, input model.LoginInput) (*model.Aut
 
 	// C. Validar Rol y Restaurante
 	if u.Role != nil && (*u.Role == "staff" || *u.Role == "admin") {
-		s.DB.QueryRow(ctx, "SELECT r.id FROM employees e INNER JOIN restaurants r ON e.restaurant = r.id WHERE e.user = $1", u.ID).Scan(&restID)
+		err := s.DB.QueryRow(ctx, "SELECT r.id FROM employees e INNER JOIN restaurants r ON e.restaurant = r.id WHERE e.\"user\" = $1", u.ID).Scan(&restID)
+		if err != nil && err != pgx.ErrNoRows {
+			fmt.Printf("Error buscando restaurant del empleado: %v\n", err)
+		}
 	}
 
 	fmt.Println(input)
@@ -220,7 +223,7 @@ func (s *Service) VerifyToken(ctx context.Context, tokenString string) (*model.U
 	// Buscar Restaurante si es empleado
 	if u.Role != nil && (*u.Role == "employee" || *u.Role == "administrator") {
 		var rID int
-		err = s.DB.QueryRow(ctx, "SELECT restaurant_id FROM employees WHERE user_id=$1", userID).Scan(&rID)
+		err = s.DB.QueryRow(ctx, "SELECT restaurant FROM employees WHERE \"user\"=$1", userID).Scan(&rID)
 		if err == nil {
 			u.Restaurant = &rID
 		}

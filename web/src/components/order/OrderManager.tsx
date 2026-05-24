@@ -1,7 +1,8 @@
 import { useOrder } from "../../context/OrderContext";
 import { useAuth } from "../../context/AuthContext";
-import { useCreateOrder } from "../../hooks/useOrders";
-import { useState } from "react";
+import { useCreateOrder, useAddOrderItems, useUserOrders } from "../../hooks/useOrders";
+import { useTables } from "../../hooks/useTables";
+import { useState, useMemo } from "react";
 import {
   FiTrash2,
   FiMinus,
@@ -17,10 +18,30 @@ import { ApolloWrapper } from "../ApolloWrapper";
 export function CartManagerContent() {
   const { cart, total, updateQuantity, removeFromCart, clearCart } = useOrder();
   const { user } = useAuth();
-  const { createOrder, loading } = useCreateOrder();
+  const { createOrder, loading: creatingOrder } = useCreateOrder();
+  const { addItems, loading: addingItems } = useAddOrderItems();
+  const { orders: userOrders } = useUserOrders(user?.id ?? "");
   const [orderCreated, setOrderCreated] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [selectedTable, setSelectedTable] = useState<string>("");
   const finalTotal = total;
+
+  const restaurantId = cart.length > 0 ? cart[0].restaurantId : "";
+  const { tables: allTables } = useTables(restaurantId);
+  const availableTables = allTables.filter(
+    (t: any) => t.status === "available" || t.status === "disponible",
+  );
+
+  const activeOrder = useMemo(() => {
+    if (!restaurantId) return null;
+    return userOrders.find(
+      (o: any) =>
+        String(o.restaurantId) === restaurantId &&
+        (o.status === "ABIERTA" || o.status === "LISTA"),
+    ) || null;
+  }, [userOrders, restaurantId]);
+
+  const loading = creatingOrder || addingItems;
 
   const handleFinalizeOrder = async () => {
     if (cart.length === 0) return;
@@ -32,26 +53,41 @@ export function CartManagerContent() {
     }
 
     try {
-      const result = await createOrder({
-        user: parseInt(user.id.toString()),
-        user_name: user.name || "Cliente",
-        restaurant: parseInt(cart[0].restaurantId),
-        status: "ABIERTA",
-        type: "app",
-        total: finalTotal,
-        table: null,
-        paid: false,
-        items: cart.map((item) => ({
+      if (activeOrder) {
+        // Add items to existing active order
+        const result = await addItems(activeOrder.id, cart.map((item) => ({
           productId: parseInt(item.id),
           quantity: item.quantity,
           subtotal: item.price * item.quantity,
-        })),
-      });
+        })));
 
-      setCreatedOrderId(result?.id || null);
-      setOrderCreated(true);
-      addToast("¡Pedido enviado con éxito!", "success");
-      clearCart();
+        setCreatedOrderId(activeOrder.id);
+        setOrderCreated(true);
+        addToast("¡Productos agregados a tu orden activa!", "success");
+        clearCart();
+      } else {
+        // Create new order
+        const result = await createOrder({
+          user: parseInt(user.id.toString()),
+          user_name: user.name || "Cliente",
+          restaurant: parseInt(cart[0].restaurantId),
+          status: "ABIERTA",
+          type: "app",
+          total: finalTotal,
+          table: selectedTable ? parseInt(selectedTable) : null,
+          paid: false,
+          items: cart.map((item) => ({
+            productId: parseInt(item.id),
+            quantity: item.quantity,
+            subtotal: item.price * item.quantity,
+          })),
+        });
+
+        setCreatedOrderId(result?.id || null);
+        setOrderCreated(true);
+        addToast("¡Pedido enviado con éxito!", "success");
+        clearCart();
+      }
     } catch (error: any) {
       console.error("Error creando la orden:", error);
       const message =
@@ -121,6 +157,21 @@ export function CartManagerContent() {
 
   return (
     <div className="grid lg:grid-cols-3 gap-8">
+      {/* Active order banner */}
+      {activeOrder && (
+        <div className="lg:col-span-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-center gap-3">
+          <span className="text-lg">📋</span>
+          <div>
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+              Tienes una orden activa (#{activeOrder.id})
+            </p>
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              Los productos se agregarán a tu orden existente en lugar de crear una nueva.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Items List */}
       <div className="lg:col-span-2 space-y-4">
         <div className="flex justify-between items-center mb-2">
@@ -203,6 +254,25 @@ export function CartManagerContent() {
               <span>Total</span>
               <span className="text-primary">${finalTotal.toFixed(2)}</span>
             </div>
+            {availableTables.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  Selecciona tu mesa
+                </label>
+                <select
+                  value={selectedTable}
+                  onChange={(e) => setSelectedTable(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Sin mesa asignada</option>
+                  {availableTables.map((t: any) => (
+                    <option key={t.id} value={t.id}>
+                      Mesa {t.number} ({t.capacity} pers.)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               El pago se realizará cuando el restaurante prepare tu orden.
             </p>

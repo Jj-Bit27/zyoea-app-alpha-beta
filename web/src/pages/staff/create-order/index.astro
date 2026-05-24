@@ -1,0 +1,8 @@
+---
+import StaffLayout from "../../../layouts/StaffLayout.astro";
+import { StaffCreateOrder } from "../../../components/staff/StaffCreateOrder";
+---
+
+<StaffLayout title="Nueva Orden">
+  <StaffCreateOrder client:load />
+</StaffLayout>

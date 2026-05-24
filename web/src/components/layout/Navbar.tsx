@@ -20,7 +20,7 @@ const userNavLinks = [
   { href: "/restaurants", label: "Restaurantes", icon: IoRestaurant },
   { href: "/bookings", label: "Reservas", icon: IoCalendar },
   { href: "/tickets", label: "Tickets", icon: IoReceipt },
-  { href: "/my-orders", label: "Mis Órdenes", icon: IoCart },
+  { href: "/order/my-orders", label: "Mis Órdenes", icon: IoCart },
 ];
 
 interface NavbarProps {

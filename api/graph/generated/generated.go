@@ -106,6 +106,7 @@ type ComplexityRoot struct {
 		Register           func(childComplexity int, input model.RegisterInput) int
 		RemoveEmployee     func(childComplexity int, id string) int
 		RemoveOrder        func(childComplexity int, id string) int
+		RemoveOrderItem    func(childComplexity int, orderID string, itemID string) int
 		ResetPassword      func(childComplexity int, token string, password string) int
 		UpdateBooking      func(childComplexity int, id string, input model.UpdateBookingInput) int
 		UpdateCategory     func(childComplexity int, id string, input model.UpdateCategoryInput) int
@@ -223,7 +224,8 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
-		OrderCreated func(childComplexity int, restaurantID int) int
+		OrderCreated       func(childComplexity int, restaurantID int) int
+		OrderStatusUpdated func(childComplexity int, restaurantID int) int
 	}
 
 	Table struct {
@@ -288,6 +290,7 @@ type MutationResolver interface {
 	UpdateOrderStatus(ctx context.Context, id string, status string) (*model.Order, error)
 	UpdateOrderPayment(ctx context.Context, id string, paid bool) (*model.Order, error)
 	AddOrderItems(ctx context.Context, orderID string, items []*model.OrderItemInput) (*model.Order, error)
+	RemoveOrderItem(ctx context.Context, orderID string, itemID string) (*model.Order, error)
 	RemoveOrder(ctx context.Context, id string) (bool, error)
 }
 type QueryResolver interface {
@@ -317,6 +320,7 @@ type QueryResolver interface {
 }
 type SubscriptionResolver interface {
 	OrderCreated(ctx context.Context, restaurantID int) (<-chan *model.Order, error)
+	OrderStatusUpdated(ctx context.Context, restaurantID int) (<-chan *model.Order, error)
 }
 
 type executableSchema struct {
@@ -722,6 +726,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RemoveOrder(childComplexity, args["id"].(string)), true
+	case "Mutation.removeOrderItem":
+		if e.complexity.Mutation.RemoveOrderItem == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_removeOrderItem_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RemoveOrderItem(childComplexity, args["orderId"].(string), args["itemId"].(string)), true
 	case "Mutation.resetPassword":
 		if e.complexity.Mutation.ResetPassword == nil {
 			break
@@ -1464,6 +1479,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Subscription.OrderCreated(childComplexity, args["restaurantId"].(int)), true
+	case "Subscription.orderStatusUpdated":
+		if e.complexity.Subscription.OrderStatusUpdated == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_orderStatusUpdated_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Subscription.OrderStatusUpdated(childComplexity, args["restaurantId"].(int)), true
 
 	case "Table.booking":
 		if e.complexity.Table.Booking == nil {
@@ -2153,12 +2179,14 @@ type Mutation {
   updateOrderStatus(id: ID!, status: String!): Order!
   updateOrderPayment(id: ID!, paid: Boolean!): Order!
   addOrderItems(orderId: ID!, items: [OrderItemInput!]!): Order!
+  removeOrderItem(orderId: ID!, itemId: ID!): Order!
   removeOrder(id: ID!): Boolean!
 }
 
 type Subscription {
   # El backend enviará una Order cada vez que ocurra este evento
   orderCreated(restaurantId: Int!): Order!
+  orderStatusUpdated(restaurantId: Int!): Order!
 }
 `, BuiltIn: false},
 }
@@ -2401,6 +2429,22 @@ func (ec *executionContext) field_Mutation_removeEmployee_args(ctx context.Conte
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_removeOrderItem_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "orderId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["orderId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "itemId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["itemId"] = arg1
 	return args, nil
 }
 
@@ -2840,6 +2884,17 @@ func (ec *executionContext) field_Query_verifyToken_args(ctx context.Context, ra
 }
 
 func (ec *executionContext) field_Subscription_orderCreated_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId", ec.unmarshalNInt2int)
+	if err != nil {
+		return nil, err
+	}
+	args["restaurantId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_orderStatusUpdated_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId", ec.unmarshalNInt2int)
@@ -5413,6 +5468,77 @@ func (ec *executionContext) fieldContext_Mutation_addOrderItems(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_addOrderItems_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_removeOrderItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_removeOrderItem,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RemoveOrderItem(ctx, fc.Args["orderId"].(string), fc.Args["itemId"].(string))
+		},
+		nil,
+		ec.marshalNOrder2ᚖapiᚋgraphᚋmodelᚐOrder,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_removeOrderItem(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Order_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_Order_userId(ctx, field)
+			case "user":
+				return ec.fieldContext_Order_user(ctx, field)
+			case "user_name":
+				return ec.fieldContext_Order_user_name(ctx, field)
+			case "restaurantId":
+				return ec.fieldContext_Order_restaurantId(ctx, field)
+			case "restaurant":
+				return ec.fieldContext_Order_restaurant(ctx, field)
+			case "status":
+				return ec.fieldContext_Order_status(ctx, field)
+			case "type":
+				return ec.fieldContext_Order_type(ctx, field)
+			case "total":
+				return ec.fieldContext_Order_total(ctx, field)
+			case "notes":
+				return ec.fieldContext_Order_notes(ctx, field)
+			case "tableId":
+				return ec.fieldContext_Order_tableId(ctx, field)
+			case "date":
+				return ec.fieldContext_Order_date(ctx, field)
+			case "paid":
+				return ec.fieldContext_Order_paid(ctx, field)
+			case "orderDetail":
+				return ec.fieldContext_Order_orderDetail(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_removeOrderItem_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -8893,6 +9019,77 @@ func (ec *executionContext) fieldContext_Subscription_orderCreated(ctx context.C
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Subscription_orderCreated_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_orderStatusUpdated(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	return graphql.ResolveFieldStream(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Subscription_orderStatusUpdated,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Subscription().OrderStatusUpdated(ctx, fc.Args["restaurantId"].(int))
+		},
+		nil,
+		ec.marshalNOrder2ᚖapiᚋgraphᚋmodelᚐOrder,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Subscription_orderStatusUpdated(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Order_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_Order_userId(ctx, field)
+			case "user":
+				return ec.fieldContext_Order_user(ctx, field)
+			case "user_name":
+				return ec.fieldContext_Order_user_name(ctx, field)
+			case "restaurantId":
+				return ec.fieldContext_Order_restaurantId(ctx, field)
+			case "restaurant":
+				return ec.fieldContext_Order_restaurant(ctx, field)
+			case "status":
+				return ec.fieldContext_Order_status(ctx, field)
+			case "type":
+				return ec.fieldContext_Order_type(ctx, field)
+			case "total":
+				return ec.fieldContext_Order_total(ctx, field)
+			case "notes":
+				return ec.fieldContext_Order_notes(ctx, field)
+			case "tableId":
+				return ec.fieldContext_Order_tableId(ctx, field)
+			case "date":
+				return ec.fieldContext_Order_date(ctx, field)
+			case "paid":
+				return ec.fieldContext_Order_paid(ctx, field)
+			case "orderDetail":
+				return ec.fieldContext_Order_orderDetail(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_orderStatusUpdated_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -12627,6 +12824,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "removeOrderItem":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_removeOrderItem(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "removeOrder":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_removeOrder(ctx, field)
@@ -13691,6 +13895,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch fields[0].Name {
 	case "orderCreated":
 		return ec._Subscription_orderCreated(ctx, fields[0])
+	case "orderStatusUpdated":
+		return ec._Subscription_orderStatusUpdated(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}

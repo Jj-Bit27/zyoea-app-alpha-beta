@@ -13,7 +13,10 @@ import {
   FiLogOut,
   FiChevronLeft,
   FiShoppingBag,
+  FiPlusCircle,
+  FiMonitor,
 } from "react-icons/fi";
+import { IoLogOut } from "react-icons/io5";
 import { ThemeToggle } from "../custom/ThemeToggle";
 import { useAuth } from "../../context/AuthContext";
 import { MdOutlineSecurity } from "react-icons/md";
@@ -53,6 +56,16 @@ const navItems: NavItem[] = [
     href: "/staff/orders",
     icon: <FiShoppingBag size={20} />,
   },
+  {
+    label: "Cocina",
+    href: "/staff/kitchen",
+    icon: <FiMonitor size={20} />,
+  },
+  {
+    label: "Nueva Orden",
+    href: "/staff/create-order",
+    icon: <FiPlusCircle size={20} />,
+  },
   { label: "Mesas", href: "/staff/tables", icon: <FiLayout size={20} /> },
   { label: "Pagos", href: "/staff/payments", icon: <FiCreditCard size={20} /> },
   {
@@ -70,7 +83,7 @@ interface StaffSidebarProps {
 export function StaffSidebar({ currentPath }: StaffSidebarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const isAdmin = user?.role === "admin" || user?.role === "superadmin";
 
@@ -184,16 +197,16 @@ export function StaffSidebar({ currentPath }: StaffSidebarProps) {
               )}
               <ThemeToggle />
             </div>
-            <a
-              href="/"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ${
-                isCollapsed ? "justify-center" : ""
-              }`}
-              title={isCollapsed ? "Volver al sitio" : undefined}
+            <button
+              onClick={() => {
+                logout();
+                window.location.href = "/";
+              }}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors`}
             >
-              <FiLogOut size={20} />
-              {!isCollapsed && <span>Volver al sitio</span>}
-            </a>
+              <IoLogOut size={20} className="h-5 w-5" />
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
         </div>
       </aside>

@@ -4,7 +4,6 @@ import { addToast } from "../components/custom/Toast";
 import { getApolloClient } from "../libs/apollo";
 import { gql } from "@apollo/client";
 
-// Tipos
 export interface User {
   id: string;
   name: string;
@@ -12,17 +11,39 @@ export interface User {
   role: "admin" | "superadmin" | "staff" | "client";
   avatar?: string;
   restaurantId?: string;
+  token?: string;
 }
 
-// --- 1. Estado Global ---
 export const $user = atom<User | null>(null);
 
-// --- 2. Inicialización (Persistencia) ---
+function decodeJWTPayload(token: string): Record<string, unknown> | null {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(""),
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
 if (typeof window !== "undefined") {
   const storedUser = localStorage.getItem("Frugis_user");
   if (storedUser) {
     try {
-      $user.set(JSON.parse(storedUser));
+      const parsed = JSON.parse(storedUser) as User;
+      if (!parsed.restaurantId && parsed.token) {
+        const claims = decodeJWTPayload(parsed.token);
+        if (claims?.restaurant && Number(claims.restaurant) > 0) {
+          parsed.restaurantId = String(claims.restaurant);
+        }
+      }
+      $user.set(parsed);
     } catch (e) {
       console.error("Error parsing user data", e);
       localStorage.removeItem("Frugis_user");
@@ -30,7 +51,6 @@ if (typeof window !== "undefined") {
   }
 }
 
-// --- GraphQL Mutations ---
 const LOGIN_MUTATION = gql`
   mutation login($input: LoginInput!) {
     login(input: $input) {
@@ -60,8 +80,6 @@ const REGISTER_MUTATION = gql`
   }
 `;
 
-// --- 3. Acciones de Autenticación ---
-
 export const login = async (email: string, password: string) => {
   const client = getApolloClient();
   try {
@@ -75,7 +93,7 @@ export const login = async (email: string, password: string) => {
       name: user.name || email,
       email: user.email,
       role: (user.role as User["role"]) || "client",
-      restaurantId: restaurant ? String(restaurant) : undefined,
+      restaurantId: restaurant != null ? String(restaurant) : undefined,
     };
     $user.set(mappedUser);
     localStorage.setItem("Frugis_user", JSON.stringify(mappedUser));
@@ -131,8 +149,30 @@ export const logout = () => {
   window.location.href = "/login";
 };
 
-// --- 4. Hook de Compatibilidad para React ---
+export const oauthLogin = (userData: {
+  id: string;
+  name: string;
+  email: string;
+  role: "admin" | "superadmin" | "staff" | "client";
+  restaurantId?: string;
+  token: string;
+}) => {
+  const mappedUser: User = {
+    id: userData.id,
+    name: userData.name,
+    email: userData.email,
+    role: userData.role,
+    restaurantId: userData.restaurantId || undefined,
+    token: userData.token,
+  };
+
+  $user.set(mappedUser);
+  localStorage.setItem("Frugis_user", JSON.stringify(mappedUser));
+  document.cookie = `auth_token=${userData.token}; path=/; max-age=86400`;
+  addToast(`Bienvenido, ${mappedUser.name}`, "success");
+};
+
 export function useAuth() {
   const user = useStore($user);
-  return { user, login, register, logout };
+  return { user, login, register, logout, oauthLogin };
 }

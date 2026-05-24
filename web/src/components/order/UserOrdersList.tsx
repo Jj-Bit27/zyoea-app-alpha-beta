@@ -4,9 +4,11 @@ import {
   useUserOrders,
   useUpdateOrderPayment,
   useAddOrderItems,
+  useRemoveOrderItem,
 } from "../../hooks/useOrders";
 import { useCreatePayment } from "../../hooks/usePayments";
 import { useProducts } from "../../hooks/useProducts";
+import { useOrderById } from "../../hooks/useOrders";
 import { Button } from "../custom/Button";
 import { Card, CardContent } from "../custom/Card";
 import { Input } from "../custom/Input";
@@ -21,6 +23,7 @@ import {
   FiEdit2,
   FiPlus,
   FiMinus,
+  FiTrash2,
 } from "react-icons/fi";
 import {
   IoCash,
@@ -244,10 +247,13 @@ function EditOrderPanel({
   onSaved: () => void;
 }) {
   const { addItems, loading } = useAddOrderItems();
+  const { removeItem, loading: removing } = useRemoveOrderItem();
+  const { order: fullOrder, loading: loadingDetail, refetch } = useOrderById(order.id);
   const { products, loading: loadingProducts } = useProducts(
     String(order.restaurantId),
   );
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
 
   const increment = (id: string) =>
     setQuantities((q) => ({ ...q, [id]: (q[id] || 0) + 1 }));
@@ -276,19 +282,35 @@ function EditOrderPanel({
       });
       await addItems(order.id, items);
       addToast("Productos agregados a tu orden", "success");
+      refetch();
       onSaved();
-      onClose();
     } catch (err: any) {
       addToast(err.message || "Error al agregar productos", "error");
     }
   };
 
+  const handleRemoveItem = async (detailId: string) => {
+    if (!confirm("¿Quitar este producto de la orden?")) return;
+    setRemovingItemId(detailId);
+    try {
+      await removeItem(order.id, detailId);
+      addToast("Producto eliminado", "success");
+      refetch();
+      onSaved();
+    } catch (err: any) {
+      addToast(err.message || "Error al eliminar producto", "error");
+    } finally {
+      setRemovingItemId(null);
+    }
+  };
+
+  const existingDetails = fullOrder?.orderDetail || [];
+
   return (
     <div className="mt-4 space-y-4 border-t border-border pt-4">
       <div className="flex items-center justify-between">
         <h4 className="font-semibold flex items-center gap-2">
-          <FiEdit2 className="text-primary" /> Agregar productos a orden #
-          {order.id}
+          <FiEdit2 className="text-primary" /> Editar orden #{order.id}
         </h4>
         <button
           onClick={onClose}
@@ -298,42 +320,89 @@ function EditOrderPanel({
         </button>
       </div>
 
-      {loadingProducts ? (
-        <p className="text-sm text-muted-foreground">Cargando productos...</p>
-      ) : (
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-          {products.map((product: any) => (
-            <div
-              key={product.id}
-              className="flex items-center justify-between py-2 border-b border-border last:border-0"
-            >
-              <div>
-                <p className="text-sm font-medium">{product.name}</p>
-                <p className="text-xs text-primary">
-                  ${product.price.toFixed(2)}
-                </p>
+      {/* Current Items */}
+      {loadingDetail ? (
+        <p className="text-sm text-muted-foreground">Cargando items...</p>
+      ) : existingDetails.length > 0 ? (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+            Productos actuales
+          </p>
+          <div className="space-y-1">
+            {existingDetails.map((detail: any) => (
+              <div
+                key={detail.id}
+                className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2"
+              >
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <span className="font-medium text-sm text-foreground">
+                    {detail.quantity}x
+                  </span>
+                  <span className="text-sm text-foreground truncate">
+                    {detail.product?.name || `Producto #${detail.productId}`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-sm text-muted-foreground">
+                    ${detail.subtotal?.toFixed(2)}
+                  </span>
+                  <button
+                    onClick={() => handleRemoveItem(detail.id)}
+                    disabled={removingItemId === detail.id}
+                    className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                    title="Quitar producto"
+                  >
+                    <FiTrash2 size={14} />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => decrement(String(product.id))}
-                  className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:bg-secondary"
-                >
-                  <FiMinus size={12} />
-                </button>
-                <span className="w-5 text-center text-sm font-medium">
-                  {quantities[String(product.id)] || 0}
-                </span>
-                <button
-                  onClick={() => increment(String(product.id))}
-                  className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:bg-secondary"
-                >
-                  <FiPlus size={12} />
-                </button>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      )}
+      ) : null}
+
+      {/* Add new items */}
+      <div>
+        <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
+          Agregar productos
+        </p>
+        {loadingProducts ? (
+          <p className="text-sm text-muted-foreground">Cargando productos...</p>
+        ) : (
+          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            {products.map((product: any) => (
+              <div
+                key={product.id}
+                className="flex items-center justify-between py-2 border-b border-border last:border-0"
+              >
+                <div>
+                  <p className="text-sm font-medium">{product.name}</p>
+                  <p className="text-xs text-primary">
+                    ${product.price.toFixed(2)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => decrement(String(product.id))}
+                    className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:bg-secondary"
+                  >
+                    <FiMinus size={12} />
+                  </button>
+                  <span className="w-5 text-center text-sm font-medium">
+                    {quantities[String(product.id)] || 0}
+                  </span>
+                  <button
+                    onClick={() => increment(String(product.id))}
+                    className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:bg-secondary"
+                  >
+                    <FiPlus size={12} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {selectedItems.length > 0 && (
         <div className="flex justify-between items-center text-sm font-semibold pt-2 border-t border-border">
@@ -348,7 +417,7 @@ function EditOrderPanel({
         isLoading={loading}
         disabled={selectedItems.length === 0}
       >
-        Confirmar cambios
+        Agregar productos
       </Button>
     </div>
   );
@@ -471,8 +540,8 @@ function UserOrdersContent() {
               const config = statusConfig[order.status] || statusConfig.ABIERTA;
               const StatusIcon = config.icon;
               const isPayable =
-                order.status === "ready" || order.status === "completed";
-              const isEditable = order.status === "open";
+                order.status === "LISTA" || order.status === "COMPLETADA";
+              const isEditable = order.status === "ABIERTA" || order.status === "LISTA";
               const isThisExpanded = expandedOrderId === order.id;
               const isThisEditing = editingOrderId === order.id;
 
@@ -484,7 +553,7 @@ function UserOrdersContent() {
                       <div>
                         <p className="font-bold text-lg">Orden #{order.id}</p>
                         <p className="text-sm text-muted-foreground">
-                          {formatDate(order.createdAt?.toString())}
+                          {formatDate(order.date || order.createdAt?.toString())}
                         </p>
                       </div>
                       <span
@@ -540,8 +609,9 @@ function UserOrdersContent() {
                       )}
                       {!isPayable && isEditable && !isThisEditing && (
                         <p className="text-xs text-muted-foreground mt-1 w-full">
-                          Tu pedido se está preparando — puedes agregar más
-                          productos mientras.
+                          {order.status === "ABIERTA"
+                            ? "Tu pedido se está preparando — puedes agregar más productos mientras."
+                            : "Tu pedido está listo — puedes agregar más productos si lo deseas."}
                         </p>
                       )}
                     </div>
@@ -660,7 +730,7 @@ function UserOrdersContent() {
                   <div>
                     <p className="font-semibold">Orden #{order.id}</p>
                     <p className="text-xs text-muted-foreground">
-                      {formatDate(order.createdAt?.toString())}
+                      {formatDate(order.date || order.createdAt?.toString())}
                     </p>
                   </div>
                   <div className="text-right">
