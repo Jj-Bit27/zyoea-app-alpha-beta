@@ -9,8 +9,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/joho/godotenv"
-
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
@@ -64,10 +62,10 @@ func buildOAuthRedirectURL(authResponse *model.AuthResponse) string {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error cargando el archivo .env")
-	}
+	//err := godotenv.Load()
+	//if err != nil {
+	//	log.Fatal("Error cargando el archivo .env")
+	//}
 
 	// --- Configuracion del Puerto ---
 	port := os.Getenv("PORT")
