@@ -124,7 +124,7 @@ export function RegisterForm() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid gap-3"> {/* grid-cols-3 */}
               <Button
                 variant="outline"
                 type="button"
@@ -135,7 +135,7 @@ export function RegisterForm() {
                 <IoLogoGoogle className="mr-2 h-4 w-4" />
                 Google
               </Button>
-              <Button
+              {/*<Button
                 variant="outline"
                 type="button"
                 onClick={() =>
@@ -153,7 +153,7 @@ export function RegisterForm() {
                 }
               >
                 <IoLogoTwitter className="mr-2 h-4 w-4" />X
-              </Button>
+              </Button>*/}
             </div>
 
             <div className="mt-4 text-center text-sm text-muted-foreground">

@@ -108,19 +108,7 @@ export function LoginForm() {
               </div>
             </div>
 
-            {/*
-            <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" type="button">
-                <IoLogoGoogle className="mr-2 h-4 w-4" />
-                Google
-              </Button>
-              <Button variant="outline" type="button">
-                <IoLogoFacebook className="mr-2 h-4 w-4" />
-                Facebook
-              </Button>
-            </div> */}
-
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid gap-3"> {/* grid-cols-3 */}
               <Button
                 variant="outline"
                 type="button"
@@ -132,7 +120,7 @@ export function LoginForm() {
                 <IoLogoGoogle className="mr-2 h-4 w-4" />
                 Google
               </Button>
-              <Button
+              {/*<Button
                 variant="outline"
                 type="button"
                 className="w-full"
@@ -152,7 +140,7 @@ export function LoginForm() {
                 }}
               >
                 <IoLogoTwitter className="mr-2 h-4 w-4" />X
-              </Button>
+              </Button>*/}
             </div>
 
             <div className="mt-4 text-center text-sm text-muted-foreground">
