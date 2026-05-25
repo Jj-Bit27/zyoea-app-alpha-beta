@@ -7,7 +7,12 @@ import { useRestaurants } from "../../hooks/useRestaurants";
 import { useTables } from "../../hooks/useTables";
 
 interface TableSelectorProps {
-  onSelect: (tableId: number, tableNumber: number, restaurantId: number, restaurantName: string) => void;
+  onSelect: (
+    tableId: number,
+    tableNumber: number,
+    restaurantId: number,
+    restaurantName: string,
+  ) => void;
 }
 
 function TableSelectorContent({ onSelect }: TableSelectorProps) {
@@ -30,7 +35,7 @@ function TableSelectorContent({ onSelect }: TableSelectorProps) {
     const table = tables.find((t) => t.id === selectedTable);
     if (rest && table) {
       localStorage.setItem(
-        "Frugis_table",
+        "Suavus_table",
         JSON.stringify({
           tableId: parseInt(selectedTable),
           tableNumber: table.number,
@@ -38,38 +43,60 @@ function TableSelectorContent({ onSelect }: TableSelectorProps) {
           restaurantName: rest.name,
         }),
       );
-      onSelect(parseInt(selectedTable), table.number, parseInt(selectedRestaurant), rest.name);
+      onSelect(
+        parseInt(selectedTable),
+        table.number,
+        parseInt(selectedRestaurant),
+        rest.name,
+      );
       addToast(`Mesa ${table.number} seleccionada`, "success");
     }
   };
 
   if (restLoading) {
-    return <div className="flex items-center justify-center h-32"><Spinner size="md" /></div>;
+    return (
+      <div className="flex items-center justify-center h-32">
+        <Spinner size="md" />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-foreground mb-1.5">Restaurante</label>
+        <label className="block text-sm font-medium text-foreground mb-1.5">
+          Restaurante
+        </label>
         <select
           value={selectedRestaurant}
-          onChange={(e) => { setSelectedRestaurant(e.target.value); setSelectedTable(""); }}
+          onChange={(e) => {
+            setSelectedRestaurant(e.target.value);
+            setSelectedTable("");
+          }}
           className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="">Selecciona un restaurante</option>
           {restaurants.map((r) => (
-            <option key={r.id} value={r.id}>{r.name} — {r.address || ""}</option>
+            <option key={r.id} value={r.id}>
+              {r.name} — {r.address || ""}
+            </option>
           ))}
         </select>
       </div>
 
       {selectedRestaurant && (
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1.5">Mesa</label>
+          <label className="block text-sm font-medium text-foreground mb-1.5">
+            Mesa
+          </label>
           {tableLoading ? (
-            <div className="flex items-center justify-center h-20"><Spinner size="sm" /></div>
+            <div className="flex items-center justify-center h-20">
+              <Spinner size="sm" />
+            </div>
           ) : availableTables.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic py-4 text-center">No hay mesas disponibles</p>
+            <p className="text-sm text-muted-foreground italic py-4 text-center">
+              No hay mesas disponibles
+            </p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
               {availableTables.map((t) => (
@@ -83,7 +110,9 @@ function TableSelectorContent({ onSelect }: TableSelectorProps) {
                   }`}
                 >
                   <div className="text-lg font-bold">{t.number}</div>
-                  <div className="text-xs text-muted-foreground">{t.capacity} pers.</div>
+                  <div className="text-xs text-muted-foreground">
+                    {t.capacity} pers.
+                  </div>
                 </button>
               ))}
             </div>
@@ -92,7 +121,9 @@ function TableSelectorContent({ onSelect }: TableSelectorProps) {
       )}
 
       {selectedRestaurant && selectedTable && (
-        <Button onClick={handleConfirm} className="w-full">Confirmar mesa</Button>
+        <Button onClick={handleConfirm} className="w-full">
+          Confirmar mesa
+        </Button>
       )}
     </div>
   );
@@ -106,14 +137,21 @@ export function TableSelector(props: TableSelectorProps) {
   );
 }
 
-export function getSavedTable(): { tableId: number; tableNumber: number; restaurantId: number; restaurantName: string } | null {
+export function getSavedTable(): {
+  tableId: number;
+  tableNumber: number;
+  restaurantId: number;
+  restaurantName: string;
+} | null {
   if (typeof window === "undefined") return null;
   try {
-    const stored = localStorage.getItem("Frugis_table");
+    const stored = localStorage.getItem("Suavus_table");
     return stored ? JSON.parse(stored) : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export function clearSavedTable() {
-  if (typeof window !== "undefined") localStorage.removeItem("Frugis_table");
+  if (typeof window !== "undefined") localStorage.removeItem("Suavus_table");
 }

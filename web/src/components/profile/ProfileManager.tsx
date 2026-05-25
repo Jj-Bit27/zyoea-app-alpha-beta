@@ -10,21 +10,41 @@ import { addToast } from "../custom/Toast";
 import { FiLogOut, FiAlertTriangle } from "react-icons/fi";
 
 const ALLERGEN_OPTIONS = [
-  "Gluten", "Lactosa", "Huevo", "Cacahuate", "Frutos secos",
-  "Soja", "Pescado", "Mariscos", "Apio", "Mostaza",
-  "Sésamo", "Sulfitos", "Altramuces", "Moluscos",
+  "Gluten",
+  "Lactosa",
+  "Huevo",
+  "Cacahuate",
+  "Frutos secos",
+  "Soja",
+  "Pescado",
+  "Mariscos",
+  "Apio",
+  "Mostaza",
+  "Sésamo",
+  "Sulfitos",
+  "Altramuces",
+  "Moluscos",
 ];
 
 export function UserProfileContent() {
   const { user, logout } = useAuth();
-  const { allergies: savedAllergies, updateAllergies, saving } = useUserAllergies(user?.id);
+  const {
+    allergies: savedAllergies,
+    updateAllergies,
+    saving,
+  } = useUserAllergies(user?.id);
   const [allergies, setAllergies] = useState("");
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
 
   useEffect(() => {
     if (savedAllergies) {
       setAllergies(savedAllergies);
-      setSelectedAllergens(savedAllergies.split(",").map((s) => s.trim()).filter(Boolean));
+      setSelectedAllergens(
+        savedAllergies
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+      );
     }
   }, [savedAllergies]);
 
@@ -45,7 +65,7 @@ export function UserProfileContent() {
       const result = await updateAllergies(allergies);
       if (result?.allergies !== undefined) {
         user.allergies = result.allergies;
-        localStorage.setItem("Frugis_user", JSON.stringify(user));
+        localStorage.setItem("Suavus_user", JSON.stringify(user));
       }
       addToast("Alergias guardadas correctamente", "success");
     } catch {
@@ -85,8 +105,8 @@ export function UserProfileContent() {
           <h3 className="text-lg font-bold">Mis Alergias e Intolerancias</h3>
         </div>
         <p className="text-sm text-muted-foreground">
-          Selecciona los ingredientes o alérgenos a los que eres alérgico.
-          Esta información se usará para advertirte en el menú del restaurante.
+          Selecciona los ingredientes o alérgenos a los que eres alérgico. Esta
+          información se usará para advertirte en el menú del restaurante.
         </p>
         <div className="flex flex-wrap gap-2">
           {ALLERGEN_OPTIONS.map((allergen) => (
@@ -109,7 +129,12 @@ export function UserProfileContent() {
           value={allergies}
           onChange={(e) => {
             setAllergies(e.target.value);
-            setSelectedAllergens(e.target.value.split(",").map((s) => s.trim()).filter(Boolean));
+            setSelectedAllergens(
+              e.target.value
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            );
           }}
           placeholder="Ej: gluten, lactosa, cacahuate"
           rows={2}

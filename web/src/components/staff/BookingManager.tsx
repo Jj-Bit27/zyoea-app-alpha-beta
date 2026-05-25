@@ -8,7 +8,7 @@ import { Spinner } from "../custom/Spinner";
 import { useBookings } from "../../hooks/useBookings";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
-import type { Booking } from "../../types";
+import { type Booking } from "../../types";
 
 const statusColors: Record<string, string> = {
   pendiente: "warning",

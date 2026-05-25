@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 
@@ -39,7 +40,11 @@ import (
 const defaultPort = "8080"
 
 func buildOAuthRedirectURL(authResponse *model.AuthResponse) string {
-	baseURL := "http://localhost:4321/auth/callback"
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:4321"
+	}
+	baseURL := frontendURL + "/auth/callback"
 	params := url.Values{}
 	params.Add("access_token", authResponse.AccessToken)
 	params.Add("user_id", authResponse.User.ID)
@@ -86,13 +91,20 @@ func main() {
 
 	hub := websocket.NewHub()
 
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:4321"
+	}
+
+	frontendURL = strings.TrimSpace(frontendURL)
+	frontendURL = strings.ReplaceAll(frontendURL, "\r", "")
+
 	// --- Inicializar Servicios (Clean Architecture) ---
 	authService := auth.NewService(dbPool)
 	oauthService := oauth.NewService(dbPool)
 
 	// Obtener la clave de Stripe de variables de entorno
 	stripeKey := os.Getenv("STRIPE_SECRET_KEY")
-	log.Printf("Key de stripe: %s", stripeKey)
 	if stripeKey == "" {
 		log.Fatalf("STRIPE_SECRET_KEY no está configurada en variables de entorno")
 	}
@@ -123,12 +135,12 @@ func main() {
 		},
 	}))
 
-	// --- Crear rutas con Gin ---
+	// --- Crear rutas con Gin --
 	router := gin.Default()
 
 	// --- Configurar CORS ---
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:4321"},
+		AllowOrigins:     []string{frontendURL},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -184,13 +196,13 @@ func main() {
 		code := c.Query("code")
 
 		if !oauthService.ValidateOAuthState(state) {
-			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error=invalid_state")
+			c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error=invalid_state")
 			return
 		}
 
 		authResponse, err := oauthService.HandleGoogleCallback(c.Request.Context(), code)
 		if err != nil {
-			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error="+url.QueryEscape(err.Error()))
+			c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error="+url.QueryEscape(err.Error()))
 			return
 		}
 
@@ -204,18 +216,19 @@ func main() {
 		c.Redirect(http.StatusFound, authURL)
 	})
 
+	// Facebook OAuth Callback
 	router.GET("/auth/facebook/callback", func(c *gin.Context) {
 		state := c.Query("state")
 		code := c.Query("code")
 
 		if !oauthService.ValidateOAuthState(state) {
-			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error=invalid_state")
+			c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error=invalid_state")
 			return
 		}
 
 		authResponse, err := oauthService.HandleFacebookCallback(c.Request.Context(), code)
 		if err != nil {
-			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error="+url.QueryEscape(err.Error()))
+			c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error="+url.QueryEscape(err.Error()))
 			return
 		}
 
@@ -229,18 +242,19 @@ func main() {
 		c.Redirect(http.StatusFound, authURL)
 	})
 
+	// Twitter (X) OAuth Callback
 	router.GET("/auth/twitter/callback", func(c *gin.Context) {
 		state := c.Query("state")
 		code := c.Query("code")
 
 		if !oauthService.ValidateOAuthState(state) {
-			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error=invalid_state")
+			c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error=invalid_state")
 			return
 		}
 
 		authResponse, err := oauthService.HandleTwitterCallback(c.Request.Context(), code)
 		if err != nil {
-			c.Redirect(http.StatusFound, "http://localhost:4321/auth/callback?error="+url.QueryEscape(err.Error()))
+			c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error="+url.QueryEscape(err.Error()))
 			return
 		}
 

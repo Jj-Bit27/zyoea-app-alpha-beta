@@ -45,7 +45,7 @@ export function Navbar({ currentPath = "" }: NavbarProps) {
         {/* Logo */}
         <a href="/" className="flex items-center gap-2">
           <IoRestaurant className="h-7 w-7 text-primary" />
-          <span className="text-xl font-bold text-foreground">Frugis</span>
+          <span className="text-xl font-bold text-foreground">Suavus</span>
         </a>
 
         {/* Desktop Navigation */}

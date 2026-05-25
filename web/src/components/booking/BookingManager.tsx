@@ -16,7 +16,7 @@ import { useTables } from "../../hooks/useTables";
 import { useBookings, useBookingsByUser } from "../../hooks/useBookings";
 import { ApolloWrapper } from "../ApolloWrapper";
 import { FiTrash2 } from "react-icons/fi";
-import { Booking } from "../../types";
+import { type Booking } from "../../types";
 
 const statusColors = {
   pending: "warning",
@@ -101,7 +101,7 @@ function generateTimeSlots(hoursStr: string | undefined | null, dateStr: string)
 }
 
 function BookingManagerContent() {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
   const { showToast } = useToast();
   const { restaurants, loading: loadingRestaurants } = useRestaurants();
   const [createForm, setCreateForm] = useState(emptyForm);
@@ -137,13 +137,21 @@ function BookingManagerContent() {
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
   const userBookings = useMemo(() => {
-    return bookings.filter((b) => String(b.user.id) === user?.id);
+    return bookings.filter((b) => String(b.user?.id) === user?.id);
   }, [bookings, user?.id]);
 
   const restaurantOptions = [
     { value: "", label: "Selecciona un restaurante" },
     ...restaurants.map((r) => ({ value: r.id, label: r.name })),
   ];
+
+  if (!isReady) {
+    return (
+      <div className="flex justify-center py-20">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (

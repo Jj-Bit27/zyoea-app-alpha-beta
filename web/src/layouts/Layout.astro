@@ -26,6 +26,12 @@ const currentPath = Astro.url.pathname;
 
     <script is:inline>
       (function () {
+        try {
+          const stored = localStorage.getItem("Suavus_user");
+          if (stored) window.__AUTH_USER__ = JSON.parse(stored);
+        } catch {}
+      })();
+      (function () {
         function applyTheme() {
           try {
             const storedTheme = localStorage.getItem("theme");

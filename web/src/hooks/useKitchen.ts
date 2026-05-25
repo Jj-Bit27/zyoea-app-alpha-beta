@@ -3,8 +3,7 @@ import { useMutation } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { addToast } from "../components/custom/Toast";
 import type { Order } from "../types";
-
-const API_URL = "http://localhost:8080";
+import { API_URL } from "../config";
 
 const UPDATE_ORDER_STATUS = gql`
   mutation updateOrderStatus($id: ID!, $status: String!) {

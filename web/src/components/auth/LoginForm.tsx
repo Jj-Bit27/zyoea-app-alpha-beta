@@ -1,10 +1,16 @@
 import { useState } from "react";
-import { IoRestaurant, IoLogoGoogle, IoLogoFacebook, IoLogoTwitter } from "react-icons/io5";
+import {
+  IoRestaurant,
+  IoLogoGoogle,
+  IoLogoFacebook,
+  IoLogoTwitter,
+} from "react-icons/io5";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "../custom/Button";
 import { Input } from "../custom/Input";
 import { Card, CardContent, CardHeader } from "../custom/Card";
 import { Spinner } from "../custom/Spinner";
+import { API_URL } from "../../config";
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -26,7 +32,7 @@ export function LoginForm() {
       setTimeout(() => {
         // Obtenemos el usuario recién logueado del localStorage para decidir a dónde ir
         // (O simplemente mandamos al home y que el middleware decida, pero aquí es front-end puro)
-        const user = JSON.parse(localStorage.getItem("Frugis_user") || "{}");
+        const user = JSON.parse(localStorage.getItem("Suavus_user") || "{}");
 
         if (user.role === "superadmin") window.location.href = "/admin";
         else if (user.role === "admin" || user.role === "employee")
@@ -119,7 +125,9 @@ export function LoginForm() {
                 variant="outline"
                 type="button"
                 className="w-full"
-                onClick={() => { window.location.href = "http://localhost:8080/auth/google"; }}
+                onClick={() => {
+                  window.location.href = `${API_URL}/auth/google`;
+                }}
               >
                 <IoLogoGoogle className="mr-2 h-4 w-4" />
                 Google
@@ -128,7 +136,9 @@ export function LoginForm() {
                 variant="outline"
                 type="button"
                 className="w-full"
-                onClick={() => { window.location.href = "http://localhost:8080/auth/facebook"; }}
+                onClick={() => {
+                  window.location.href = `${API_URL}/auth/facebook`;
+                }}
               >
                 <IoLogoFacebook className="mr-2 h-4 w-4" />
                 Facebook
@@ -137,10 +147,11 @@ export function LoginForm() {
                 variant="outline"
                 type="button"
                 className="w-full"
-                onClick={() => { window.location.href = "http://localhost:8080/auth/twitter"; }}
+                onClick={() => {
+                  window.location.href = `${API_URL}/auth/twitter`;
+                }}
               >
-                <IoLogoTwitter className="mr-2 h-4 w-4" />
-                X
+                <IoLogoTwitter className="mr-2 h-4 w-4" />X
               </Button>
             </div>
 

@@ -84,17 +84,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next();
   }
 
-  if (
-    url.pathname.startsWith("/register") ||
-    url.pathname.startsWith("/login")
-  ) {
-    const token = context.cookies.get("auth_token")?.value;
-
-    // 1. Si no hay token, al login.
-    if (token) {
-      return context.redirect("/");
-    }
-  }
+  // /login y /register se muestran siempre (no redirigir aunque haya sesión)
+  // para evitar bloqueos cuando el usuario necesita iniciar sesión de nuevo.
 
   // Si pasó todas las pruebas, carga la página normalmente
   return next();

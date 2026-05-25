@@ -13,7 +13,7 @@ import { Spinner } from "../custom/Spinner";
 import { useAuth } from "../../context/AuthContext";
 import { useBookings } from "../../hooks/useBookings";
 import { ApolloWrapper } from "../ApolloWrapper";
-import { Booking } from "../../types";
+import { type Booking } from "../../types";
 
 const statusColors = {
   pending: "warning",
@@ -30,7 +30,7 @@ const statusLabels: Record<string, string> = {
 };
 
 function StaffBookingManagerContent() {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
   const restaurantId = user?.restaurantId?.toString() || "";
   const { bookings, loading, deleteBooking } = useBookings(restaurantId);
 
@@ -44,6 +44,14 @@ function StaffBookingManagerContent() {
     );
     return { active, history };
   }, [bookings]);
+
+  if (!isReady) {
+    return (
+      <div className="flex justify-center py-20">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   if (!restaurantId) {
     return (

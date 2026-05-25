@@ -16,7 +16,7 @@ export function Footer() {
           <div className="md:col-span-1">
             <a href="/" className="flex items-center gap-2">
               <IoRestaurant className="h-7 w-7 text-primary" />
-              <span className="text-xl font-bold text-foreground">Frugis</span>
+              <span className="text-xl font-bold text-foreground">Suavus</span>
             </a>
             <p className="mt-3 text-sm text-muted-foreground">
               La mejor plataforma para descubrir restaurantes y disfrutar de
@@ -96,7 +96,7 @@ export function Footer() {
 
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-border pt-8 md:flex-row">
           <p className="text-sm text-muted-foreground">
-            © 2026 Frugis. Todos los derechos reservados.
+            © 2026 Suavus. Todos los derechos reservados.
           </p>
           <div className="flex items-center gap-4">
             <a

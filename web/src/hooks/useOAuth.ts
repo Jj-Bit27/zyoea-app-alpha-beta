@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { addToast } from "../components/custom/Toast";
+import { API_URL } from "../config";
 
 export interface OAuthResponse {
   accessToken: string;
@@ -48,17 +49,17 @@ export function useGoogleAuth() {
     setIsLoading(true);
     // Redirigir a la API para iniciar OAuth de Google
     // La API manejará todo y retornará JSON con token/user
-    window.location.href = "http://localhost:8080/auth/google";
+    window.location.href = `${API_URL}/auth/google`;
   };
 
   const handleFacebookLogin = () => {
     setIsLoading(true);
-    window.location.href = "http://localhost:8080/auth/facebook";
+    window.location.href = `${API_URL}/auth/facebook`;
   };
 
   const handleTwitterLogin = () => {
     setIsLoading(true);
-    window.location.href = "http://localhost:8080/auth/twitter";
+    window.location.href = `${API_URL}/auth/twitter`;
   };
 
   return {

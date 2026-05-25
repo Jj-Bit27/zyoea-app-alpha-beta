@@ -58,7 +58,7 @@ function AdminDashboardContent() {
           Panel de SuperAdmin
         </h1>
         <p className="text-muted-foreground">
-          Visión general del rendimiento de Frugis
+          Visión general del rendimiento de Suavus
         </p>
       </div>
 

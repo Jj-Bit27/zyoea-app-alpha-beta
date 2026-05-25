@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { IoRestaurant, IoLogoGoogle, IoLogoFacebook, IoLogoTwitter } from "react-icons/io5";
+import {
+  IoRestaurant,
+  IoLogoGoogle,
+  IoLogoFacebook,
+  IoLogoTwitter,
+} from "react-icons/io5";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "../custom/Button";
 import { Input } from "../custom/Input";
 import { Card, CardContent, CardHeader } from "../custom/Card";
+import { API_URL } from "../../config";
 import { Spinner } from "../custom/Spinner";
 import { addToast } from "../custom/Toast";
 
@@ -57,7 +63,7 @@ export function RegisterForm() {
             Crear una cuenta
           </h1>
           <p className="text-sm text-muted-foreground">
-            Únete a Frugis y comienza a disfrutar
+            Únete a Suavus y comienza a disfrutar
           </p>
         </CardHeader>
         <CardContent>
@@ -118,21 +124,37 @@ export function RegisterForm() {
               </div>
             </div>
 
-            
             <div className="grid grid-cols-3 gap-3">
-              <Button variant="outline" type="button" onClick={() => window.location.href = 'http://localhost:8080/auth/google'}>
-                  <IoLogoGoogle className="mr-2 h-4 w-4" />
-                  Google
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() =>
+                  (window.location.href = `${API_URL}/auth/google`)
+                }
+              >
+                <IoLogoGoogle className="mr-2 h-4 w-4" />
+                Google
               </Button>
-              <Button variant="outline" type="button" onClick={() => window.location.href = 'http://localhost:8080/auth/facebook'}>
-                  <IoLogoFacebook className="mr-2 h-4 w-4" />
-                  Facebook
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() =>
+                  (window.location.href = `${API_URL}/auth/facebook`)
+                }
+              >
+                <IoLogoFacebook className="mr-2 h-4 w-4" />
+                Facebook
               </Button>
-              <Button variant="outline" type="button" onClick={() => window.location.href = 'http://localhost:8080/auth/twitter'}>
-                  <IoLogoTwitter className="mr-2 h-4 w-4" />
-                  X
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() =>
+                  (window.location.href = `${API_URL}/auth/twitter`)
+                }
+              >
+                <IoLogoTwitter className="mr-2 h-4 w-4" />X
               </Button>
-            </div> 
+            </div>
 
             <div className="mt-4 text-center text-sm text-muted-foreground">
               ¿Ya tienes una cuenta?{" "}

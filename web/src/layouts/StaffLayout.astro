@@ -1,6 +1,7 @@
 ---
 import { StaffSidebar } from "../components/layout/StaffSidebar";
 import { ToastContainer } from "../components/custom/Toast";
+import { ClientRouter } from "astro:transitions";
 import "../styles/global.css";
 
 interface Props {
@@ -18,8 +19,15 @@ const currentPath = Astro.url.pathname;
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
+    <ClientRouter />
 
     <script is:inline>
+      (function () {
+        try {
+          const stored = localStorage.getItem("Suavus_user");
+          if (stored) window.__AUTH_USER__ = JSON.parse(stored);
+        } catch {}
+      })();
       (function () {
         function applyTheme() {
           try {

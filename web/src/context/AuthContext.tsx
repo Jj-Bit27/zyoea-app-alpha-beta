@@ -3,6 +3,7 @@ import { useStore } from "@nanostores/react";
 import { addToast } from "../components/custom/Toast";
 import { getApolloClient } from "../libs/apollo";
 import { gql } from "@apollo/client";
+import type { ApolloClient, NormalizedCacheObject } from "@apollo/client";
 
 export interface User {
   id: string;
@@ -16,6 +17,7 @@ export interface User {
 }
 
 export const $user = atom<User | null>(null);
+export const $isAuthReady = atom(false);
 
 function decodeJWTPayload(token: string): Record<string, unknown> | null {
   try {
@@ -33,8 +35,18 @@ function decodeJWTPayload(token: string): Record<string, unknown> | null {
   }
 }
 
-if (typeof window !== "undefined") {
-  const storedUser = localStorage.getItem("Frugis_user");
+function initUserFromStorage() {
+  const globalUser = (window as Record<string, unknown>).__AUTH_USER__;
+  if (globalUser) {
+    const parsed = globalUser as User;
+    if (parsed.id && parsed.role) {
+      $user.set(parsed);
+      $isAuthReady.set(true);
+      return;
+    }
+  }
+
+  const storedUser = localStorage.getItem("Suavus_user");
   if (storedUser) {
     try {
       const parsed = JSON.parse(storedUser) as User;
@@ -47,9 +59,14 @@ if (typeof window !== "undefined") {
       $user.set(parsed);
     } catch (e) {
       console.error("Error parsing user data", e);
-      localStorage.removeItem("Frugis_user");
+      localStorage.removeItem("Suavus_user");
     }
   }
+  $isAuthReady.set(true);
+}
+
+if (typeof window !== "undefined") {
+  initUserFromStorage();
 }
 
 const LOGIN_MUTATION = gql`
@@ -82,7 +99,7 @@ const REGISTER_MUTATION = gql`
 `;
 
 export const login = async (email: string, password: string) => {
-  const client = getApolloClient();
+  const client = getApolloClient() as ApolloClient<NormalizedCacheObject>;
   try {
     const { data } = await client.mutate({
       mutation: LOGIN_MUTATION,
@@ -97,12 +114,18 @@ export const login = async (email: string, password: string) => {
       restaurantId: restaurant != null ? String(restaurant) : undefined,
     };
     $user.set(mappedUser);
-    localStorage.setItem("Frugis_user", JSON.stringify(mappedUser));
+    localStorage.setItem("Suavus_user", JSON.stringify(mappedUser));
     document.cookie = `auth_token=${data.login.accessToken}; path=/; max-age=86400`;
     addToast(`Bienvenido de nuevo, ${mappedUser.name}`, "success");
   } catch (err: unknown) {
-    const apolloErr = err as { graphQLErrors?: Array<{ message?: string }>; message?: string };
-    const message = apolloErr?.graphQLErrors?.[0]?.message || apolloErr?.message || "Error al iniciar sesión";
+    const apolloErr = err as {
+      graphQLErrors?: Array<{ message?: string }>;
+      message?: string;
+    };
+    const message =
+      apolloErr?.graphQLErrors?.[0]?.message ||
+      apolloErr?.message ||
+      "Error al iniciar sesión";
     addToast(message, "error");
     throw new Error(message);
   }
@@ -113,7 +136,7 @@ export const register = async (
   email: string,
   password: string,
 ) => {
-  const client = getApolloClient();
+  const client = getApolloClient() as ApolloClient<NormalizedCacheObject>;
   try {
     const { data } = await client.mutate({
       mutation: REGISTER_MUTATION,
@@ -127,12 +150,18 @@ export const register = async (
       role: "client",
     };
     $user.set(mappedUser);
-    localStorage.setItem("Frugis_user", JSON.stringify(mappedUser));
+    localStorage.setItem("Suavus_user", JSON.stringify(mappedUser));
     document.cookie = `auth_token=${data.register.accessToken}; path=/; max-age=86400`;
     addToast("Cuenta creada exitosamente", "success");
   } catch (err: unknown) {
-    const apolloErr = err as { graphQLErrors?: Array<{ message?: string }>; message?: string };
-    const message = apolloErr?.graphQLErrors?.[0]?.message || apolloErr?.message || "Error al registrarse";
+    const apolloErr = err as {
+      graphQLErrors?: Array<{ message?: string }>;
+      message?: string;
+    };
+    const message =
+      apolloErr?.graphQLErrors?.[0]?.message ||
+      apolloErr?.message ||
+      "Error al registrarse";
     addToast(message, "error");
     throw new Error(message);
   }
@@ -140,7 +169,7 @@ export const register = async (
 
 export const logout = () => {
   $user.set(null);
-  localStorage.removeItem("Frugis_user");
+  localStorage.removeItem("Suavus_user");
   document.cookie = "auth_token=; path=/; max-age=0";
   addToast("Sesión cerrada", "info");
   window.location.href = "/login";
@@ -164,12 +193,13 @@ export const oauthLogin = (userData: {
   };
 
   $user.set(mappedUser);
-  localStorage.setItem("Frugis_user", JSON.stringify(mappedUser));
+  localStorage.setItem("Suavus_user", JSON.stringify(mappedUser));
   document.cookie = `auth_token=${userData.token}; path=/; max-age=86400`;
   addToast(`Bienvenido, ${mappedUser.name}`, "success");
 };
 
 export function useAuth() {
   const user = useStore($user);
-  return { user, login, register, logout, oauthLogin };
+  const isReady = useStore($isAuthReady);
+  return { user, isReady, login, register, logout, oauthLogin };
 }

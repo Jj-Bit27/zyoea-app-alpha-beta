@@ -8,6 +8,7 @@ import { Badge } from "../custom/Badge";
 import { Select } from "../custom/Select";
 import { Spinner } from "../custom/Spinner";
 import { addToast } from "../custom/Toast";
+import { API_URL } from "../../config";
 import { useTables } from "../../hooks/useTables";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
@@ -100,7 +101,7 @@ function TablesManagerContent() {
     if (activeOrders.length > 0) {
       setLoadingDetails(true);
       try {
-        const res = await fetch(`http://localhost:8080/api/kitchen/orders?restaurantId=${restaurantId}`);
+        const res = await fetch(`${API_URL}/api/kitchen/orders?restaurantId=${restaurantId}`);
         if (res.ok) {
           const data = await res.json();
           const tableOrders = data.filter((o) =>

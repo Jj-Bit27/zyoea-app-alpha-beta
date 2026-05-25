@@ -26,19 +26,19 @@ export const $cart = atom<CartItem[]>([]);
 
 // --- 2. Persistencia ---
 if (typeof window !== "undefined") {
-  const stored = localStorage.getItem("Frugis_cart");
+  const stored = localStorage.getItem("Suavus_cart");
   if (stored) {
     try {
       $cart.set(JSON.parse(stored));
     } catch (e) {
-      localStorage.removeItem("Frugis_cart");
+      localStorage.removeItem("Suavus_cart");
     }
   }
 }
 
 $cart.subscribe((items) => {
   if (typeof window !== "undefined") {
-    localStorage.setItem("Frugis_cart", JSON.stringify(items));
+    localStorage.setItem("Suavus_cart", JSON.stringify(items));
   }
 });
 

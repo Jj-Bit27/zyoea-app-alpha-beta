@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "./custom/Button";
 
-const COOKIE_CONSENT_KEY = "frugis_cookie_consent";
+const COOKIE_CONSENT_KEY = "Suavus_cookie_consent";
 
 export function CookieConsent() {
   const [visible, setVisible] = useState(false);
@@ -33,8 +33,8 @@ export function CookieConsent() {
             🍪 Este sitio utiliza cookies
           </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Utilizamos cookies para autenticación y mejorar tu experiencia.
-            Al continuar navegando, aceptas el uso de cookies.
+            Utilizamos cookies para autenticación y mejorar tu experiencia. Al
+            continuar navegando, aceptas el uso de cookies.
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
