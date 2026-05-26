@@ -8,6 +8,7 @@ import { Spinner } from "../custom/Spinner";
 import { addToast } from "../custom/Toast";
 import { useRestaurants } from "../../hooks/useRestaurants";
 import { ApolloWrapper } from "../ApolloWrapper";
+import { validarEmail } from "../../libs/ValidateEmail";
 
 function RestaurantsManagerContent() {
   const { restaurants, loading, error, createRestaurant, deleteRestaurant } = useRestaurants();
@@ -30,13 +31,33 @@ function RestaurantsManagerContent() {
       addToast("Nombre y Email son obligatorios", "error");
       return;
     }
+    if (!formData.phone) {
+      addToast("El numero de telefono es obligatorio", "error")
+      return
+    }
+    if (!formData.address) {
+      addToast("La direccion es obligatoria", "error")
+      return
+    }
+    if (!formData.description) {
+      addToast("La descripcion es obligatoria", "error")
+      return
+    }
+    if (!formData.hours) {
+      addToast("El horario es obligatorio", "error")
+      return
+    }
+    if (!validarEmail(formData.email)) {
+      addToast("El correo es invalido", "error")
+      return;
+    }
     createRestaurant({
       name: formData.name,
       address: formData.address,
       email: formData.email,
       phone: formData.phone,
       description: formData.description,
-      image: formData.image || null,
+      image: formData.image || "",
       hours: formData.hours,
     });
     setFormData({ name: "", address: "", email: "", phone: "", description: "", image: "", hours: "" });
@@ -115,7 +136,7 @@ function RestaurantsManagerContent() {
         <ModalBody>
           <div className="space-y-4">
             <Input label="Nombre" placeholder="Nombre del restaurante" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-            <Input label="Email" type="email" placeholder="correo@restaurante.com" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
+            <Input label="Email" placeholder="correo@restaurante.com" value={formData.email} type="email" onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
             <Input label="Teléfono" placeholder="+52 555 000 0000" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
             <Input label="Dirección" placeholder="Dirección completa" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
             <Input label="Descripción" placeholder="Breve descripción" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />

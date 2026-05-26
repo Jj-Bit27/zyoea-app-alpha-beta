@@ -4,10 +4,11 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
   helperText?: string
+  type?: string
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className = '', label, error, helperText, id, ...props }, ref) => {
+  ({ className = '', label, error, helperText, id, type, ...props }, ref) => {
     // Genera un ID automático si no se proporciona uno, para accesibilidad del label
     const inputId = id || label?.toLowerCase().replace(/\s/g, '-')
 
@@ -20,6 +21,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <input
           ref={ref}
+          type={type}
           id={inputId}
           className={`h-10 w-full rounded-lg border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
             error ? 'border-destructive' : 'border-input'

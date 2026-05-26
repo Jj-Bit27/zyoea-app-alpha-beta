@@ -20,7 +20,8 @@ import { ApolloWrapper } from "../ApolloWrapper";
 import { Spinner } from "../custom/Spinner";
 import { useEmployees } from "../../hooks/useEmployees";
 import { addToast } from "../custom/Toast";
-import { Employee, Restaurant } from "../../types";
+import type { Employee, Restaurant } from "../../types";
+import { validarEmail } from "../../libs/ValidateEmail";
 
 interface RestaurantData {
   name: string;
@@ -69,7 +70,7 @@ export function RestaurantDetailContent({ id }: { id: string }) {
       id: id,
       name: formData.name,
       description: formData.description,
-      image: formData.image || null,
+      image: formData.image || "",
       address: formData.address,
       phone: formData.phone,
       email: formData.email,
@@ -88,7 +89,7 @@ export function RestaurantDetailContent({ id }: { id: string }) {
 
   console.log(employees);
 
-  const admins = employees.filter((emp) => emp.user.role == "admin");
+  const admins = employees.filter((emp) => emp.user?.role == "admin");
 
   const handleOpenEditModal = (restaurant?: Restaurant) => {
     if (restaurant) {
@@ -97,7 +98,7 @@ export function RestaurantDetailContent({ id }: { id: string }) {
         address: restaurant.address,
         email: restaurant.email,
         description: restaurant.description,
-        image: restaurant.image,
+        image: restaurant.image || "",
         phone: restaurant.phone,
         hours: restaurant.hours,
       });
@@ -124,6 +125,14 @@ export function RestaurantDetailContent({ id }: { id: string }) {
   const handleSaveAdmin = () => {
     if (!adminFormData.name || !adminFormData.email) {
       addToast("Nombre y email son requeridos", "error");
+      return;
+    }
+    if (!adminFormData.position) {
+      addToast("El cargo del empleado es requerid", "error")
+      return
+    }
+    if (!adminFormData.email || !validarEmail(adminFormData.email)) {
+      addToast("El correo es invalido o no hay", "error")
       return;
     }
     if (editingAdmin) {
@@ -407,8 +416,8 @@ export function RestaurantDetailContent({ id }: { id: string }) {
             {!editingAdmin && (
               <Input
                 label="Contraseña"
-                type="password"
                 value={adminFormData.password}
+                type="password"
                 onChange={(e) =>
                   setAdminFormData({
                     ...adminFormData,

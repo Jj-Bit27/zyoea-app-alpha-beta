@@ -11,6 +11,8 @@ import { Input } from "../custom/Input";
 import { Card, CardContent, CardHeader } from "../custom/Card";
 import { Spinner } from "../custom/Spinner";
 import { API_URL } from "../../config";
+import { validarEmail } from "../../libs/ValidateEmail";
+import { addToast } from "../custom/Toast";
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -23,15 +25,20 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    if (!formData.email || !validarEmail(formData.email)) {
+      addToast("El correo esta mal escrito o no hay correo", "error")
+      return;
+    }
+    if (!formData.password) {
+      addToast("La contraseña es obligatoria", "error")
+      return;
+    }
+
     try {
       await login(formData.email, formData.password);
-      // Redirección basada en el rol (la lógica de rol está en el store,
-      // pero aquí redirigimos a una ruta segura o al home)
-
-      // Pequeño delay para que el usuario vea el toast de éxito
+      
       setTimeout(() => {
-        // Obtenemos el usuario recién logueado del localStorage para decidir a dónde ir
-        // (O simplemente mandamos al home y que el middleware decida, pero aquí es front-end puro)
         const user = JSON.parse(localStorage.getItem("Suavus_user") || "{}");
 
         if (user.role === "superadmin") window.location.href = "/admin";

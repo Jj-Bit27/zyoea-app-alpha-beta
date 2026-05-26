@@ -9,6 +9,8 @@ import { useRestaurantById } from "../../hooks/useRestaurants";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
 import { RestaurantHoursEditor } from "../restaurant/RestaurantHoursEditor";
+import { validarEmail } from "../../libs/ValidateEmail";
+import { addToast } from "../custom/Toast";
 
 function ConfigManagerContent() {
   const { user } = useAuth();
@@ -65,11 +67,37 @@ function ConfigManagerContent() {
 
   const handleSave = async () => {
     setIsSaving(true);
+
+    if (!config.name) {
+      addToast("El nombre es requerido", "error");
+      return;
+    }
+    if (!config.email || !validarEmail(config.email)) {
+      addToast("El correo es invalido o no hay ninguno", "error");
+      return;
+    }
+    if (!config.description) {
+      addToast("La descripcion es requerida", "error");
+      return;
+    }
+    if (!config.address) {
+      addToast("La direccion es requerida", "error");
+      return;
+    }
+    if (!config.phone) {
+      addToast("El telefono es requerido", "error");
+      return;
+    }
+    if (!config.hours) {
+      addToast("El horario es requerido", "error");
+      return;
+    }
+
     updateRestaurant({
       id: restaurantId,
       name: config.name,
       description: config.description,
-      image: config.image || null,
+      image: config.image || "",
       address: config.address,
       phone: config.phone,
       email: config.email,

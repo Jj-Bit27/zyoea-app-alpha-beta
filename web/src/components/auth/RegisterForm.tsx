@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader } from "../custom/Card";
 import { API_URL } from "../../config";
 import { Spinner } from "../custom/Spinner";
 import { addToast } from "../custom/Toast";
+import { validarEmail } from "../../libs/ValidateEmail";
 
 export function RegisterForm() {
   const { register } = useAuth();
@@ -25,6 +26,15 @@ export function RegisterForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.email || !validarEmail(formData.email)) {
+      addToast("El correo esta mal escrito o no hay correo", "error")
+      return;
+    }
+    if (!formData.password) {
+      addToast("La contraseña es obligatoria", "error")
+      return;
+    }
 
     if (formData.password !== formData.confirmPassword) {
       addToast("Las contraseñas no coinciden", "error");

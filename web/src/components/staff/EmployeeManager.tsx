@@ -12,6 +12,7 @@ import { useEmployees } from "../../hooks/useEmployees";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
 import type { Employee } from "../../types";
+import { validarEmail } from "../../libs/ValidateEmail";
 
 function EmployeesManagerContent() {
   const { user } = useAuth();
@@ -84,9 +85,18 @@ function EmployeesManagerContent() {
 
   const handleSave = () => {
     if (!formData.name || !formData.email) {
-      addToast("Nombre y email son requeridos", "error");
+      addToast("El nombre y correo son requeridos", "error");
       return;
     }
+    if (!formData.position) {
+      addToast("El cargo del empleado es requerido", "error");
+      return;
+    }
+    if (!validarEmail(formData.email)) {
+      addToast("El correo es invalido", "error");
+      return;
+    }
+
     if (editingEmployee) {
       updateEmployee({
         id: editingEmployee.id,
