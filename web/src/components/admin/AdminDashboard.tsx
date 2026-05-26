@@ -8,6 +8,7 @@ import type { Order, Restaurant } from "../../types";
 import { Spinner } from "../custom/Spinner";
 import { useRestaurants } from "../../hooks/useRestaurants";
 import { ApolloWrapper } from "../ApolloWrapper";
+import { Card, CardContent, CardHeader, CardTitle } from "../custom/Card"
 
 function AdminDashboardContent() {
   const { restaurants, loading, error } = useRestaurants();
