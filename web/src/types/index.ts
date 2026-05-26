@@ -180,6 +180,9 @@ export interface Order {
   date: string;
   paid: boolean;
   orderDetail?: OrderDetail;
+  estimatedWaitTime?: number;
+  actualWaitTime?: number | null;
+  completedAt?: string | null;
   // Extended fields used in frontend
   paymentStatus?: string;
   paymentMethod?: string;
@@ -426,6 +429,7 @@ export interface CreatePaymentInput {
   currency: string;
   paymentMethodId: string;
   description?: string;
+  orderId?: number;
 }
 
 export interface RefundPaymentInput {

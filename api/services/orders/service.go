@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"api/graph/model"
+	"api/services/waittime"
 	websocket "api/libs"
 
 	"github.com/jackc/pgx/v5"
@@ -15,12 +16,19 @@ import (
 )
 
 type Service struct {
-	DB  *pgxpool.Pool
-	Hub *websocket.OrderHub
+	DB        *pgxpool.Pool
+	Hub       *websocket.OrderHub
+	WaitCalc  *waittime.Calculator
+	MetricsS  *waittime.MetricsService
 }
 
 func NewService(db *pgxpool.Pool, hub *websocket.OrderHub) *Service {
-	return &Service{DB: db, Hub: hub}
+	return &Service{
+		DB:       db,
+		Hub:      hub,
+		WaitCalc: waittime.NewCalculator(db),
+		MetricsS: waittime.NewMetricsService(db),
+	}
 }
 
 // ---------------------------------------------------------
@@ -28,7 +36,8 @@ func NewService(db *pgxpool.Pool, hub *websocket.OrderHub) *Service {
 // ---------------------------------------------------------
 func (s *Service) FindAllByRestaurant(ctx context.Context, restaurantID string) ([]*model.Order, error) {
 	sql := `
-		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid
+		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid, 
+		       COALESCE(estimated_wait_time, 0), actual_wait_time, completed_at
 		FROM orders
 		WHERE restaurant = $1
 	`
@@ -43,16 +52,21 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurantID string) 
 		var o model.Order
 		var notes *string
 		var mesaId *int
+		var actualWait *int
+		var completedAt *time.Time
 
 		err := rows.Scan(
 			&o.ID, &o.UserID, &o.UserName, &o.RestaurantID, &o.Status,
 			&o.Type, &o.Total, &notes, &mesaId, &o.Date, &o.Paid,
+			&o.EstimatedWaitTime, &actualWait, &completedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
 		o.Notes = notes
 		o.TableID = mesaId
+		o.ActualWaitTime = actualWait
+		o.CompletedAt = completedAt
 		orders = append(orders, &o)
 	}
 	return orders, nil
@@ -65,14 +79,18 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Order, error) 
 	var o model.Order
 	var notes *string
 	var mesaId *int
+	var actualWait *int
+	var completedAt *time.Time
 
 	sql := `
-		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid
+		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid,
+		       COALESCE(estimated_wait_time, 0), actual_wait_time, completed_at
 		FROM orders WHERE id = $1
 	`
 	err := s.DB.QueryRow(ctx, sql, id).Scan(
 		&o.ID, &o.UserID, &o.UserName, &o.RestaurantID, &o.Status,
 		&o.Type, &o.Total, &notes, &mesaId, &o.Date, &o.Paid,
+		&o.EstimatedWaitTime, &actualWait, &completedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -82,6 +100,8 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Order, error) 
 	}
 	o.Notes = notes
 	o.TableID = mesaId
+	o.ActualWaitTime = actualWait
+	o.CompletedAt = completedAt
 	return &o, nil
 }
 
@@ -96,12 +116,27 @@ func (s *Service) Create(ctx context.Context, input model.CreateOrderInput) (*mo
 	}
 	defer tx.Rollback(ctx)
 
-	// B. Insertar Pedido (Cabecera)
+	// B. Calcular tiempo de espera estimado ANTES de insertar
+	// Contar items en la orden
+	itemCount := 0
+	for _, item := range input.Items {
+		itemCount += item.Quantity
+	}
+
+	// Usar el calculator para obtener el tiempo estimado
+	estimatedWaitTime, err := s.WaitCalc.CalculateWaitTime(ctx, input.Restaurant, itemCount)
+	if err != nil {
+		// Si falla el cálculo, usar 0 pero no fallar toda la operación
+		fmt.Printf("Advertencia: error calculando tiempo de espera: %v\n", err)
+		estimatedWaitTime = 0
+	}
+
+	// C. Insertar Pedido (Cabecera) CON el tiempo estimado
 	var newOrder model.Order
 	sqlOrder := `
-		INSERT INTO orders ("user", user_name, restaurant, status, type, total, notes, "table", date, paid)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid
+		INSERT INTO orders ("user", user_name, restaurant, status, type, total, notes, "table", date, paid, estimated_wait_time)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		RETURNING id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid, estimated_wait_time
 	`
 	// Usamos fecha actual
 	fecha := time.Now()
@@ -113,17 +148,17 @@ func (s *Service) Create(ctx context.Context, input model.CreateOrderInput) (*mo
 	}
 
 	err = tx.QueryRow(ctx, sqlOrder,
-		input.User, input.UserName, input.Restaurant, input.Status, input.Type, input.Total, input.Notes, input.Table, fecha, paidValue,
+		input.User, input.UserName, input.Restaurant, input.Status, input.Type, input.Total, input.Notes, input.Table, fecha, paidValue, estimatedWaitTime,
 	).Scan(
 		&newOrder.ID, &newOrder.UserID, &newOrder.UserName, &newOrder.RestaurantID,
-		&newOrder.Status, &newOrder.Type, &newOrder.Total, &newOrder.Notes, &newOrder.TableID, &newOrder.Date, &newOrder.Paid,
+		&newOrder.Status, &newOrder.Type, &newOrder.Total, &newOrder.Notes, &newOrder.TableID, &newOrder.Date, &newOrder.Paid, &newOrder.EstimatedWaitTime,
 	)
 
 	if err != nil {
 		return nil, fmt.Errorf("error creando cabecera de pedido: %w", err)
 	}
 
-	// C. Insertar Detalles (Items) - Loop dentro de la transacción
+	// D. Insertar Detalles (Items) - Loop dentro de la transacción
 	sqlDetail := `
 		INSERT INTO order_details (order_id, product_id, quantity, subtotal)
 		VALUES ($1, $2, $3, $4)
@@ -135,12 +170,12 @@ func (s *Service) Create(ctx context.Context, input model.CreateOrderInput) (*mo
 		}
 	}
 
-	// D. Commit ANTES de hacer broadcast
+	// E. Commit ANTES de hacer broadcast
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
-	// E. Broadcast DESPUÉS del commit para no enviar datos de transacción no confirmada
+	// F. Broadcast DESPUÉS del commit para no enviar datos de transacción no confirmada
 	RestID := strconv.Itoa(newOrder.RestaurantID)
 	s.Hub.BroadcastToRestaurant(RestID, newOrder)
 
@@ -155,6 +190,13 @@ func (s *Service) Update(ctx context.Context, input model.UpdateOrderInput) (*mo
 		return nil, errors.New("el estado es obligatorio para actualizar")
 	}
 
+	// Obtener la orden actual antes de actualizarla
+	currentOrder, err := s.FindOne(ctx, input.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Actualizar el status
 	sql := `UPDATE orders SET status = $1 WHERE id = $2`
 	tag, err := s.DB.Exec(ctx, sql, *input.Estado, input.ID)
 	if err != nil {
@@ -162,6 +204,18 @@ func (s *Service) Update(ctx context.Context, input model.UpdateOrderInput) (*mo
 	}
 	if tag.RowsAffected() == 0 {
 		return nil, errors.New("pedido no encontrado")
+	}
+
+	// Si la orden pasa a COMPLETADA o PAGADO, registrar las métricas
+	if *input.Estado == "COMPLETADA" || *input.Estado == "PAGADO" {
+		orderID, err := strconv.Atoi(currentOrder.ID)
+		if err == nil {
+			err := s.MetricsS.OnOrderStatusUpdate(ctx, currentOrder.RestaurantID, orderID, *input.Estado, currentOrder.Date)
+			if err != nil {
+				fmt.Printf("Advertencia: error registrando métricas: %v\n", err)
+				// No fallar si esto falla, es no-crítico
+			}
+		}
 	}
 
 	updated, err := s.FindOne(ctx, input.ID)
@@ -270,7 +324,8 @@ func (s *Service) UpdatePaidStatus(ctx context.Context, id string, paid bool) (*
 // ---------------------------------------------------------
 func (s *Service) FindOpenOrdersByRestaurant(ctx context.Context, restaurantID string) ([]*model.Order, error) {
 	sql := `
-		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid
+		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid,
+		       COALESCE(estimated_wait_time, 0), actual_wait_time, completed_at
 		FROM orders
 		WHERE restaurant = $1 AND status IN ('ABIERTA', 'LISTA')
 		ORDER BY date DESC
@@ -286,15 +341,21 @@ func (s *Service) FindOpenOrdersByRestaurant(ctx context.Context, restaurantID s
 		var o model.Order
 		var notes *string
 		var mesaId *int
+		var actualWait *int
+		var completedAt *time.Time
+
 		err := rows.Scan(
 			&o.ID, &o.UserID, &o.UserName, &o.RestaurantID, &o.Status,
 			&o.Type, &o.Total, &notes, &mesaId, &o.Date, &o.Paid,
+			&o.EstimatedWaitTime, &actualWait, &completedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
 		o.Notes = notes
 		o.TableID = mesaId
+		o.ActualWaitTime = actualWait
+		o.CompletedAt = completedAt
 		orders = append(orders, &o)
 	}
 	return orders, nil
@@ -405,7 +466,8 @@ func (s *Service) FindOpenOrdersWithDetails(ctx context.Context, restaurantID st
 // ---------------------------------------------------------
 func (s *Service) FindAllByUser(ctx context.Context, userID string) ([]*model.Order, error) {
 	sql := `
-		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid
+		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid,
+		       COALESCE(estimated_wait_time, 0), actual_wait_time, completed_at
 		FROM orders
 		WHERE "user" = $1
 		ORDER BY date DESC
@@ -421,15 +483,21 @@ func (s *Service) FindAllByUser(ctx context.Context, userID string) ([]*model.Or
 		var o model.Order
 		var notes *string
 		var mesaId *int
+		var actualWait *int
+		var completedAt *time.Time
+
 		err := rows.Scan(
 			&o.ID, &o.UserID, &o.UserName, &o.RestaurantID, &o.Status,
 			&o.Type, &o.Total, &notes, &mesaId, &o.Date, &o.Paid,
+			&o.EstimatedWaitTime, &actualWait, &completedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
 		o.Notes = notes
 		o.TableID = mesaId
+		o.ActualWaitTime = actualWait
+		o.CompletedAt = completedAt
 		orders = append(orders, &o)
 	}
 	return orders, nil

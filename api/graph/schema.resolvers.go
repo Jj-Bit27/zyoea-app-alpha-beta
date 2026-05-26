@@ -8,6 +8,7 @@ import (
 	"api/graph/generated"
 	"api/graph/model"
 	"context"
+	"fmt"
 )
 
 // Register is the resolver for the register field.
@@ -422,6 +423,78 @@ func (r *subscriptionResolver) OrderStatusUpdated(ctx context.Context, restauran
 	}()
 
 	return ch, nil
+}
+
+// ===== WAIT TIME RESOLVERS =====
+
+// EstimatedWaitTime is the resolver for the estimatedWaitTime field.
+func (r *queryResolver) EstimatedWaitTime(ctx context.Context, restaurantID string) (int, error) {
+	// Obtener ID del restaurante como entero
+	var rid int
+	fmt.Sscanf(restaurantID, "%d", &rid)
+
+	// Obtener cantidad de items de la orden (esto es un parámetro que debería venir en la query)
+	// Por ahora, asumimos un promedio de 2 items
+	itemCount := 2
+
+	waitTime, err := r.OrderService.WaitCalc.CalculateWaitTime(ctx, rid, itemCount)
+	if err != nil {
+		return 0, fmt.Errorf("error calculando tiempo de espera: %w", err)
+	}
+
+	return waitTime, nil
+}
+
+// RestaurantWaitMetrics is the resolver for the restaurantWaitMetrics field.
+func (r *queryResolver) RestaurantWaitMetrics(ctx context.Context, restaurantID string) (*model.RestaurantMetrics, error) {
+	var rid int
+	fmt.Sscanf(restaurantID, "%d", &rid)
+
+	metrics, err := r.OrderService.WaitCalc.GetRestaurantMetrics(ctx, rid)
+	if err != nil {
+		return nil, fmt.Errorf("error obteniendo métricas: %w", err)
+	}
+
+	return &model.RestaurantMetrics{
+		RestaurantID:        restaurantID,
+		TotalOrders:         metrics.TotalOrders,
+		AveragePrepTime:     metrics.AveragePrepTime,
+		MedianPrepTime:      metrics.MedianPrepTime,
+		PeakHourOrders:      metrics.PeakHourOrders,
+		NonPeakHourOrders:   metrics.NonPeakHourOrders,
+		MostCommonItemCount: metrics.MostCommonItemCount,
+	}, nil
+}
+
+// RecentOrderMetrics is the resolver for the recentOrderMetrics field.
+func (r *queryResolver) RecentOrderMetrics(ctx context.Context, restaurantID string, limit *int) ([]*model.PreparedOrderMetric, error) {
+	var rid int
+	fmt.Sscanf(restaurantID, "%d", &rid)
+
+	limVal := 50
+	if limit != nil && *limit > 0 {
+		limVal = *limit
+	}
+
+	metrics, err := r.OrderService.MetricsS.GetRecentMetrics(ctx, rid, limVal)
+	if err != nil {
+		return nil, fmt.Errorf("error obteniendo métricas recientes: %w", err)
+	}
+
+	result := make([]*model.PreparedOrderMetric, len(metrics))
+	for i, m := range metrics {
+		result[i] = &model.PreparedOrderMetric{
+			OrderID:             fmt.Sprintf("%d", m.OrderID),
+			RestaurantID:        fmt.Sprintf("%d", m.RestaurantID),
+			ItemCount:           m.ItemCount,
+			PreparedTimeMinutes: m.PreparedTimeMinutes,
+			CreatedAt:           m.CreatedAt,
+			CompletedAt:         m.CompletedAt,
+			WasPeakHour:         m.WasPeakHour,
+		}
+	}
+
+	return result, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

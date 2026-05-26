@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IoReceipt, IoChevronForward, IoCash, IoCard, IoTime } from 'react-icons/io5'
+import { IoReceipt, IoChevronForward, IoCash, IoCard, IoTime, IoRestaurant } from 'react-icons/io5'
 import { Card, CardContent } from '../custom/Card'
 import { Badge } from '../custom/Badge'
 import { Modal } from '../custom/Modal'
@@ -7,6 +7,7 @@ import { EmptyState } from '../custom/EmptyState'
 import { Spinner } from '../custom/Spinner'
 import { useAuth } from '../../context/AuthContext'
 import { useUserPayments } from '../../hooks/usePayments'
+import { useOrderById } from '../../hooks/useOrders'
 import { ApolloWrapper } from '../ApolloWrapper'
 import type { Payment } from '../../types'
 
@@ -14,6 +15,13 @@ function TicketManagerContent() {
   const { user } = useAuth()
   const { payments, loading } = useUserPayments(user?.id || '')
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+  const { order: orderDetail, loading: orderLoading } = useOrderById(
+    selectedPayment?.orderId ? String(selectedPayment.orderId) : '',
+  )
+
+  const handleSelectPayment = (payment: Payment) => {
+    setSelectedPayment(payment)
+  }
 
   if (!user) {
     return (
@@ -51,7 +59,7 @@ function TicketManagerContent() {
               key={payment.id}
               hoverable
               className="cursor-pointer transition-colors"
-              onClick={() => setSelectedPayment(payment)}
+              onClick={() => handleSelectPayment(payment)}
             >
               <CardContent className="flex items-center gap-4 p-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 shrink-0">
@@ -131,6 +139,36 @@ function TicketManagerContent() {
                   <span className="text-foreground">{selectedPayment?.currency?.toUpperCase()}</span>
                 </div>
               </div>
+
+              {/* Order details */}
+              {selectedPayment?.orderId && (
+                <div className="border-t border-border pt-4 mt-2">
+                  <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <IoRestaurant className="text-primary" />
+                    Orden #{selectedPayment.orderId}
+                  </h4>
+                  {orderLoading ? (
+                    <div className="flex justify-center py-4">
+                      <Spinner size="sm" />
+                    </div>
+                  ) : orderDetail ? (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Total orden</span>
+                        <span className="text-primary font-semibold">${orderDetail.total.toFixed(2)}</span>
+                      </div>
+                      {orderDetail.orderDetail && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Producto</span>
+                          <span className="text-foreground">{orderDetail.orderDetail.quantity}x {orderDetail.orderDetail.product?.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No se pudo cargar la orden</p>
+                  )}
+                </div>
+              )}
 
               <div className="mt-8 text-center pb-4">
                 <p className="text-xs font-mono text-muted-foreground">Pago #{selectedPayment?.id}</p>

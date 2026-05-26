@@ -73,6 +73,7 @@ type CreatePaymentInput struct {
 	Currency        string  `json:"currency"`
 	PaymentMethodID string  `json:"paymentMethodId"`
 	Description     *string `json:"description,omitempty"`
+	OrderID         *int    `json:"orderId,omitempty"`
 }
 
 type CreateProductInput struct {
@@ -131,20 +132,23 @@ type Mutation struct {
 }
 
 type Order struct {
-	ID           string       `json:"id"`
-	UserID       int          `json:"userId"`
-	User         *User        `json:"user"`
-	UserName     string       `json:"user_name"`
-	RestaurantID int          `json:"restaurantId"`
-	Restaurant   *Restaurant  `json:"restaurant"`
-	Status       string       `json:"status"`
-	Type         string       `json:"type"`
-	Total        float64      `json:"total"`
-	Notes        *string      `json:"notes,omitempty"`
-	TableID      *int         `json:"tableId,omitempty"`
-	Date         time.Time    `json:"date"`
-	Paid         bool         `json:"paid"`
-	OrderDetail  *OrderDetail `json:"orderDetail,omitempty"`
+	ID                string       `json:"id"`
+	UserID            int          `json:"userId"`
+	User              *User        `json:"user"`
+	UserName          string       `json:"user_name"`
+	RestaurantID      int          `json:"restaurantId"`
+	Restaurant        *Restaurant  `json:"restaurant"`
+	Status            string       `json:"status"`
+	Type              string       `json:"type"`
+	Total             float64      `json:"total"`
+	Notes             *string      `json:"notes,omitempty"`
+	TableID           *int         `json:"tableId,omitempty"`
+	Date              time.Time    `json:"date"`
+	Paid              bool         `json:"paid"`
+	OrderDetail       *OrderDetail `json:"orderDetail,omitempty"`
+	EstimatedWaitTime int          `json:"estimatedWaitTime"`
+	ActualWaitTime    *int         `json:"actualWaitTime,omitempty"`
+	CompletedAt       *time.Time   `json:"completedAt,omitempty"`
 }
 
 type OrderDetail struct {
@@ -174,6 +178,17 @@ type Payment struct {
 	Description           *string `json:"description,omitempty"`
 	CreatedAt             string  `json:"createdAt"`
 	UpdatedAt             string  `json:"updatedAt"`
+	OrderID               *int    `json:"orderId,omitempty"`
+}
+
+type PreparedOrderMetric struct {
+	OrderID             string    `json:"orderId"`
+	RestaurantID        string    `json:"restaurantId"`
+	ItemCount           int       `json:"itemCount"`
+	PreparedTimeMinutes int       `json:"preparedTimeMinutes"`
+	CreatedAt           time.Time `json:"createdAt"`
+	CompletedAt         time.Time `json:"completedAt"`
+	WasPeakHour         bool      `json:"wasPeakHour"`
 }
 
 type Product struct {
@@ -215,6 +230,16 @@ type Restaurant struct {
 	Image       *string `json:"image,omitempty"`
 	Phone       string  `json:"phone"`
 	Hours       string  `json:"hours"`
+}
+
+type RestaurantMetrics struct {
+	RestaurantID        string `json:"restaurantId"`
+	TotalOrders         int    `json:"totalOrders"`
+	AveragePrepTime     int    `json:"averagePrepTime"`
+	MedianPrepTime      int    `json:"medianPrepTime"`
+	PeakHourOrders      int    `json:"peakHourOrders"`
+	NonPeakHourOrders   int    `json:"nonPeakHourOrders"`
+	MostCommonItemCount int    `json:"mostCommonItemCount"`
 }
 
 type Review struct {

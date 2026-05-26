@@ -14,6 +14,7 @@ import { Button } from "../custom/Button";
 import { Card, CardContent } from "../custom/Card";
 import { addToast } from "../custom/Toast";
 import { ApolloWrapper } from "../ApolloWrapper";
+import WaitTimeDisplay from "./WaitTimeDisplay";
 
 export function CartManagerContent() {
   const { cart, total, updateQuantity, removeFromCart, clearCart } = useOrder();
@@ -23,7 +24,9 @@ export function CartManagerContent() {
   const { orders: userOrders } = useUserOrders(user?.id ?? "");
   const [orderCreated, setOrderCreated] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [createdOrderWaitTime, setCreatedOrderWaitTime] = useState<number>(0);
   const [selectedTable, setSelectedTable] = useState<string>("");
+  const [orderType, setOrderType] = useState<"dine_in" | "takeaway">("dine_in");
   const finalTotal = total;
 
   const restaurantId = cart.length > 0 ? cart[0].restaurantId : "";
@@ -72,9 +75,9 @@ export function CartManagerContent() {
           user_name: user.name || "Cliente",
           restaurant: parseInt(cart[0].restaurantId),
           status: "ABIERTA",
-          type: "app",
+          type: orderType,
           total: finalTotal,
-          table: selectedTable ? parseInt(selectedTable) : null,
+          table: orderType === "dine_in" ? (selectedTable ? parseInt(selectedTable) : null) : null,
           paid: false,
           items: cart.map((item) => ({
             productId: parseInt(item.id),
@@ -84,6 +87,7 @@ export function CartManagerContent() {
         });
 
         setCreatedOrderId(result?.id || null);
+        setCreatedOrderWaitTime((result as { estimatedWaitTime?: number })?.estimatedWaitTime || 0);
         setOrderCreated(true);
         addToast("¡Pedido enviado con éxito!", "success");
         clearCart();
@@ -114,9 +118,14 @@ export function CartManagerContent() {
               notificación cuando esté lista.
             </p>
             {createdOrderId && (
-              <p className="text-sm text-muted-foreground mb-6">
+              <p className="text-sm text-muted-foreground mb-2">
                 Orden #{createdOrderId}
               </p>
+            )}
+            {createdOrderWaitTime > 0 && (
+              <div className="flex justify-center mb-6">
+                <WaitTimeDisplay estimatedMinutes={createdOrderWaitTime} size="lg" />
+              </div>
             )}
             <div className="space-y-3">
               <Button
@@ -255,7 +264,40 @@ export function CartManagerContent() {
               <span>Total</span>
               <span className="text-primary">${finalTotal.toFixed(2)}</span>
             </div>
-            {availableTables.length > 0 && (
+
+            {/* Tipo de orden: Comer aquí / Para llevar */}
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                ¿Cómo quieres tu pedido?
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setOrderType("dine_in"); setSelectedTable(""); }}
+                  className={`flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-all ${
+                    orderType === "dine_in"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  Comer aquí
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderType("takeaway")}
+                  className={`flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-all ${
+                    orderType === "takeaway"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/50"
+                  }`}
+                >
+                  Para llevar
+                </button>
+              </div>
+            </div>
+
+            {/* Selección de mesa solo si es dine_in */}
+            {orderType === "dine_in" && availableTables.length > 0 && (
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">
                   Selecciona tu mesa

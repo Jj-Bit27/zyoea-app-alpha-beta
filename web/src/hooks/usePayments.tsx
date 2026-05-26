@@ -18,6 +18,7 @@ const GET_PAYMENTS = gql`
       currency
       status
       description
+      orderId
       createdAt
     }
   }
@@ -33,6 +34,7 @@ const GET_USER_PAYMENTS = gql`
       currency
       status
       description
+      orderId
       createdAt
     }
   }
@@ -98,6 +100,7 @@ export function useCreatePayment() {
     currency: string;
     paymentMethodId: string;
     description?: string;
+    orderId?: number;
   }) => {
     const { data } = await createPaymentMutation({
       variables: { input },

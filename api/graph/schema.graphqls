@@ -87,6 +87,7 @@ type Payment {
   description: String
   createdAt: String!
   updatedAt: String!
+  orderId: Int
 }
 
 input CreatePaymentInput {
@@ -95,6 +96,7 @@ input CreatePaymentInput {
   currency: String!
   paymentMethodId: String!
   description: String
+  orderId: Int
 }
 
 input RefundPaymentInput {
@@ -293,6 +295,9 @@ type Order {
   date: Time!
   paid: Boolean!
   orderDetail: OrderDetail
+  estimatedWaitTime: Int!  # Tiempo estimado en minutos
+  actualWaitTime: Int      # Tiempo real en minutos (null si no completado)
+  completedAt: Time        # Cuándo se completó la orden
 }
 
 type OrderDetail {
@@ -373,6 +378,11 @@ type Query {
   ordersOpen(restaurantId: ID!): [Order!]!
   ordersByUser(userId: ID!): [Order!]!
   order(id: ID!): Order!
+
+  # --- Wait Times (Tiempos de Espera) ---
+  estimatedWaitTime(restaurantId: ID!): Int!
+  restaurantWaitMetrics(restaurantId: ID!): RestaurantMetrics!
+  recentOrderMetrics(restaurantId: ID!, limit: Int): [PreparedOrderMetric!]!
 }
 
 # --- MUTATIONS (Escritura) ---
@@ -424,13 +434,34 @@ type Mutation {
   updateEmployee(input: UpdateEmployeeInput!): Employee!
   removeEmployee(id: ID!): Boolean!
 
-  # --- Orders (Ordenes) ---
+   # --- Orders (Ordenes) ---
   createOrder(input: CreateOrderInput!): Order!
   updateOrderStatus(id: ID!, status: String!): Order!
   updateOrderPayment(id: ID!, paid: Boolean!): Order!
   addOrderItems(orderId: ID!, items: [OrderItemInput!]!): Order!
   removeOrderItem(orderId: ID!, itemId: ID!): Order!
   removeOrder(id: ID!): Boolean!
+}
+
+# --- Wait Time Types (Tipos de Tiempo de Espera) ---
+type RestaurantMetrics {
+  restaurantId: ID!
+  totalOrders: Int!
+  averagePrepTime: Int!
+  medianPrepTime: Int!
+  peakHourOrders: Int!
+  nonPeakHourOrders: Int!
+  mostCommonItemCount: Int!
+}
+
+type PreparedOrderMetric {
+  orderId: ID!
+  restaurantId: ID!
+  itemCount: Int!
+  preparedTimeMinutes: Int!
+  createdAt: Time!
+  completedAt: Time!
+  wasPeakHour: Boolean!
 }
 
 type Subscription {

@@ -65,8 +65,12 @@ func (s *Service) Create(ctx context.Context, input model.CreatePaymentInput) (*
 
 	// Guardar en base de datos
 	var id int
+	var orderID *int
+	if input.OrderID != nil {
+		orderID = input.OrderID
+	}
 	sql := `
-		INSERT INTO payments ("user", stripe_payment_intent_id, stripe_payment_method_id, amount, currency, status, description, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+		INSERT INTO payments ("user", order_id, stripe_payment_intent_id, stripe_payment_method_id, amount, currency, status, description, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 		RETURNING id, created_at, updated_at
 	`
 
@@ -78,6 +82,7 @@ func (s *Service) Create(ctx context.Context, input model.CreatePaymentInput) (*
 
 	err = s.DB.QueryRow(ctx, sql,
 		input.UserID,
+		orderID,
 		pi.ID,
 		input.PaymentMethodID,
 		input.Amount,
@@ -101,6 +106,7 @@ func (s *Service) Create(ctx context.Context, input model.CreatePaymentInput) (*
 		Description:           input.Description,
 		CreatedAt:             createdAt.Format(time.RFC3339),
 		UpdatedAt:             updatedAt.Format(time.RFC3339),
+		OrderID:               orderID,
 	}, nil
 }
 
@@ -110,7 +116,7 @@ func (s *Service) Create(ctx context.Context, input model.CreatePaymentInput) (*
 func (s *Service) GetAll(ctx context.Context, limit, offset int) ([]*model.Payment, error) {
 	sql := `
 		SELECT 
-			id, "user", stripe_payment_intent_id, stripe_payment_method_id,
+			id, "user", order_id, stripe_payment_intent_id, stripe_payment_method_id,
 			amount, currency, status, description, created_at, updated_at
 		FROM payments
 		ORDER BY created_at DESC
@@ -141,7 +147,7 @@ func (s *Service) GetAll(ctx context.Context, limit, offset int) ([]*model.Payme
 func (s *Service) GetByUserID(ctx context.Context, userID string) ([]*model.Payment, error) {
 	sql := `
 		SELECT 
-			id, "user", stripe_payment_intent_id, stripe_payment_method_id,
+			id, "user", order_id, stripe_payment_intent_id, stripe_payment_method_id,
 			amount, currency, status, description, created_at, updated_at
 		FROM payments
 		WHERE "user" = $1
@@ -177,7 +183,7 @@ func (s *Service) GetByID(ctx context.Context, id string) (*model.Payment, error
 
 	sql := `
 		SELECT 
-			id, "user", stripe_payment_intent_id, stripe_payment_method_id,
+			id, "user", order_id, stripe_payment_intent_id, stripe_payment_method_id,
 			amount, currency, status, description, created_at, updated_at
 		FROM payments
 		WHERE id = $1
@@ -229,7 +235,7 @@ func (s *Service) Refund(ctx context.Context, id string, amount *float64) (*mode
 		UPDATE payments
 		SET status = 'refunded', updated_at = NOW()
 		WHERE id = $1
-		RETURNING id, "user", stripe_payment_intent_id, stripe_payment_method_id,
+		RETURNING id, "user", order_id, stripe_payment_intent_id, stripe_payment_method_id,
 		          amount, currency, status, description, created_at, updated_at
 	`
 
@@ -255,7 +261,7 @@ func (s *Service) UpdateStatus(ctx context.Context, id string, status string) (*
 		UPDATE payments
 		SET status = $1, updated_at = NOW()
 		WHERE id = $2
-		RETURNING id, "user", stripe_payment_intent_id, stripe_payment_method_id,
+		RETURNING id, "user", order_id, stripe_payment_intent_id, stripe_payment_method_id,
 		          amount, currency, status, description, created_at, updated_at
 	`
 
@@ -277,18 +283,23 @@ func (s *Service) UpdateStatus(ctx context.Context, id string, status string) (*
 
 func (s *Service) saveFailedPayment(ctx context.Context, input model.CreatePaymentInput, stripeErr error) (*model.Payment, error) {
 	var id int
+	var orderID *int
+	if input.OrderID != nil {
+		orderID = input.OrderID
+	}
 	sql := `
 		INSERT INTO payments (
-			"user", 
-			stripe_payment_intent_id, 
+			"user",
+			order_id,
+			stripe_payment_intent_id,
 			stripe_payment_method_id,
-			amount, 
-			currency, 
+			amount,
+			currency,
 			status,
 			description,
 			created_at,
 			updated_at
-		) VALUES ($1, $2, $3, $4, $5, 'failed', $6, NOW(), NOW())
+		) VALUES ($1, $2, $3, $4, $5, $6, 'failed', $7, NOW(), NOW())
 		RETURNING id, created_at, updated_at
 	`
 
@@ -300,6 +311,7 @@ func (s *Service) saveFailedPayment(ctx context.Context, input model.CreatePayme
 
 	err := s.DB.QueryRow(ctx, sql,
 		input.UserID,
+		orderID,
 		"failed_"+input.PaymentMethodID,
 		input.PaymentMethodID,
 		input.Amount,
@@ -339,10 +351,12 @@ func (s *Service) scanPayment(rows pgx.Rows) (*model.Payment, error) {
 	var createdAt, updatedAt time.Time
 	var stripePaymentMethodID, description *string
 	var userID int
+	var orderID *int
 
 	err := rows.Scan(
 		&id,
 		&userID,
+		&orderID,
 		&p.StripePaymentIntentID,
 		&stripePaymentMethodID,
 		&p.Amount,
@@ -363,6 +377,7 @@ func (s *Service) scanPayment(rows pgx.Rows) (*model.Payment, error) {
 	p.Description = description
 	p.CreatedAt = createdAt.Format(time.RFC3339)
 	p.UpdatedAt = updatedAt.Format(time.RFC3339)
+	p.OrderID = orderID
 
 	return &p, nil
 }
@@ -373,10 +388,12 @@ func (s *Service) scanPaymentRow(row pgx.Row) (*model.Payment, error) {
 	var createdAt, updatedAt time.Time
 	var stripePaymentMethodID, description *string
 	var userID int
+	var orderID *int
 
 	err := row.Scan(
 		&id,
 		&userID,
+		&orderID,
 		&p.StripePaymentIntentID,
 		&stripePaymentMethodID,
 		&p.Amount,
@@ -397,6 +414,7 @@ func (s *Service) scanPaymentRow(row pgx.Row) (*model.Payment, error) {
 	p.Description = description
 	p.CreatedAt = createdAt.Format(time.RFC3339)
 	p.UpdatedAt = updatedAt.Format(time.RFC3339)
+	p.OrderID = orderID
 
 	return &p, nil
 }

@@ -14,6 +14,7 @@ import { Card, CardContent } from "../custom/Card";
 import { Input } from "../custom/Input";
 import { addToast } from "../custom/Toast";
 import { ApolloWrapper } from "../ApolloWrapper";
+import WaitTimeDisplay from "./WaitTimeDisplay";
 import {
   FiClock,
   FiCheck,
@@ -118,6 +119,7 @@ function CardPaymentScreen({
         currency: "MXN",
         paymentMethodId: mockToken,
         description: `Pago con tarjeta - Orden #${order.id}`,
+        orderId: parseInt(order.id),
       });
       await updatePayment(order.id, true);
       addToast("¡Pago con tarjeta exitoso!", "success");
@@ -572,6 +574,16 @@ function UserOrdersContent() {
                         ${order.total.toFixed(2)}
                       </span>
                     </div>
+
+                    {order.estimatedWaitTime != null && order.estimatedWaitTime > 0 && (
+                      <div className="mb-4">
+                        <WaitTimeDisplay
+                          estimatedMinutes={order.estimatedWaitTime}
+                          actualMinutes={order.actualWaitTime}
+                          size="md"
+                        />
+                      </div>
+                    )}
 
                     {order.notes && (
                       <p className="text-sm text-muted-foreground mb-4 italic">

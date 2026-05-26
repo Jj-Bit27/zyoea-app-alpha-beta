@@ -122,20 +122,23 @@ type ComplexityRoot struct {
 	}
 
 	Order struct {
-		Date         func(childComplexity int) int
-		ID           func(childComplexity int) int
-		Notes        func(childComplexity int) int
-		OrderDetail  func(childComplexity int) int
-		Paid         func(childComplexity int) int
-		Restaurant   func(childComplexity int) int
-		RestaurantID func(childComplexity int) int
-		Status       func(childComplexity int) int
-		TableID      func(childComplexity int) int
-		Total        func(childComplexity int) int
-		Type         func(childComplexity int) int
-		User         func(childComplexity int) int
-		UserID       func(childComplexity int) int
-		UserName     func(childComplexity int) int
+		ActualWaitTime    func(childComplexity int) int
+		CompletedAt       func(childComplexity int) int
+		Date              func(childComplexity int) int
+		EstimatedWaitTime func(childComplexity int) int
+		ID                func(childComplexity int) int
+		Notes             func(childComplexity int) int
+		OrderDetail       func(childComplexity int) int
+		Paid              func(childComplexity int) int
+		Restaurant        func(childComplexity int) int
+		RestaurantID      func(childComplexity int) int
+		Status            func(childComplexity int) int
+		TableID           func(childComplexity int) int
+		Total             func(childComplexity int) int
+		Type              func(childComplexity int) int
+		User              func(childComplexity int) int
+		UserID            func(childComplexity int) int
+		UserName          func(childComplexity int) int
 	}
 
 	OrderDetail struct {
@@ -153,12 +156,23 @@ type ComplexityRoot struct {
 		Currency              func(childComplexity int) int
 		Description           func(childComplexity int) int
 		ID                    func(childComplexity int) int
+		OrderID               func(childComplexity int) int
 		Status                func(childComplexity int) int
 		StripePaymentIntentID func(childComplexity int) int
 		StripePaymentMethodID func(childComplexity int) int
 		UpdatedAt             func(childComplexity int) int
 		User                  func(childComplexity int) int
 		UserID                func(childComplexity int) int
+	}
+
+	PreparedOrderMetric struct {
+		CompletedAt         func(childComplexity int) int
+		CreatedAt           func(childComplexity int) int
+		ItemCount           func(childComplexity int) int
+		OrderID             func(childComplexity int) int
+		PreparedTimeMinutes func(childComplexity int) int
+		RestaurantID        func(childComplexity int) int
+		WasPeakHour         func(childComplexity int) int
 	}
 
 	Product struct {
@@ -184,6 +198,7 @@ type ComplexityRoot struct {
 		Category              func(childComplexity int, id string) int
 		Employee              func(childComplexity int, id string) int
 		EmployeesByRestaurant func(childComplexity int, restaurantID string) int
+		EstimatedWaitTime     func(childComplexity int, restaurantID string) int
 		Order                 func(childComplexity int, id string) int
 		OrdersByRestaurant    func(childComplexity int, restaurantID string) int
 		OrdersByUser          func(childComplexity int, userID string) int
@@ -192,7 +207,9 @@ type ComplexityRoot struct {
 		Payments              func(childComplexity int, limit *int, offset *int) int
 		Product               func(childComplexity int, id string) int
 		Products              func(childComplexity int, restaurantID string) int
+		RecentOrderMetrics    func(childComplexity int, restaurantID string, limit *int) int
 		Restaurant            func(childComplexity int, id string) int
+		RestaurantWaitMetrics func(childComplexity int, restaurantID string) int
 		Restaurants           func(childComplexity int) int
 		Review                func(childComplexity int, id string) int
 		Reviews               func(childComplexity int, restaurantID string) int
@@ -212,6 +229,16 @@ type ComplexityRoot struct {
 		Image       func(childComplexity int) int
 		Name        func(childComplexity int) int
 		Phone       func(childComplexity int) int
+	}
+
+	RestaurantMetrics struct {
+		AveragePrepTime     func(childComplexity int) int
+		MedianPrepTime      func(childComplexity int) int
+		MostCommonItemCount func(childComplexity int) int
+		NonPeakHourOrders   func(childComplexity int) int
+		PeakHourOrders      func(childComplexity int) int
+		RestaurantID        func(childComplexity int) int
+		TotalOrders         func(childComplexity int) int
 	}
 
 	Review struct {
@@ -322,6 +349,9 @@ type QueryResolver interface {
 	OrdersOpen(ctx context.Context, restaurantID string) ([]*model.Order, error)
 	OrdersByUser(ctx context.Context, userID string) ([]*model.Order, error)
 	Order(ctx context.Context, id string) (*model.Order, error)
+	EstimatedWaitTime(ctx context.Context, restaurantID string) (int, error)
+	RestaurantWaitMetrics(ctx context.Context, restaurantID string) (*model.RestaurantMetrics, error)
+	RecentOrderMetrics(ctx context.Context, restaurantID string, limit *int) ([]*model.PreparedOrderMetric, error)
 }
 type SubscriptionResolver interface {
 	OrderCreated(ctx context.Context, restaurantID int) (<-chan *model.Order, error)
@@ -875,12 +905,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.VerifyEmail(childComplexity, args["code"].(string)), true
 
+	case "Order.actualWaitTime":
+		if e.complexity.Order.ActualWaitTime == nil {
+			break
+		}
+
+		return e.complexity.Order.ActualWaitTime(childComplexity), true
+	case "Order.completedAt":
+		if e.complexity.Order.CompletedAt == nil {
+			break
+		}
+
+		return e.complexity.Order.CompletedAt(childComplexity), true
 	case "Order.date":
 		if e.complexity.Order.Date == nil {
 			break
 		}
 
 		return e.complexity.Order.Date(childComplexity), true
+	case "Order.estimatedWaitTime":
+		if e.complexity.Order.EstimatedWaitTime == nil {
+			break
+		}
+
+		return e.complexity.Order.EstimatedWaitTime(childComplexity), true
 	case "Order.id":
 		if e.complexity.Order.ID == nil {
 			break
@@ -1027,6 +1075,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Payment.ID(childComplexity), true
+	case "Payment.orderId":
+		if e.complexity.Payment.OrderID == nil {
+			break
+		}
+
+		return e.complexity.Payment.OrderID(childComplexity), true
 	case "Payment.status":
 		if e.complexity.Payment.Status == nil {
 			break
@@ -1063,6 +1117,49 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Payment.UserID(childComplexity), true
+
+	case "PreparedOrderMetric.completedAt":
+		if e.complexity.PreparedOrderMetric.CompletedAt == nil {
+			break
+		}
+
+		return e.complexity.PreparedOrderMetric.CompletedAt(childComplexity), true
+	case "PreparedOrderMetric.createdAt":
+		if e.complexity.PreparedOrderMetric.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.PreparedOrderMetric.CreatedAt(childComplexity), true
+	case "PreparedOrderMetric.itemCount":
+		if e.complexity.PreparedOrderMetric.ItemCount == nil {
+			break
+		}
+
+		return e.complexity.PreparedOrderMetric.ItemCount(childComplexity), true
+	case "PreparedOrderMetric.orderId":
+		if e.complexity.PreparedOrderMetric.OrderID == nil {
+			break
+		}
+
+		return e.complexity.PreparedOrderMetric.OrderID(childComplexity), true
+	case "PreparedOrderMetric.preparedTimeMinutes":
+		if e.complexity.PreparedOrderMetric.PreparedTimeMinutes == nil {
+			break
+		}
+
+		return e.complexity.PreparedOrderMetric.PreparedTimeMinutes(childComplexity), true
+	case "PreparedOrderMetric.restaurantId":
+		if e.complexity.PreparedOrderMetric.RestaurantID == nil {
+			break
+		}
+
+		return e.complexity.PreparedOrderMetric.RestaurantID(childComplexity), true
+	case "PreparedOrderMetric.wasPeakHour":
+		if e.complexity.PreparedOrderMetric.WasPeakHour == nil {
+			break
+		}
+
+		return e.complexity.PreparedOrderMetric.WasPeakHour(childComplexity), true
 
 	case "Product.allergens":
 		if e.complexity.Product.Allergens == nil {
@@ -1214,6 +1311,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.EmployeesByRestaurant(childComplexity, args["restaurantId"].(string)), true
+	case "Query.estimatedWaitTime":
+		if e.complexity.Query.EstimatedWaitTime == nil {
+			break
+		}
+
+		args, err := ec.field_Query_estimatedWaitTime_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.EstimatedWaitTime(childComplexity, args["restaurantId"].(string)), true
 	case "Query.order":
 		if e.complexity.Query.Order == nil {
 			break
@@ -1302,6 +1410,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Products(childComplexity, args["restaurantId"].(string)), true
+	case "Query.recentOrderMetrics":
+		if e.complexity.Query.RecentOrderMetrics == nil {
+			break
+		}
+
+		args, err := ec.field_Query_recentOrderMetrics_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.RecentOrderMetrics(childComplexity, args["restaurantId"].(string), args["limit"].(*int)), true
 	case "Query.restaurant":
 		if e.complexity.Query.Restaurant == nil {
 			break
@@ -1313,6 +1432,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Restaurant(childComplexity, args["id"].(string)), true
+	case "Query.restaurantWaitMetrics":
+		if e.complexity.Query.RestaurantWaitMetrics == nil {
+			break
+		}
+
+		args, err := ec.field_Query_restaurantWaitMetrics_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.RestaurantWaitMetrics(childComplexity, args["restaurantId"].(string)), true
 	case "Query.restaurants":
 		if e.complexity.Query.Restaurants == nil {
 			break
@@ -1445,6 +1575,49 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Restaurant.Phone(childComplexity), true
+
+	case "RestaurantMetrics.averagePrepTime":
+		if e.complexity.RestaurantMetrics.AveragePrepTime == nil {
+			break
+		}
+
+		return e.complexity.RestaurantMetrics.AveragePrepTime(childComplexity), true
+	case "RestaurantMetrics.medianPrepTime":
+		if e.complexity.RestaurantMetrics.MedianPrepTime == nil {
+			break
+		}
+
+		return e.complexity.RestaurantMetrics.MedianPrepTime(childComplexity), true
+	case "RestaurantMetrics.mostCommonItemCount":
+		if e.complexity.RestaurantMetrics.MostCommonItemCount == nil {
+			break
+		}
+
+		return e.complexity.RestaurantMetrics.MostCommonItemCount(childComplexity), true
+	case "RestaurantMetrics.nonPeakHourOrders":
+		if e.complexity.RestaurantMetrics.NonPeakHourOrders == nil {
+			break
+		}
+
+		return e.complexity.RestaurantMetrics.NonPeakHourOrders(childComplexity), true
+	case "RestaurantMetrics.peakHourOrders":
+		if e.complexity.RestaurantMetrics.PeakHourOrders == nil {
+			break
+		}
+
+		return e.complexity.RestaurantMetrics.PeakHourOrders(childComplexity), true
+	case "RestaurantMetrics.restaurantId":
+		if e.complexity.RestaurantMetrics.RestaurantID == nil {
+			break
+		}
+
+		return e.complexity.RestaurantMetrics.RestaurantID(childComplexity), true
+	case "RestaurantMetrics.totalOrders":
+		if e.complexity.RestaurantMetrics.TotalOrders == nil {
+			break
+		}
+
+		return e.complexity.RestaurantMetrics.TotalOrders(childComplexity), true
 
 	case "Review.comment":
 		if e.complexity.Review.Comment == nil {
@@ -1873,6 +2046,7 @@ type Payment {
   description: String
   createdAt: String!
   updatedAt: String!
+  orderId: Int
 }
 
 input CreatePaymentInput {
@@ -1881,6 +2055,7 @@ input CreatePaymentInput {
   currency: String!
   paymentMethodId: String!
   description: String
+  orderId: Int
 }
 
 input RefundPaymentInput {
@@ -2079,6 +2254,9 @@ type Order {
   date: Time!
   paid: Boolean!
   orderDetail: OrderDetail
+  estimatedWaitTime: Int!  # Tiempo estimado en minutos
+  actualWaitTime: Int      # Tiempo real en minutos (null si no completado)
+  completedAt: Time        # Cuándo se completó la orden
 }
 
 type OrderDetail {
@@ -2159,6 +2337,11 @@ type Query {
   ordersOpen(restaurantId: ID!): [Order!]!
   ordersByUser(userId: ID!): [Order!]!
   order(id: ID!): Order!
+
+  # --- Wait Times (Tiempos de Espera) ---
+  estimatedWaitTime(restaurantId: ID!): Int!
+  restaurantWaitMetrics(restaurantId: ID!): RestaurantMetrics!
+  recentOrderMetrics(restaurantId: ID!, limit: Int): [PreparedOrderMetric!]!
 }
 
 # --- MUTATIONS (Escritura) ---
@@ -2210,13 +2393,34 @@ type Mutation {
   updateEmployee(input: UpdateEmployeeInput!): Employee!
   removeEmployee(id: ID!): Boolean!
 
-  # --- Orders (Ordenes) ---
+   # --- Orders (Ordenes) ---
   createOrder(input: CreateOrderInput!): Order!
   updateOrderStatus(id: ID!, status: String!): Order!
   updateOrderPayment(id: ID!, paid: Boolean!): Order!
   addOrderItems(orderId: ID!, items: [OrderItemInput!]!): Order!
   removeOrderItem(orderId: ID!, itemId: ID!): Order!
   removeOrder(id: ID!): Boolean!
+}
+
+# --- Wait Time Types (Tipos de Tiempo de Espera) ---
+type RestaurantMetrics {
+  restaurantId: ID!
+  totalOrders: Int!
+  averagePrepTime: Int!
+  medianPrepTime: Int!
+  peakHourOrders: Int!
+  nonPeakHourOrders: Int!
+  mostCommonItemCount: Int!
+}
+
+type PreparedOrderMetric {
+  orderId: ID!
+  restaurantId: ID!
+  itemCount: Int!
+  preparedTimeMinutes: Int!
+  createdAt: Time!
+  completedAt: Time!
+  wasPeakHour: Boolean!
 }
 
 type Subscription {
@@ -2765,6 +2969,17 @@ func (ec *executionContext) field_Query_employeesByRestaurant_args(ctx context.C
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_estimatedWaitTime_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["restaurantId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_order_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2848,6 +3063,33 @@ func (ec *executionContext) field_Query_product_args(ctx context.Context, rawArg
 }
 
 func (ec *executionContext) field_Query_products_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["restaurantId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_recentOrderMetrics_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["restaurantId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_restaurantWaitMetrics_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId", ec.unmarshalNID2string)
@@ -4279,6 +4521,8 @@ func (ec *executionContext) fieldContext_Mutation_createPayment(ctx context.Cont
 				return ec.fieldContext_Payment_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Payment_updatedAt(ctx, field)
+			case "orderId":
+				return ec.fieldContext_Payment_orderId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Payment", field.Name)
 		},
@@ -4344,6 +4588,8 @@ func (ec *executionContext) fieldContext_Mutation_refundPayment(ctx context.Cont
 				return ec.fieldContext_Payment_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Payment_updatedAt(ctx, field)
+			case "orderId":
+				return ec.fieldContext_Payment_orderId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Payment", field.Name)
 		},
@@ -5369,6 +5615,12 @@ func (ec *executionContext) fieldContext_Mutation_createOrder(ctx context.Contex
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -5440,6 +5692,12 @@ func (ec *executionContext) fieldContext_Mutation_updateOrderStatus(ctx context.
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -5511,6 +5769,12 @@ func (ec *executionContext) fieldContext_Mutation_updateOrderPayment(ctx context
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -5582,6 +5846,12 @@ func (ec *executionContext) fieldContext_Mutation_addOrderItems(ctx context.Cont
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -5653,6 +5923,12 @@ func (ec *executionContext) fieldContext_Mutation_removeOrderItem(ctx context.Co
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -6159,6 +6435,93 @@ func (ec *executionContext) fieldContext_Order_orderDetail(_ context.Context, fi
 				return ec.fieldContext_OrderDetail_subtotal(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type OrderDetail", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Order_estimatedWaitTime(ctx context.Context, field graphql.CollectedField, obj *model.Order) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Order_estimatedWaitTime,
+		func(ctx context.Context) (any, error) {
+			return obj.EstimatedWaitTime, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Order_estimatedWaitTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Order",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Order_actualWaitTime(ctx context.Context, field graphql.CollectedField, obj *model.Order) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Order_actualWaitTime,
+		func(ctx context.Context) (any, error) {
+			return obj.ActualWaitTime, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Order_actualWaitTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Order",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Order_completedAt(ctx context.Context, field graphql.CollectedField, obj *model.Order) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Order_completedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CompletedAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Order_completedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Order",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6692,6 +7055,238 @@ func (ec *executionContext) fieldContext_Payment_updatedAt(_ context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Payment_orderId(ctx context.Context, field graphql.CollectedField, obj *model.Payment) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Payment_orderId,
+		func(ctx context.Context) (any, error) {
+			return obj.OrderID, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Payment_orderId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Payment",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PreparedOrderMetric_orderId(ctx context.Context, field graphql.CollectedField, obj *model.PreparedOrderMetric) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PreparedOrderMetric_orderId,
+		func(ctx context.Context) (any, error) {
+			return obj.OrderID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PreparedOrderMetric_orderId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PreparedOrderMetric",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PreparedOrderMetric_restaurantId(ctx context.Context, field graphql.CollectedField, obj *model.PreparedOrderMetric) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PreparedOrderMetric_restaurantId,
+		func(ctx context.Context) (any, error) {
+			return obj.RestaurantID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PreparedOrderMetric_restaurantId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PreparedOrderMetric",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PreparedOrderMetric_itemCount(ctx context.Context, field graphql.CollectedField, obj *model.PreparedOrderMetric) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PreparedOrderMetric_itemCount,
+		func(ctx context.Context) (any, error) {
+			return obj.ItemCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PreparedOrderMetric_itemCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PreparedOrderMetric",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PreparedOrderMetric_preparedTimeMinutes(ctx context.Context, field graphql.CollectedField, obj *model.PreparedOrderMetric) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PreparedOrderMetric_preparedTimeMinutes,
+		func(ctx context.Context) (any, error) {
+			return obj.PreparedTimeMinutes, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PreparedOrderMetric_preparedTimeMinutes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PreparedOrderMetric",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PreparedOrderMetric_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.PreparedOrderMetric) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PreparedOrderMetric_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PreparedOrderMetric_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PreparedOrderMetric",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PreparedOrderMetric_completedAt(ctx context.Context, field graphql.CollectedField, obj *model.PreparedOrderMetric) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PreparedOrderMetric_completedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CompletedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PreparedOrderMetric_completedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PreparedOrderMetric",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PreparedOrderMetric_wasPeakHour(ctx context.Context, field graphql.CollectedField, obj *model.PreparedOrderMetric) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PreparedOrderMetric_wasPeakHour,
+		func(ctx context.Context) (any, error) {
+			return obj.WasPeakHour, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PreparedOrderMetric_wasPeakHour(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PreparedOrderMetric",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7336,6 +7931,8 @@ func (ec *executionContext) fieldContext_Query_payment(ctx context.Context, fiel
 				return ec.fieldContext_Payment_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Payment_updatedAt(ctx, field)
+			case "orderId":
+				return ec.fieldContext_Payment_orderId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Payment", field.Name)
 		},
@@ -7401,6 +7998,8 @@ func (ec *executionContext) fieldContext_Query_payments(ctx context.Context, fie
 				return ec.fieldContext_Payment_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Payment_updatedAt(ctx, field)
+			case "orderId":
+				return ec.fieldContext_Payment_orderId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Payment", field.Name)
 		},
@@ -7466,6 +8065,8 @@ func (ec *executionContext) fieldContext_Query_userPayments(ctx context.Context,
 				return ec.fieldContext_Payment_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_Payment_updatedAt(ctx, field)
+			case "orderId":
+				return ec.fieldContext_Payment_orderId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Payment", field.Name)
 		},
@@ -8306,6 +8907,12 @@ func (ec *executionContext) fieldContext_Query_ordersByRestaurant(ctx context.Co
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -8377,6 +8984,12 @@ func (ec *executionContext) fieldContext_Query_ordersOpen(ctx context.Context, f
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -8448,6 +9061,12 @@ func (ec *executionContext) fieldContext_Query_ordersByUser(ctx context.Context,
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -8519,6 +9138,12 @@ func (ec *executionContext) fieldContext_Query_order(ctx context.Context, field 
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -8531,6 +9156,161 @@ func (ec *executionContext) fieldContext_Query_order(ctx context.Context, field 
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_order_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_estimatedWaitTime(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_estimatedWaitTime,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().EstimatedWaitTime(ctx, fc.Args["restaurantId"].(string))
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_estimatedWaitTime(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_estimatedWaitTime_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_restaurantWaitMetrics(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_restaurantWaitMetrics,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().RestaurantWaitMetrics(ctx, fc.Args["restaurantId"].(string))
+		},
+		nil,
+		ec.marshalNRestaurantMetrics2ᚖapiᚋgraphᚋmodelᚐRestaurantMetrics,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_restaurantWaitMetrics(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "restaurantId":
+				return ec.fieldContext_RestaurantMetrics_restaurantId(ctx, field)
+			case "totalOrders":
+				return ec.fieldContext_RestaurantMetrics_totalOrders(ctx, field)
+			case "averagePrepTime":
+				return ec.fieldContext_RestaurantMetrics_averagePrepTime(ctx, field)
+			case "medianPrepTime":
+				return ec.fieldContext_RestaurantMetrics_medianPrepTime(ctx, field)
+			case "peakHourOrders":
+				return ec.fieldContext_RestaurantMetrics_peakHourOrders(ctx, field)
+			case "nonPeakHourOrders":
+				return ec.fieldContext_RestaurantMetrics_nonPeakHourOrders(ctx, field)
+			case "mostCommonItemCount":
+				return ec.fieldContext_RestaurantMetrics_mostCommonItemCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RestaurantMetrics", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_restaurantWaitMetrics_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_recentOrderMetrics(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_recentOrderMetrics,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().RecentOrderMetrics(ctx, fc.Args["restaurantId"].(string), fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalNPreparedOrderMetric2ᚕᚖapiᚋgraphᚋmodelᚐPreparedOrderMetricᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_recentOrderMetrics(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "orderId":
+				return ec.fieldContext_PreparedOrderMetric_orderId(ctx, field)
+			case "restaurantId":
+				return ec.fieldContext_PreparedOrderMetric_restaurantId(ctx, field)
+			case "itemCount":
+				return ec.fieldContext_PreparedOrderMetric_itemCount(ctx, field)
+			case "preparedTimeMinutes":
+				return ec.fieldContext_PreparedOrderMetric_preparedTimeMinutes(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_PreparedOrderMetric_createdAt(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_PreparedOrderMetric_completedAt(ctx, field)
+			case "wasPeakHour":
+				return ec.fieldContext_PreparedOrderMetric_wasPeakHour(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PreparedOrderMetric", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_recentOrderMetrics_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -8877,6 +9657,209 @@ func (ec *executionContext) fieldContext_Restaurant_hours(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _RestaurantMetrics_restaurantId(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantMetrics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RestaurantMetrics_restaurantId,
+		func(ctx context.Context) (any, error) {
+			return obj.RestaurantID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RestaurantMetrics_restaurantId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestaurantMetrics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RestaurantMetrics_totalOrders(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantMetrics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RestaurantMetrics_totalOrders,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalOrders, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RestaurantMetrics_totalOrders(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestaurantMetrics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RestaurantMetrics_averagePrepTime(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantMetrics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RestaurantMetrics_averagePrepTime,
+		func(ctx context.Context) (any, error) {
+			return obj.AveragePrepTime, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RestaurantMetrics_averagePrepTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestaurantMetrics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RestaurantMetrics_medianPrepTime(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantMetrics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RestaurantMetrics_medianPrepTime,
+		func(ctx context.Context) (any, error) {
+			return obj.MedianPrepTime, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RestaurantMetrics_medianPrepTime(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestaurantMetrics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RestaurantMetrics_peakHourOrders(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantMetrics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RestaurantMetrics_peakHourOrders,
+		func(ctx context.Context) (any, error) {
+			return obj.PeakHourOrders, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RestaurantMetrics_peakHourOrders(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestaurantMetrics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RestaurantMetrics_nonPeakHourOrders(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantMetrics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RestaurantMetrics_nonPeakHourOrders,
+		func(ctx context.Context) (any, error) {
+			return obj.NonPeakHourOrders, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RestaurantMetrics_nonPeakHourOrders(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestaurantMetrics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RestaurantMetrics_mostCommonItemCount(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantMetrics) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RestaurantMetrics_mostCommonItemCount,
+		func(ctx context.Context) (any, error) {
+			return obj.MostCommonItemCount, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RestaurantMetrics_mostCommonItemCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestaurantMetrics",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Review_id(ctx context.Context, field graphql.CollectedField, obj *model.Review) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9194,6 +10177,12 @@ func (ec *executionContext) fieldContext_Subscription_orderCreated(ctx context.C
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -9265,6 +10254,12 @@ func (ec *executionContext) fieldContext_Subscription_orderStatusUpdated(ctx con
 				return ec.fieldContext_Order_paid(ctx, field)
 			case "orderDetail":
 				return ec.fieldContext_Order_orderDetail(ctx, field)
+			case "estimatedWaitTime":
+				return ec.fieldContext_Order_estimatedWaitTime(ctx, field)
+			case "actualWaitTime":
+				return ec.fieldContext_Order_actualWaitTime(ctx, field)
+			case "completedAt":
+				return ec.fieldContext_Order_completedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Order", field.Name)
 		},
@@ -11602,7 +12597,7 @@ func (ec *executionContext) unmarshalInputCreatePaymentInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"userId", "amount", "currency", "paymentMethodId", "description"}
+	fieldsInOrder := [...]string{"userId", "amount", "currency", "paymentMethodId", "description", "orderId"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -11644,6 +12639,13 @@ func (ec *executionContext) unmarshalInputCreatePaymentInput(ctx context.Context
 				return it, err
 			}
 			it.Description = data
+		case "orderId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("orderId"))
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.OrderID = data
 		}
 	}
 
@@ -13156,6 +14158,15 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "orderDetail":
 			out.Values[i] = ec._Order_orderDetail(ctx, field, obj)
+		case "estimatedWaitTime":
+			out.Values[i] = ec._Order_estimatedWaitTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "actualWaitTime":
+			out.Values[i] = ec._Order_actualWaitTime(ctx, field, obj)
+		case "completedAt":
+			out.Values[i] = ec._Order_completedAt(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13300,6 +14311,77 @@ func (ec *executionContext) _Payment(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Payment_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "orderId":
+			out.Values[i] = ec._Payment_orderId(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var preparedOrderMetricImplementors = []string{"PreparedOrderMetric"}
+
+func (ec *executionContext) _PreparedOrderMetric(ctx context.Context, sel ast.SelectionSet, obj *model.PreparedOrderMetric) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, preparedOrderMetricImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PreparedOrderMetric")
+		case "orderId":
+			out.Values[i] = ec._PreparedOrderMetric_orderId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "restaurantId":
+			out.Values[i] = ec._PreparedOrderMetric_restaurantId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "itemCount":
+			out.Values[i] = ec._PreparedOrderMetric_itemCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "preparedTimeMinutes":
+			out.Values[i] = ec._PreparedOrderMetric_preparedTimeMinutes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._PreparedOrderMetric_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "completedAt":
+			out.Values[i] = ec._PreparedOrderMetric_completedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "wasPeakHour":
+			out.Values[i] = ec._PreparedOrderMetric_wasPeakHour(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -13949,6 +15031,72 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "estimatedWaitTime":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_estimatedWaitTime(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "restaurantWaitMetrics":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_restaurantWaitMetrics(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "recentOrderMetrics":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_recentOrderMetrics(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -14025,6 +15173,75 @@ func (ec *executionContext) _Restaurant(ctx context.Context, sel ast.SelectionSe
 			}
 		case "hours":
 			out.Values[i] = ec._Restaurant_hours(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var restaurantMetricsImplementors = []string{"RestaurantMetrics"}
+
+func (ec *executionContext) _RestaurantMetrics(ctx context.Context, sel ast.SelectionSet, obj *model.RestaurantMetrics) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, restaurantMetricsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RestaurantMetrics")
+		case "restaurantId":
+			out.Values[i] = ec._RestaurantMetrics_restaurantId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalOrders":
+			out.Values[i] = ec._RestaurantMetrics_totalOrders(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "averagePrepTime":
+			out.Values[i] = ec._RestaurantMetrics_averagePrepTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "medianPrepTime":
+			out.Values[i] = ec._RestaurantMetrics_medianPrepTime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "peakHourOrders":
+			out.Values[i] = ec._RestaurantMetrics_peakHourOrders(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "nonPeakHourOrders":
+			out.Values[i] = ec._RestaurantMetrics_nonPeakHourOrders(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "mostCommonItemCount":
+			out.Values[i] = ec._RestaurantMetrics_mostCommonItemCount(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -15092,6 +16309,60 @@ func (ec *executionContext) marshalNPayment2ᚖapiᚋgraphᚋmodelᚐPayment(ctx
 	return ec._Payment(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNPreparedOrderMetric2ᚕᚖapiᚋgraphᚋmodelᚐPreparedOrderMetricᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PreparedOrderMetric) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPreparedOrderMetric2ᚖapiᚋgraphᚋmodelᚐPreparedOrderMetric(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPreparedOrderMetric2ᚖapiᚋgraphᚋmodelᚐPreparedOrderMetric(ctx context.Context, sel ast.SelectionSet, v *model.PreparedOrderMetric) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PreparedOrderMetric(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNProduct2apiᚋgraphᚋmodelᚐProduct(ctx context.Context, sel ast.SelectionSet, v model.Product) graphql.Marshaler {
 	return ec._Product(ctx, sel, &v)
 }
@@ -15216,6 +16487,20 @@ func (ec *executionContext) marshalNRestaurant2ᚖapiᚋgraphᚋmodelᚐRestaura
 		return graphql.Null
 	}
 	return ec._Restaurant(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRestaurantMetrics2apiᚋgraphᚋmodelᚐRestaurantMetrics(ctx context.Context, sel ast.SelectionSet, v model.RestaurantMetrics) graphql.Marshaler {
+	return ec._RestaurantMetrics(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRestaurantMetrics2ᚖapiᚋgraphᚋmodelᚐRestaurantMetrics(ctx context.Context, sel ast.SelectionSet, v *model.RestaurantMetrics) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RestaurantMetrics(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNReview2apiᚋgraphᚋmodelᚐReview(ctx context.Context, sel ast.SelectionSet, v model.Review) graphql.Marshaler {

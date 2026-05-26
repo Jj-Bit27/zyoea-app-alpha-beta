@@ -91,7 +91,7 @@ func main() {
 
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {
-		frontendURL = "http://localhost:4321"
+		frontendURL = "http://suavus.app"
 	}
 
 	frontendURL = strings.TrimSpace(frontendURL)

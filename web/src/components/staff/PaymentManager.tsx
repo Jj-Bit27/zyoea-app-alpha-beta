@@ -15,7 +15,7 @@ import type { Order } from "../../types";
 function PaymentsManagerContent() {
   const { user } = useAuth();
   const restaurantId = user?.restaurantId || "";
-  const { orders, loading, error, updateOrder } = useOrders(restaurantId);
+  const { orders, loading, error, updateOrderStatus: updateOrder, updateOrderPayment } = useOrders(restaurantId);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -46,7 +46,7 @@ function PaymentsManagerContent() {
     setIsModalOpen(true);
   };
 
-  const handleProcessPayment = () => {
+  const handleProcessPayment = async () => {
     if (!selectedOrder) return;
     const received = parseFloat(receivedAmount) || 0;
     if (received < selectedOrder.total) {
@@ -54,6 +54,7 @@ function PaymentsManagerContent() {
       return;
     }
     const change = received - selectedOrder.total;
+    await updateOrderPayment(selectedOrder.id, true);
     updateOrder(selectedOrder.id, "entregado");
     addToast(`Pago procesado. Cambio: $${change.toFixed(2)}`, "success");
     setIsModalOpen(false);

@@ -22,3 +22,5 @@ api/logs/
 
 web/npm-debug.log*
 web/logs/
+
+api/database/database.sql

@@ -25,6 +25,9 @@ const GET_ORDERS = gql`
       tableId
       date
       paid
+      estimatedWaitTime
+      actualWaitTime
+      completedAt
     }
   }
 `;
@@ -43,6 +46,9 @@ const GET_USER_ORDERS = gql`
       tableId
       date
       paid
+      estimatedWaitTime
+      actualWaitTime
+      completedAt
     }
   }
 `;
@@ -61,6 +67,9 @@ const GET_ORDER = gql`
       tableId
       date
       paid
+      estimatedWaitTime
+      actualWaitTime
+      completedAt
       orderDetail {
         id
         productId
@@ -85,6 +94,7 @@ const CREATE_ORDER = gql`
       id
       status
       paid
+      estimatedWaitTime
     }
   }
 `;
@@ -94,6 +104,9 @@ const UPDATE_ORDER_STATUS = gql`
     updateOrderStatus(id: $id, status: $status) {
       id
       status
+      estimatedWaitTime
+      actualWaitTime
+      completedAt
     }
   }
 `;
