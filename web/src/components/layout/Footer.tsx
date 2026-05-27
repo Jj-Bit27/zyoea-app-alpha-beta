@@ -11,7 +11,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className={`grid gap-6 md:gap-8 ${user ? "md:grid-cols-3" : "md:grid-cols-4"}`}>
+        <div className={`grid gap-6 md:gap-8 ${user ? "md:grid-cols-4" : "md:grid-cols-3"}`}>
           {/* Brand */}
           <div className="md:col-span-1">
             <a href="/" className="flex items-center gap-2">
