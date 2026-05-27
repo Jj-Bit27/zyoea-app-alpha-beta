@@ -9,6 +9,7 @@ import { addToast } from "../custom/Toast";
 import { useRestaurants } from "../../hooks/useRestaurants";
 import { ApolloWrapper } from "../ApolloWrapper";
 import { validarEmail } from "../../libs/ValidateEmail";
+import { ImageUploader } from "../upload/ImageUploader";
 
 function RestaurantsManagerContent() {
   const { restaurants, loading, error, createRestaurant, deleteRestaurant } = useRestaurants();
@@ -141,7 +142,10 @@ function RestaurantsManagerContent() {
             <Input label="Dirección" placeholder="Dirección completa" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} />
             <Input label="Descripción" placeholder="Breve descripción" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
             <Input label="Horario" placeholder="Lun-Dom 12:00-22:00" value={formData.hours} onChange={(e) => setFormData({ ...formData, hours: e.target.value })} />
-            <Input label="URL imagen (opcional)" placeholder="https://..." value={formData.image} onChange={(e) => setFormData({ ...formData, image: e.target.value })} />
+            <div>
+              <label className="block text-sm font-medium mb-1">Imagen del restaurante</label>
+              <ImageUploader currentImage={formData.image} onUpload={(url) => setFormData({ ...formData, image: url })} />
+            </div>
           </div>
         </ModalBody>
         <ModalFooter>

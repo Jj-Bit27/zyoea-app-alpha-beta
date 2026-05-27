@@ -11,6 +11,7 @@ import { ApolloWrapper } from "../ApolloWrapper";
 import { RestaurantHoursEditor } from "../restaurant/RestaurantHoursEditor";
 import { validarEmail } from "../../libs/ValidateEmail";
 import { addToast } from "../custom/Toast";
+import { ImageUploader } from "../upload/ImageUploader";
 
 function ConfigManagerContent() {
   const { user } = useAuth();
@@ -143,12 +144,10 @@ function ConfigManagerContent() {
               placeholder="Descripción"
               rows={3}
             />
-            <Input
-              label="URL del logo / imagen"
-              value={config.image}
-              onChange={(e) => setConfig({ ...config, image: e.target.value })}
-              placeholder="https://..."
-            />
+            <div>
+              <label className="block text-sm font-medium mb-1">Logo / Imagen del restaurante</label>
+              <ImageUploader currentImage={config.image} onUpload={(url) => setConfig({ ...config, image: url })} />
+            </div>
           </CardContent>
         </Card>
 

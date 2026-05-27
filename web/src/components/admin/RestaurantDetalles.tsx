@@ -25,6 +25,7 @@ import { addToast } from "../custom/Toast";
 import type { Employee, Restaurant } from "../../types";
 import { validarEmail } from "../../libs/ValidateEmail";
 import { $user } from "../../context/AuthContext";
+import { ImageUploader } from "../upload/ImageUploader";
 
 const GET_RESTAURANT_PAYMENT_METHOD = gql`
   query getRestaurantPaymentMethod($userId: ID!) {
@@ -504,14 +505,10 @@ export function RestaurantDetailContent({ id }: { id: string }) {
                 placeholder="correo@ejemplo.com"
               />
             </div>
-            <Input
-              label="URL de imagen"
-              value={formData.image}
-              onChange={(e) =>
-                setFormData({ ...formData, image: e.target.value })
-              }
-              placeholder="https://ejemplo.com/logo.png"
-            />
+            <div>
+              <label className="block text-sm font-medium mb-1">Imagen del restaurante</label>
+              <ImageUploader currentImage={formData.image} onUpload={(url) => setFormData({ ...formData, image: url })} />
+            </div>
           </div>
         </ModalBody>
         <ModalFooter>

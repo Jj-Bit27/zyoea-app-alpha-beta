@@ -6,6 +6,7 @@ import { ApolloWrapper } from "../ApolloWrapper";
 import { Spinner } from "../custom/Spinner";
 import { Button } from "../custom/Button";
 import { useReviews } from "../../hooks/useReviews";
+import { ScheduleDisplay } from "./ScheduleDisplay";
 
 function RestaurantDetailsContent({
   restaurantId,
@@ -38,7 +39,7 @@ function RestaurantDetailsContent({
           <div className="flex flex-wrap gap-4 text-sm md:text-base items-center">
             <div className="flex items-center gap-1">
               <FiClock />
-              <span>{restaurant?.hours}</span>
+              <ScheduleDisplay hours={restaurant?.hours || ""} />
             </div>
           </div>
         </div>
@@ -65,7 +66,7 @@ function RestaurantDetailsContent({
                   <FiClock className="mt-1 text-blue-500" />
                   <div>
                     <p className="font-medium">Horario</p>
-                    <p className="text-gray-500">{restaurant?.hours}</p>
+                    <ScheduleDisplay hours={restaurant?.hours || ""} />
                   </div>
                 </div>
               </div>

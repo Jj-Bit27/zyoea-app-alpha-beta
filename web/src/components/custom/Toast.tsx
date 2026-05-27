@@ -54,13 +54,13 @@ export function ToastContainer() {
   const toasts = useStore($toasts)
 
   return (
-    <div className="fixed bottom-4 right-4 z-100 flex flex-col gap-2 pointer-events-none">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 z-100 flex flex-col gap-2 pointer-events-none">
       {toasts.map((toast) => {
         const Icon = icons[toast.type]
         return (
           <div
             key={toast.id}
-            className={`flex items-center gap-2 rounded-lg px-4 py-3 shadow-lg animate-in slide-in-from-right fade-in duration-300 pointer-events-auto ${styles[toast.type]}`}
+            className={`flex items-center gap-2 rounded-lg px-4 py-3 shadow-lg animate-in slide-in-from-right fade-in duration-300 pointer-events-auto w-full sm:w-auto sm:max-w-sm ${styles[toast.type]}`}
           >
             <Icon className="h-5 w-5 shrink-0" />
             <span className="text-sm font-medium">{toast.message}</span>

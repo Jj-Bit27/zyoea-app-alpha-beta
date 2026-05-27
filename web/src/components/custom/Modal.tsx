@@ -59,10 +59,10 @@ const Modal = forwardRef<HTMLDivElement, ModalProps>(
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
         {/* Backdrop (Fondo oscuro) */}
         <div
-          className="absolute inset-0 bg-foreground/50 backdrop-blur-sm transition-opacity"
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -74,7 +74,7 @@ const Modal = forwardRef<HTMLDivElement, ModalProps>(
           aria-modal="true"
           aria-labelledby={title ? "modal-title" : undefined}
           aria-describedby={description ? "modal-description" : undefined}
-          className={`relative z-10 w-full ${sizeStyles[size]} rounded-xl bg-card p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 ${className}`}
+          className={`relative z-10 w-full ${sizeStyles[size]} max-h-[85vh] overflow-y-auto rounded-xl bg-card p-4 sm:p-6 shadow-xl animate-in fade-in zoom-in-95 duration-200 ${className}`}
           {...props}
         >
           {/* Botón de cerrar absoluto (solo si no se usa ModalHeader explícito con botón) */}
