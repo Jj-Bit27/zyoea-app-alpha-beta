@@ -65,7 +65,8 @@ function StaffOrderHistoryContent() {
 
   // Estadísticas rápidas
   const stats = useMemo(() => {
-    const total = filteredOrders.reduce(
+    const ordenesFiltradas = filteredOrders.filter((o) => o.status != "CANCELADA")
+    const total = ordenesFiltradas.reduce(
       (sum, o) => sum + o.total,
       0,
     );

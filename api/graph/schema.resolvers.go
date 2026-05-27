@@ -159,8 +159,8 @@ func (r *mutationResolver) RemoveEmployee(ctx context.Context, id string) (bool,
 // ---------------------------------------------------------
 // ORDERS RESOLVERS (Ordenes)
 // ---------------------------------------------------------
-func (r *mutationResolver) CreateOrder(ctx context.Context, input model.CreateOrderInput) (*model.Order, error) {
-	newOrder, err := r.OrderService.Create(ctx, input)
+func (r *mutationResolver) CreateOrder(ctx context.Context, input model.CreateOrderInput, idempotencyKey string) (*model.Order, error) {
+	newOrder, err := r.OrderService.CreateWithIdempotencyKey(ctx, input, idempotencyKey)
 
 	if err != nil {
 		return nil, err
@@ -495,6 +495,128 @@ func (r *queryResolver) RecentOrderMetrics(ctx context.Context, restaurantID str
 	}
 
 	return result, nil
+}
+
+// GetRestaurantPaymentMethod is the resolver for the getRestaurantPaymentMethod field.
+func (r *queryResolver) GetRestaurantPaymentMethod(ctx context.Context, userID string) (*model.RestaurantPaymentMethod, error) {
+	rid, _ := fmt.Sscanf(userID, "%d", new(int))
+	return r.RestaurantPaymentService.GetPaymentMethod(ctx, rid)
+}
+
+// GetRestaurantPaymentMethodStatus is the resolver for the getRestaurantPaymentMethodStatus field.
+func (r *queryResolver) GetRestaurantPaymentMethodStatus(ctx context.Context, userID string) (*model.RestaurantPaymentMethod, error) {
+	return r.GetRestaurantPaymentMethod(ctx, userID)
+}
+
+// GetCart is the resolver for the getCart field.
+func (r *queryResolver) GetCart(ctx context.Context, userID string) ([]*model.CartItem, error) {
+	var uid int
+	fmt.Sscanf(userID, "%d", &uid)
+
+	_, err := r.CartService.GetCart(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	return []*model.CartItem{}, nil
+}
+
+// GetTermsContent is the resolver for the getTermsContent field.
+func (r *queryResolver) GetTermsContent(ctx context.Context, typeArg model.TermsType) (*model.TermsContent, error) {
+	return r.TermsService.GetTermsContent(ctx, typeArg)
+}
+
+// GetCurrentTermsAcceptance is the resolver for the getCurrentTermsAcceptance field.
+func (r *queryResolver) GetCurrentTermsAcceptance(ctx context.Context, typeArg model.TermsType) (*model.TermsAcceptance, error) {
+	return r.TermsService.GetCurrentTermsAcceptance(ctx, 0, typeArg)
+}
+
+// CheckPendingTermsAcceptance is the resolver for the checkPendingTermsAcceptance field.
+func (r *queryResolver) CheckPendingTermsAcceptance(ctx context.Context) ([]model.TermsType, error) {
+	return r.TermsService.CheckPendingTermsAcceptance(ctx, 0)
+}
+
+// GetCloudinarySignature is the resolver for the getCloudinarySignature field.
+func (r *queryResolver) GetCloudinarySignature(ctx context.Context, publicID string, timestamp int) (*model.CloudinarySignature, error) {
+	return r.CloudinaryService.GenerateSignature(ctx, publicID, timestamp)
+}
+
+// CreateRestaurantPaymentMethod is the resolver for the createRestaurantPaymentMethod field.
+func (r *mutationResolver) CreateRestaurantPaymentMethod(ctx context.Context, userID string, input model.CreateRestaurantPaymentMethodInput) (*model.RestaurantPaymentMethod, error) {
+	var rid int
+	fmt.Sscanf(userID, "%d", &rid)
+	return r.RestaurantPaymentService.CreatePaymentMethod(ctx, rid, input)
+}
+
+// UpdateRestaurantPaymentMethod is the resolver for the updateRestaurantPaymentMethod field.
+func (r *mutationResolver) UpdateRestaurantPaymentMethod(ctx context.Context, userID string, input model.CreateRestaurantPaymentMethodInput) (*model.RestaurantPaymentMethod, error) {
+	return r.CreateRestaurantPaymentMethod(ctx, userID, input)
+}
+
+// AddToCart is the resolver for the addToCart field.
+func (r *mutationResolver) AddToCart(ctx context.Context, userID string, productID int, quantity int, restaurantID int) (*model.CartItem, error) {
+	var uid int
+	fmt.Sscanf(userID, "%d", &uid)
+
+	err := r.CartService.AddToCart(ctx, uid, productID, quantity, restaurantID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.CartItem{
+		ID:           "0",
+		ProductID:    fmt.Sprintf("%d", productID),
+		Quantity:     quantity,
+		RestaurantID: fmt.Sprintf("%d", restaurantID),
+	}, nil
+}
+
+// UpdateCartItem is the resolver for the updateCartItem field.
+func (r *mutationResolver) UpdateCartItem(ctx context.Context, userID string, productID int, quantity int) (*model.CartItem, error) {
+	var uid int
+	fmt.Sscanf(userID, "%d", &uid)
+
+	err := r.CartService.UpdateCartItem(ctx, uid, productID, quantity)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.CartItem{
+		ID:        "0",
+		ProductID: fmt.Sprintf("%d", productID),
+		Quantity:  quantity,
+	}, nil
+}
+
+// RemoveFromCart is the resolver for the removeFromCart field.
+func (r *mutationResolver) RemoveFromCart(ctx context.Context, userID string, productID int) (bool, error) {
+	var uid int
+	fmt.Sscanf(userID, "%d", &uid)
+
+	err := r.CartService.RemoveFromCart(ctx, uid, productID)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// ClearCart is the resolver for the clearCart field.
+func (r *mutationResolver) ClearCart(ctx context.Context, userID string) (bool, error) {
+	var uid int
+	fmt.Sscanf(userID, "%d", &uid)
+
+	err := r.CartService.ClearCart(ctx, uid)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// AcceptTerms is the resolver for the acceptTerms field.
+func (r *mutationResolver) AcceptTerms(ctx context.Context, userID string, typeArg model.TermsType) (*model.TermsAcceptance, error) {
+	var uid int
+	fmt.Sscanf(userID, "%d", &uid)
+	return r.TermsService.AcceptTerms(ctx, uid, typeArg)
 }
 
 // Mutation returns generated.MutationResolver implementation.

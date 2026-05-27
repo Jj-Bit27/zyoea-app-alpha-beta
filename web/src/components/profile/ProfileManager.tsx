@@ -81,7 +81,7 @@ export function UserProfileContent() {
   return (
     <div className="max-w-2xl mx-auto space-y-8">
       <div className="flex items-center gap-6 p-6 bg-card rounded-xl border border-border shadow-sm">
-        <Avatar name={user.name} size="xl" className="h-24 w-24 text-2xl" />
+        <Avatar name={user.name} size="xl" className="h-20 w-20 sm:h-24 sm:w-24 text-xl sm:text-2xl" />
         <div className="flex-1">
           <h2 className="text-2xl font-bold text-foreground">{user.name}</h2>
           <p className="text-muted-foreground">{user.email}</p>

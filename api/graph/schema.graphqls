@@ -85,6 +85,8 @@ type Payment {
   currency: String!
   status: String!
   description: String
+  stripeApplicationFeeAmount: Float
+  paymentMethodType: String
   createdAt: String!
   updatedAt: String!
   orderId: Int
@@ -373,16 +375,31 @@ type Query {
   employeesByRestaurant(restaurantId: ID!): [Employee!]!
   employee(id: ID!): Employee!
 
-  # --- Orders (Ordenes) ---
+   # --- Orders (Ordenes) ---
   ordersByRestaurant(restaurantId: ID!): [Order!]!
   ordersOpen(restaurantId: ID!): [Order!]!
   ordersByUser(userId: ID!): [Order!]!
   order(id: ID!): Order!
 
-  # --- Wait Times (Tiempos de Espera) ---
+   # --- Wait Times (Tiempos de Espera) ---
   estimatedWaitTime(restaurantId: ID!): Int!
   restaurantWaitMetrics(restaurantId: ID!): RestaurantMetrics!
   recentOrderMetrics(restaurantId: ID!, limit: Int): [PreparedOrderMetric!]!
+
+  # --- Restaurant Payment Methods (Métodos de Pago) ---
+  getRestaurantPaymentMethod(userId: ID!): RestaurantPaymentMethod
+  getRestaurantPaymentMethodStatus(userId: ID!): RestaurantPaymentMethod
+
+  # --- Cart (Carrito) ---
+  getCart(userId: ID!): [CartItem!]!
+
+  # --- Terms & Privacy ---
+  getTermsContent(type: TermsType!): TermsContent!
+  getCurrentTermsAcceptance(type: TermsType!): TermsAcceptance
+  checkPendingTermsAcceptance: [TermsType!]!
+
+  # --- Cloudinary ---
+  getCloudinarySignature(publicId: String!, timestamp: Int!): CloudinarySignature!
 }
 
 # --- MUTATIONS (Escritura) ---
@@ -434,13 +451,26 @@ type Mutation {
   updateEmployee(input: UpdateEmployeeInput!): Employee!
   removeEmployee(id: ID!): Boolean!
 
-   # --- Orders (Ordenes) ---
-  createOrder(input: CreateOrderInput!): Order!
+    # --- Orders (Ordenes) ---
+  createOrder(input: CreateOrderInput!, idempotencyKey: String!): Order!
   updateOrderStatus(id: ID!, status: String!): Order!
   updateOrderPayment(id: ID!, paid: Boolean!): Order!
   addOrderItems(orderId: ID!, items: [OrderItemInput!]!): Order!
   removeOrderItem(orderId: ID!, itemId: ID!): Order!
   removeOrder(id: ID!): Boolean!
+
+  # --- Restaurant Payment Methods ---
+  createRestaurantPaymentMethod(userId: ID!, input: CreateRestaurantPaymentMethodInput!): RestaurantPaymentMethod!
+  updateRestaurantPaymentMethod(userId: ID!, input: CreateRestaurantPaymentMethodInput!): RestaurantPaymentMethod!
+
+  # --- Cart ---
+  addToCart(userId: ID!, productId: Int!, quantity: Int!, restaurantId: Int!): CartItem!
+  updateCartItem(userId: ID!, productId: Int!, quantity: Int!): CartItem!
+  removeFromCart(userId: ID!, productId: Int!): Boolean!
+  clearCart(userId: ID!): Boolean!
+
+  # --- Terms & Privacy ---
+  acceptTerms(userId: ID!, type: TermsType!): TermsAcceptance!
 }
 
 # --- Wait Time Types (Tipos de Tiempo de Espera) ---
@@ -462,6 +492,72 @@ type PreparedOrderMetric {
   createdAt: Time!
   completedAt: Time!
   wasPeakHour: Boolean!
+}
+
+# --- Restaurant Payment Methods (Métodos de Pago del Restaurante) ---
+type RestaurantPaymentMethod {
+  id: ID!
+  restaurantId: ID!
+  stripeConnectAccountId: String
+  stripeOnboardingUrl: String
+  stripeOnboardingCompleted: Boolean!
+  accountHolderName: String!
+  accountType: String!
+  bankAccountLast4: String
+  routingNumber: String
+  countryCode: String!
+  status: String!
+  verificationRequiredAt: Time
+  activatedAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+input CreateRestaurantPaymentMethodInput {
+  accountHolderName: String!
+  routingNumber: String!
+  countryCode: String
+}
+
+# --- Cart Types (Tipos de Carrito) ---
+type CartItem {
+  id: ID!
+  productId: ID!
+  productName: String!
+  productImage: String
+  quantity: Int!
+  price: Float!
+  restaurantId: ID!
+}
+
+# --- Terms & Privacy Types ---
+enum TermsType {
+  USER_TERMS
+  RESTAURANT_TERMS
+  PRIVACY_POLICY
+}
+
+type TermsContent {
+  type: TermsType!
+  title: String!
+  content: String!
+  version: String!
+  lastUpdated: Time!
+}
+
+type TermsAcceptance {
+  id: ID!
+  termsType: TermsType!
+  acceptedAt: Time!
+}
+
+# --- Cloudinary Types ---
+type CloudinarySignature {
+  signature: String!
+  timestamp: Int!
+  apiKey: String!
+  cloudName: String!
+  publicId: String!
 }
 
 type Subscription {

@@ -3,6 +3,10 @@
 package model
 
 import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
 	"time"
 )
 
@@ -24,11 +28,29 @@ type Booking struct {
 	Status       string      `json:"status"`
 }
 
+type CartItem struct {
+	ID           string  `json:"id"`
+	ProductID    string  `json:"productId"`
+	ProductName  string  `json:"productName"`
+	ProductImage *string `json:"productImage,omitempty"`
+	Quantity     int     `json:"quantity"`
+	Price        float64 `json:"price"`
+	RestaurantID string  `json:"restaurantId"`
+}
+
 type Category struct {
 	ID           string      `json:"id"`
 	RestaurantID int         `json:"restaurantId"`
 	Restaurant   *Restaurant `json:"restaurant"`
 	Name         string      `json:"name"`
+}
+
+type CloudinarySignature struct {
+	Signature string `json:"signature"`
+	Timestamp int    `json:"timestamp"`
+	APIKey    string `json:"apiKey"`
+	CloudName string `json:"cloudName"`
+	PublicID  string `json:"publicId"`
 }
 
 type CreateBookingInput struct {
@@ -96,6 +118,12 @@ type CreateRestaurantInput struct {
 	Image       *string `json:"image,omitempty"`
 	Phone       string  `json:"phone"`
 	Hours       string  `json:"hours"`
+}
+
+type CreateRestaurantPaymentMethodInput struct {
+	AccountHolderName string  `json:"accountHolderName"`
+	RoutingNumber     string  `json:"routingNumber"`
+	CountryCode       *string `json:"countryCode,omitempty"`
 }
 
 type CreateReviewInput struct {
@@ -167,18 +195,20 @@ type OrderItemInput struct {
 }
 
 type Payment struct {
-	ID                    string  `json:"id"`
-	UserID                string  `json:"userId"`
-	User                  *User   `json:"user"`
-	StripePaymentIntentID string  `json:"stripePaymentIntentId"`
-	StripePaymentMethodID *string `json:"stripePaymentMethodId,omitempty"`
-	Amount                float64 `json:"amount"`
-	Currency              string  `json:"currency"`
-	Status                string  `json:"status"`
-	Description           *string `json:"description,omitempty"`
-	CreatedAt             string  `json:"createdAt"`
-	UpdatedAt             string  `json:"updatedAt"`
-	OrderID               *int    `json:"orderId,omitempty"`
+	ID                         string   `json:"id"`
+	UserID                     string   `json:"userId"`
+	User                       *User    `json:"user"`
+	StripePaymentIntentID      string   `json:"stripePaymentIntentId"`
+	StripePaymentMethodID      *string  `json:"stripePaymentMethodId,omitempty"`
+	Amount                     float64  `json:"amount"`
+	Currency                   string   `json:"currency"`
+	Status                     string   `json:"status"`
+	Description                *string  `json:"description,omitempty"`
+	StripeApplicationFeeAmount *float64 `json:"stripeApplicationFeeAmount,omitempty"`
+	PaymentMethodType          *string  `json:"paymentMethodType,omitempty"`
+	CreatedAt                  string   `json:"createdAt"`
+	UpdatedAt                  string   `json:"updatedAt"`
+	OrderID                    *int     `json:"orderId,omitempty"`
 }
 
 type PreparedOrderMetric struct {
@@ -242,6 +272,24 @@ type RestaurantMetrics struct {
 	MostCommonItemCount int    `json:"mostCommonItemCount"`
 }
 
+type RestaurantPaymentMethod struct {
+	ID                        string     `json:"id"`
+	RestaurantID              string     `json:"restaurantId"`
+	StripeConnectAccountID    *string    `json:"stripeConnectAccountId,omitempty"`
+	StripeOnboardingURL       *string    `json:"stripeOnboardingUrl,omitempty"`
+	StripeOnboardingCompleted bool       `json:"stripeOnboardingCompleted"`
+	AccountHolderName         string     `json:"accountHolderName"`
+	AccountType               string     `json:"accountType"`
+	BankAccountLast4          *string    `json:"bankAccountLast4,omitempty"`
+	RoutingNumber             *string    `json:"routingNumber,omitempty"`
+	CountryCode               string     `json:"countryCode"`
+	Status                    string     `json:"status"`
+	VerificationRequiredAt    *time.Time `json:"verificationRequiredAt,omitempty"`
+	ActivatedAt               *time.Time `json:"activatedAt,omitempty"`
+	CreatedAt                 time.Time  `json:"createdAt"`
+	UpdatedAt                 time.Time  `json:"updatedAt"`
+}
+
 type Review struct {
 	ID           string      `json:"id"`
 	RestaurantID int         `json:"restaurantId"`
@@ -265,6 +313,20 @@ type Table struct {
 	Number       int         `json:"number"`
 	Capacity     int         `json:"capacity"`
 	Status       string      `json:"status"`
+}
+
+type TermsAcceptance struct {
+	ID         string    `json:"id"`
+	TermsType  TermsType `json:"termsType"`
+	AcceptedAt time.Time `json:"acceptedAt"`
+}
+
+type TermsContent struct {
+	Type        TermsType `json:"type"`
+	Title       string    `json:"title"`
+	Content     string    `json:"content"`
+	Version     string    `json:"version"`
+	LastUpdated time.Time `json:"lastUpdated"`
 }
 
 type UpdateBookingInput struct {
@@ -353,4 +415,61 @@ type UserWithRestaurant struct {
 	Role       *string `json:"role,omitempty"`
 	IsVerified bool    `json:"isVerified"`
 	Restaurant *int    `json:"restaurant,omitempty"`
+}
+
+type TermsType string
+
+const (
+	TermsTypeUserTerms       TermsType = "USER_TERMS"
+	TermsTypeRestaurantTerms TermsType = "RESTAURANT_TERMS"
+	TermsTypePrivacyPolicy   TermsType = "PRIVACY_POLICY"
+)
+
+var AllTermsType = []TermsType{
+	TermsTypeUserTerms,
+	TermsTypeRestaurantTerms,
+	TermsTypePrivacyPolicy,
+}
+
+func (e TermsType) IsValid() bool {
+	switch e {
+	case TermsTypeUserTerms, TermsTypeRestaurantTerms, TermsTypePrivacyPolicy:
+		return true
+	}
+	return false
+}
+
+func (e TermsType) String() string {
+	return string(e)
+}
+
+func (e *TermsType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TermsType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TermsType", str)
+	}
+	return nil
+}
+
+func (e TermsType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *TermsType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e TermsType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }

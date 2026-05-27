@@ -20,7 +20,7 @@ function KitchenDashboardContent() {
 
   if (!restaurantId) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center py-12 md:h-64">
         <p className="text-muted-foreground">
           No tienes un restaurante asignado (restaurantId: {user?.restaurantId || "vacío"}).
           Un administrador debe vincularte a un restaurante en la tabla de empleados.
@@ -31,7 +31,7 @@ function KitchenDashboardContent() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center py-12 md:h-64">
         <p className="text-destructive">Error al cargar órdenes: {error.message}</p>
       </div>
     );
@@ -39,7 +39,7 @@ function KitchenDashboardContent() {
 
   if (loading && orders.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center py-12 md:h-64">
         <Spinner size="lg" />
       </div>
     );

@@ -104,7 +104,7 @@ function RestaurantsManagerContent() {
               <div className="space-y-1 text-sm border-t border-border pt-3">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Dirección:</span>
-                  <span className="text-right max-w-[60%] truncate">{rest.address}</span>
+                  <span className="text-right truncate">{rest.address}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Teléfono:</span>

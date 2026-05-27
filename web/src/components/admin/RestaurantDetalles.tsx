@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@apollo/client/react";
+import { gql } from "@apollo/client";
 import {
   FiArrowLeft,
   FiEdit2,
@@ -22,6 +24,32 @@ import { useEmployees } from "../../hooks/useEmployees";
 import { addToast } from "../custom/Toast";
 import type { Employee, Restaurant } from "../../types";
 import { validarEmail } from "../../libs/ValidateEmail";
+import { $user } from "../../context/AuthContext";
+
+const GET_RESTAURANT_PAYMENT_METHOD = gql`
+  query getRestaurantPaymentMethod($userId: ID!) {
+    getRestaurantPaymentMethod(userId: $userId) {
+      id
+      accountHolderName
+      bankAccountLast4
+      routingNumber
+      status
+      activatedAt
+    }
+  }
+`;
+
+const CREATE_RESTAURANT_PAYMENT_METHOD = gql`
+  mutation createRestaurantPaymentMethod($userId: ID!, $input: CreateRestaurantPaymentMethodInput!) {
+    createRestaurantPaymentMethod(userId: $userId, input: $input) {
+      id
+      accountHolderName
+      bankAccountLast4
+      routingNumber
+      status
+    }
+  }
+`;
 
 interface RestaurantData {
   name: string;
@@ -64,6 +92,40 @@ export function RestaurantDetailContent({ id }: { id: string }) {
     password: "",
     position: "",
   });
+
+  const currentUser = $user.get();
+  const userId = currentUser?.id || "";
+  const { data: pmData } = useQuery(GET_RESTAURANT_PAYMENT_METHOD, {
+    variables: { userId },
+    skip: !userId,
+  });
+  const existingPayment = pmData?.getRestaurantPaymentMethod;
+  const [createPaymentMethod] = useMutation(CREATE_RESTAURANT_PAYMENT_METHOD);
+  const [pmForm, setPmForm] = useState({ accountHolderName: "", clabe: "" });
+  const [pmModalOpen, setPmModalOpen] = useState(false);
+
+  const handleSavePaymentMethod = async () => {
+    if (!pmForm.accountHolderName || !pmForm.clabe) {
+      addToast("Todos los campos son requeridos", "error");
+      return;
+    }
+    try {
+      await createPaymentMethod({
+        variables: {
+          userId,
+          input: {
+            accountHolderName: pmForm.accountHolderName,
+            clabe: pmForm.clabe,
+          },
+        },
+        refetchQueries: [{ query: GET_RESTAURANT_PAYMENT_METHOD, variables: { userId } }],
+      });
+      addToast("Método de pago guardado exitosamente", "success");
+      setPmModalOpen(false);
+    } catch {
+      addToast("Error al guardar método de pago", "error");
+    }
+  };
 
   const handleSaveRestaurant = async () => {
     updateRestaurant({
@@ -189,7 +251,7 @@ export function RestaurantDetailContent({ id }: { id: string }) {
       {/* Restaurant Info Card */}
       <Card>
         <CardContent className="p-0">
-          <div className="relative h-48 md:h-64">
+          <div className="relative h-56 sm:h-64">
             <img
               src={restaurant?.image || "/placeholder.svg"}
               alt={restaurant?.name}
@@ -312,6 +374,80 @@ export function RestaurantDetailContent({ id }: { id: string }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Payment Method */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Método de cobro (Stripe Connect)</CardTitle>
+          {!existingPayment && (
+            <Button size="sm" onClick={() => setPmModalOpen(true)}>
+              <FiPlus size={16} />
+              Configurar
+            </Button>
+          )}
+        </CardHeader>
+        <CardContent>
+          {existingPayment ? (
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Titular: <span className="font-medium text-foreground">{existingPayment.accountHolderName}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Cuenta: <span className="font-medium text-foreground">****{existingPayment.bankAccountLast4}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Routing: <span className="font-medium text-foreground">{existingPayment.routingNumber}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Estado: <span className="font-medium text-green-600">{existingPayment.status}</span>
+              </p>
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              No has configurado un método de cobro. Agrega tu cuenta bancaria para recibir pagos.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Method Modal */}
+      <Modal isOpen={pmModalOpen} onClose={() => setPmModalOpen(false)}>
+        <ModalHeader onClose={() => setPmModalOpen(false)}>
+          Configurar método de cobro
+        </ModalHeader>
+        <ModalBody>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Ingresa los datos de tu cuenta bancaria (CLABE) para recibir pagos vía Stripe Connect.
+            </p>
+            <Input
+              label="Nombre del titular"
+              value={pmForm.accountHolderName}
+              onChange={(e) =>
+                setPmForm({ ...pmForm, accountHolderName: e.target.value })
+              }
+              placeholder="Nombre completo del titular de la cuenta"
+            />
+            <Input
+              label="CLABE (18 dígitos)"
+              value={pmForm.clabe}
+              onChange={(e) =>
+                setPmForm({ ...pmForm, clabe: e.target.value })
+              }
+              placeholder="123456789012345678"
+              maxLength={18}
+            />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" onClick={() => setPmModalOpen(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSavePaymentMethod}>
+            Guardar método de cobro
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       {/* Edit Restaurant Modal */}
       <Modal

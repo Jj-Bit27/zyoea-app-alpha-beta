@@ -1,19 +1,22 @@
--- Funciones helper compartidas para RLS y triggers
--- Ejecutar antes que cualquier archivo de tablas
+-- ============================================================================
+-- COMPLETE DATABASE SCHEMA
+-- Order: Helpers → Tables → Migrations → New Tables
+-- ============================================================================
 
--- Helper: obtener ID del usuario actual desde variable de sesión
+-- ============================================================================
+-- SECTION 1: HELPER FUNCTIONS
+-- ============================================================================
+
 CREATE OR REPLACE FUNCTION current_user_id()
 RETURNS INT AS $$
     SELECT current_setting('app.user_id', true)::INT;
 $$ LANGUAGE SQL STABLE;
 
--- Helper: obtener rol del usuario actual desde variable de sesión
 CREATE OR REPLACE FUNCTION current_user_role()
 RETURNS TEXT AS $$
     SELECT current_setting('app.user_role', true);
 $$ LANGUAGE SQL STABLE;
 
--- Trigger genérico para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -22,8 +25,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Tabla de Restaurantes (Restaurants)
+-- ============================================================================
+-- SECTION 2: BASE TABLES
+-- ============================================================================
 
+-- Tabla de Restaurantes (Restaurants)
 CREATE TABLE restaurants (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     "name" VARCHAR(100) NOT NULL,
@@ -33,6 +39,8 @@ CREATE TABLE restaurants (
     "image" TEXT NULL,
     phone VARCHAR(15),
     "hours" TEXT,
+    stripe_connect_account_id VARCHAR(255) UNIQUE,
+    stripe_onboarding_completed BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
 );
@@ -70,8 +78,7 @@ CREATE TRIGGER restaurants_updated_at_trigger
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
 
--- Tabla de Usuarios (Users) y Empleados (Employees)
-
+-- Tabla de Usuarios (Users)
 CREATE TABLE users (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     "name" VARCHAR(100),
@@ -194,9 +201,6 @@ CREATE TRIGGER employees_updated_at_trigger
     EXECUTE FUNCTION update_updated_at();
 
 -- Tabla de Mesas (Tables)
--- Nota: La FK a bookings(id) se agrega al final del archivo bookings.sql
--- para romper la dependencia circular entre tables y bookings.
-
 CREATE TABLE tables (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     restaurant INT REFERENCES restaurants(id) ON DELETE CASCADE,
@@ -275,7 +279,6 @@ CREATE TRIGGER tables_updated_at_trigger
     EXECUTE FUNCTION update_updated_at();
 
 -- Tabla de Categorías de Productos (Categories)
-
 CREATE TABLE categories (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     restaurant INT REFERENCES restaurants(id) ON DELETE CASCADE,
@@ -339,7 +342,6 @@ CREATE TRIGGER categories_updated_at_trigger
     EXECUTE FUNCTION update_updated_at();
 
 -- Tabla de Productos (Products)
-
 CREATE TABLE products (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     restaurant INT REFERENCES restaurants(id) ON DELETE CASCADE,
@@ -414,8 +416,52 @@ CREATE TRIGGER products_updated_at_trigger
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
 
--- Tabla de Reservas (Bookings)
+-- Tabla de Reseñas (Reviews)
+CREATE TABLE reviews (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    restaurant INT REFERENCES restaurants(id) ON DELETE CASCADE,
+    "user" INT REFERENCES users(id) ON DELETE SET NULL,
+    rating INT CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
+CREATE INDEX IF NOT EXISTS idx_reviews_restaurant ON reviews(restaurant);
+CREATE INDEX IF NOT EXISTS idx_reviews_restaurant_rating ON reviews(restaurant, rating);
+CREATE INDEX IF NOT EXISTS idx_reviews_user ON reviews("user");
+
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY reviews_select_all ON reviews
+    FOR SELECT
+    USING (true);
+
+CREATE POLICY reviews_insert_authenticated ON reviews
+    FOR INSERT
+    WITH CHECK (
+        "user" = current_user_id()
+        AND current_user_id() IS NOT NULL
+    );
+
+CREATE POLICY reviews_update_own ON reviews
+    FOR UPDATE
+    USING ("user" = current_user_id())
+    WITH CHECK ("user" = current_user_id());
+
+CREATE POLICY reviews_delete_own_or_admin ON reviews
+    FOR DELETE
+    USING (
+        "user" = current_user_id()
+        OR current_user_role() = 'admin'
+    );
+
+CREATE TRIGGER reviews_updated_at_trigger
+    BEFORE UPDATE ON reviews
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();
+
+-- Tabla de Reservas (Bookings)
 CREATE TABLE bookings (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     restaurant INT REFERENCES restaurants(id) ON DELETE CASCADE,
@@ -494,59 +540,12 @@ CREATE TRIGGER bookings_updated_at_trigger
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
 
--- Agregar FK circular desde tables.booking hacia bookings.id
+-- Add circular FK from tables to bookings
 ALTER TABLE tables
     ADD CONSTRAINT fk_tables_booking
     FOREIGN KEY (booking) REFERENCES bookings(id) ON DELETE SET NULL;
 
--- Tabla de Reseñas (Reviews)
-
-CREATE TABLE reviews (
-    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    restaurant INT REFERENCES restaurants(id) ON DELETE CASCADE,
-    "user" INT REFERENCES users(id) ON DELETE SET NULL,
-    rating INT CHECK (rating BETWEEN 1 AND 5),
-    comment TEXT,
-    "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX IF NOT EXISTS idx_reviews_restaurant ON reviews(restaurant);
-CREATE INDEX IF NOT EXISTS idx_reviews_restaurant_rating ON reviews(restaurant, rating);
-CREATE INDEX IF NOT EXISTS idx_reviews_user ON reviews("user");
-
-ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY reviews_select_all ON reviews
-    FOR SELECT
-    USING (true);
-
-CREATE POLICY reviews_insert_authenticated ON reviews
-    FOR INSERT
-    WITH CHECK (
-        "user" = current_user_id()
-        AND current_user_id() IS NOT NULL
-    );
-
-CREATE POLICY reviews_update_own ON reviews
-    FOR UPDATE
-    USING ("user" = current_user_id())
-    WITH CHECK ("user" = current_user_id());
-
-CREATE POLICY reviews_delete_own_or_admin ON reviews
-    FOR DELETE
-    USING (
-        "user" = current_user_id()
-        OR current_user_role() = 'admin'
-    );
-
-CREATE TRIGGER reviews_updated_at_trigger
-    BEFORE UPDATE ON reviews
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
-
 -- Tabla de Pedidos (Orders)
-
 CREATE TABLE orders (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     "user" INT REFERENCES users(id) ON DELETE SET NULL,
@@ -559,6 +558,10 @@ CREATE TABLE orders (
     total DECIMAL(10,2),
     "type" VARCHAR(50) NOT NULL DEFAULT 'dine_in',
     paid BOOLEAN DEFAULT FALSE,
+    idempotency_key UUID UNIQUE,
+    estimated_wait_time INT DEFAULT 0,
+    actual_wait_time INT,
+    completed_at TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP
 );
@@ -578,6 +581,8 @@ CREATE INDEX IF NOT EXISTS idx_orders_restaurant_status ON orders(restaurant, "s
 CREATE INDEX IF NOT EXISTS idx_orders_user ON orders("user");
 CREATE INDEX IF NOT EXISTS idx_orders_date ON orders("date" DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_deleted_at ON orders(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_orders_estimated_wait_time ON orders(estimated_wait_time);
+CREATE INDEX IF NOT EXISTS idx_orders_completed_at ON orders(completed_at DESC);
 
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 
@@ -631,7 +636,6 @@ CREATE TRIGGER orders_updated_at_trigger
     EXECUTE FUNCTION update_updated_at();
 
 -- Tabla de Detalles de Pedidos (Order Details)
-
 CREATE TABLE order_details (
     id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     order_id INT REFERENCES orders(id) ON DELETE CASCADE,
@@ -735,3 +739,214 @@ CREATE TRIGGER order_details_updated_at_trigger
     BEFORE UPDATE ON order_details
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at();
+
+-- Tabla de Pagos (Payments)
+CREATE TABLE IF NOT EXISTS payments (
+    id SERIAL PRIMARY KEY,
+    "user" INT NOT NULL REFERENCES users(id),
+    order_id INT REFERENCES orders(id) ON DELETE SET NULL,
+    stripe_payment_intent_id VARCHAR(255) UNIQUE NOT NULL,
+    stripe_payment_method_id VARCHAR(255),
+    stripe_application_fee_amount DECIMAL(10, 2),
+    payment_method_type VARCHAR(50),
+    amount DECIMAL(10, 2) NOT NULL,
+    currency VARCHAR(3) DEFAULT 'usd',
+    status VARCHAR(50) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_payments_user ON payments("user");
+CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments(order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_stripe_pi_id ON payments(stripe_payment_intent_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments(created_at DESC);
+
+ALTER TABLE payments
+ADD CONSTRAINT check_payment_status
+CHECK (status IN (
+    'pending',
+    'processing',
+    'succeeded',
+    'failed',
+    'canceled',
+    'refunded',
+    'requires_payment_method',
+    'requires_confirmation',
+    'requires_action'
+));
+
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY payments_select_own ON payments
+    FOR SELECT
+    USING (
+        "user" = current_user_id()
+        OR current_user_role() = 'admin'
+    );
+
+CREATE POLICY payments_insert_authenticated ON payments
+    FOR INSERT
+    WITH CHECK (
+        "user" = current_user_id()
+        AND current_user_id() IS NOT NULL
+    );
+
+CREATE POLICY payments_update_admin ON payments
+    FOR UPDATE
+    USING (current_user_role() = 'admin')
+    WITH CHECK (current_user_role() = 'admin');
+
+CREATE POLICY payments_delete_admin ON payments
+    FOR DELETE
+    USING (current_user_role() = 'admin');
+
+CREATE TRIGGER payments_updated_at_trigger
+    BEFORE UPDATE ON payments
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================================
+-- SECTION 3: MIGRATIONS
+-- ============================================================================
+
+-- Migration 001: Fix orders status check constraint
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS check_orders_status;
+
+ALTER TABLE orders
+ADD CONSTRAINT check_orders_status CHECK ("status" IN (
+    'ABIERTA', 'LISTA', 'COMPLETADA', 'CANCELADA', 'PAGADO', 'entregado', 'cancelado'
+));
+
+ALTER TABLE orders ALTER COLUMN "status" SET DEFAULT 'ABIERTA';
+
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS check_orders_type;
+
+ALTER TABLE orders
+ADD CONSTRAINT check_orders_type CHECK ("type" IN (
+    'dine_in', 'takeaway', 'delivery', 'app'
+));
+
+-- Migration 002: Add wait time fields (already in table definition above)
+
+-- Migration 003: Create wait time config tables
+CREATE TABLE IF NOT EXISTS restaurant_wait_config (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    restaurant_id INT NOT NULL UNIQUE REFERENCES restaurants(id) ON DELETE CASCADE,
+    base_time INT NOT NULL DEFAULT 3,
+    avg_prep_time INT NOT NULL DEFAULT 12,
+    peak_hour_start INT NOT NULL DEFAULT 12,
+    peak_hour_end INT NOT NULL DEFAULT 14,
+    peak_factor DECIMAL(3,2) NOT NULL DEFAULT 1.5,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_restaurant_wait_config_restaurant_id 
+ON restaurant_wait_config(restaurant_id);
+
+CREATE TABLE IF NOT EXISTS order_metrics (
+    id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    restaurant_id INT NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+    order_id INT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    item_count INT NOT NULL,
+    prepared_time_minutes INT NOT NULL,
+    queue_position INT NOT NULL,
+    was_peak_hour BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(order_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_metrics_restaurant_id 
+ON order_metrics(restaurant_id);
+
+CREATE INDEX IF NOT EXISTS idx_order_metrics_created_at 
+ON order_metrics(restaurant_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_order_metrics_peak_hour 
+ON order_metrics(restaurant_id, was_peak_hour);
+
+-- ============================================================================
+-- SECTION 4: NEW TABLES FOR PHASE 1-3 FEATURES
+-- ============================================================================
+
+-- Table: Restaurant Payment Methods (Stripe Connect)
+CREATE TABLE IF NOT EXISTS restaurant_payment_methods (
+    id SERIAL PRIMARY KEY,
+    restaurant_id INT NOT NULL UNIQUE REFERENCES restaurants(id) ON DELETE CASCADE,
+    stripe_connect_account_id VARCHAR(255) UNIQUE,
+    stripe_onboarding_url TEXT,
+    stripe_onboarding_completed BOOLEAN DEFAULT FALSE,
+    account_holder_name VARCHAR(100) NOT NULL,
+    account_type VARCHAR(50) DEFAULT 'bank_account',
+    bank_account_last4 VARCHAR(4),
+    routing_number VARCHAR(50),
+    country_code VARCHAR(2) DEFAULT 'MX',
+    status VARCHAR(50) DEFAULT 'pending',
+    verification_required_at TIMESTAMP,
+    activated_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_restaurant_payment_methods_restaurant_id ON restaurant_payment_methods(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_restaurant_payment_methods_status ON restaurant_payment_methods(status);
+
+-- Table: User Carts (Persistent Cart)
+CREATE TABLE IF NOT EXISTS user_carts (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    product_id INT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    quantity INT NOT NULL DEFAULT 1,
+    restaurant_id INT NOT NULL,
+    added_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_carts_user_id ON user_carts(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_carts_product_id ON user_carts(product_id);
+
+-- Table: Terms Acceptance
+CREATE TABLE IF NOT EXISTS terms_acceptance (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    terms_type VARCHAR(50) NOT NULL,
+    accepted_at TIMESTAMP DEFAULT NOW(),
+    ip_address INET,
+    user_agent TEXT,
+    version VARCHAR(10) DEFAULT '1.0',
+    UNIQUE(user_id, terms_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_terms_acceptance_user_id ON terms_acceptance(user_id);
+CREATE INDEX IF NOT EXISTS idx_terms_acceptance_type ON terms_acceptance(terms_type);
+
+-- Table: IP Rate Limits
+CREATE TABLE IF NOT EXISTS ip_rate_limits (
+    id SERIAL PRIMARY KEY,
+    ip_address INET NOT NULL UNIQUE,
+    request_count INT DEFAULT 0,
+    last_request TIMESTAMP DEFAULT NOW(),
+    is_banned BOOLEAN DEFAULT FALSE,
+    ban_expires_at TIMESTAMP,
+    ban_reason VARCHAR(255)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ip_rate_limits_is_banned ON ip_rate_limits(is_banned);
+CREATE INDEX IF NOT EXISTS idx_ip_rate_limits_ban_expires ON ip_rate_limits(ban_expires_at);
+
+-- Table: User Rate Limits
+CREATE TABLE IF NOT EXISTS user_rate_limits (
+    id SERIAL PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    request_count INT DEFAULT 0,
+    last_request TIMESTAMP DEFAULT NOW(),
+    violation_count INT DEFAULT 0,
+    is_blocked BOOLEAN DEFAULT FALSE,
+    block_expires_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_rate_limits_is_blocked ON user_rate_limits(is_blocked);
+CREATE INDEX IF NOT EXISTS idx_user_rate_limits_block_expires ON user_rate_limits(block_expires_at);

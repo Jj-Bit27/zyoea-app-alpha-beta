@@ -79,13 +79,13 @@ function ProductDetailContent({ productId, restaurantId }: Props) {
   };
 
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
+    <div className="grid gap-4 md:gap-8 lg:grid-cols-2">
       {/* Image Side */}
       <div className="overflow-hidden rounded-xl">
         <img
           src={product.image || "/placeholder.svg"}
           alt={product.name}
-          className="h-full w-full object-cover max-h-96 lg:max-h-none transition-transform hover:scale-105 duration-500"
+          className="h-full w-full object-cover max-h-64 lg:max-h-96 transition-transform hover:scale-105 duration-500"
         />
       </div>
 

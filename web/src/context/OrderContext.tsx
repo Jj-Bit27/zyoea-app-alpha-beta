@@ -21,28 +21,10 @@ export interface CartItem {
   image?: string;
 }
 
-// --- 1. Estado Global ---
+// --- 1. Estado Global (solo en memoria, sincronizado desde BD) ---
 export const $cart = atom<CartItem[]>([]);
 
-// --- 2. Persistencia ---
-if (typeof window !== "undefined") {
-  const stored = localStorage.getItem("Suavus_cart");
-  if (stored) {
-    try {
-      $cart.set(JSON.parse(stored));
-    } catch (e) {
-      localStorage.removeItem("Suavus_cart");
-    }
-  }
-}
-
-$cart.subscribe((items) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("Suavus_cart", JSON.stringify(items));
-  }
-});
-
-// --- 3. Valores Computados ---
+// --- 2. Valores Computados ---
 export const $cartCount = computed($cart, (items) =>
   items.reduce((acc, item) => acc + item.quantity, 0),
 );
@@ -50,7 +32,7 @@ export const $cartTotal = computed($cart, (items) =>
   items.reduce((acc, item) => acc + item.price * item.quantity, 0),
 );
 
-// --- 4. Acciones (Ahora devuelven un objeto result) ---
+// --- 3. Acciones ---
 
 export const addToCart = (
   product: AddToCartProduct,
@@ -133,7 +115,7 @@ export const clearCart = () => {
   $cart.set([]);
 };
 
-// --- 5. Hook de Compatibilidad ---
+// --- 4. Hook de Compatibilidad ---
 export function useOrder() {
   const cart = useStore($cart);
   const itemCount = useStore($cartCount);

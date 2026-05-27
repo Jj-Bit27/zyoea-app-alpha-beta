@@ -25,7 +25,9 @@ import (
 	websocket "api/libs"
 	"api/services/auth"
 	"api/services/bookings"
+	"api/services/carts"
 	"api/services/categories"
+	cloudinary "api/services/cloudinary"
 	"api/services/employees"
 	"api/services/oauth"
 	"api/services/orders"
@@ -34,6 +36,7 @@ import (
 	"api/services/restaurants"
 	"api/services/reviews"
 	"api/services/tables"
+	"api/services/terms"
 )
 
 // --- Puerto por Defecto ---
@@ -42,7 +45,7 @@ const defaultPort = "8080"
 func buildOAuthRedirectURL(authResponse *model.AuthResponse) string {
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {
-		frontendURL = "http://localhost:4321"
+		frontendURL = "https://suavus.app"
 	}
 	baseURL := frontendURL + "/auth/callback"
 	params := url.Values{}
@@ -93,7 +96,7 @@ func main() {
 
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {
-		frontendURL = "http://suavus.app"
+		frontendURL = "https://suavus.app"
 	}
 
 	frontendURL = strings.TrimSpace(frontendURL)
@@ -119,19 +122,34 @@ func main() {
 	bookingService := bookings.NewService(dbPool, rdb)
 	orderService := orders.NewService(dbPool, hub)
 
+	// Nuevos servicios
+	cartService := carts.NewService(dbPool)
+	termsService := terms.NewService(dbPool)
+	restaurantPaymentService := payments.NewRestaurantPaymentService(dbPool)
+
+	cloudinaryURL := os.Getenv("CLOUDINARY_URL")
+	cloudinaryService, err := cloudinary.NewService(cloudinaryURL)
+
+	// Rate limiter
+	//rateLimiter := middleware.NewRateLimiter(rdb, dbPool)
+
 	// --- Inicializar Servidor GraphQL (Inyectando el servicio) ---
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 		Resolvers: &graph.Resolver{
-			AuthService:       authService,
-			PaymentService:    paymentService,
-			RestaurantService: restaurantService,
-			EmployeeService:   employeeService,
-			CategoryService:   categoryService,
-			ProductService:    productService,
-			ReviewService:     reviewService,
-			TableService:      tableService,
-			OrderService:      orderService,
-			BookingService:    bookingService,
+			AuthService:              authService,
+			PaymentService:           paymentService,
+			RestaurantService:        restaurantService,
+			EmployeeService:          employeeService,
+			CategoryService:          categoryService,
+			ProductService:           productService,
+			ReviewService:            reviewService,
+			TableService:             tableService,
+			OrderService:             orderService,
+			BookingService:           bookingService,
+			CartService:              cartService,
+			TermsService:             termsService,
+			CloudinaryService:        cloudinaryService,
+			RestaurantPaymentService: restaurantPaymentService,
 		},
 	}))
 
@@ -152,7 +170,7 @@ func main() {
 	srv.Use(extension.Introspection{})
 
 	// --- Rutas ---
-	router.POST("/query", func(c *gin.Context) {
+	router.POST("/query", func(c *gin.Context) { // rateLimiter.GinMiddleware()
 		srv.ServeHTTP(c.Writer, c.Request)
 	})
 

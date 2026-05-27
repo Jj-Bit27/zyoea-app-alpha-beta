@@ -9,6 +9,7 @@ import { Spinner } from "../custom/Spinner";
 import { addToast } from "../custom/Toast";
 import { useOrders } from "../../hooks/useOrders";
 import { useAuth } from "../../context/AuthContext";
+import { useCreatePayment } from "../../hooks/usePayments";
 import { ApolloWrapper } from "../ApolloWrapper";
 import type { Order } from "../../types";
 
@@ -16,6 +17,7 @@ function PaymentsManagerContent() {
   const { user } = useAuth();
   const restaurantId = user?.restaurantId || "";
   const { orders, loading, error, updateOrderStatus: updateOrder, updateOrderPayment } = useOrders(restaurantId);
+  const { createPayment } = useCreatePayment();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -54,9 +56,21 @@ function PaymentsManagerContent() {
       return;
     }
     const change = received - selectedOrder.total;
-    await updateOrderPayment(selectedOrder.id, true);
-    updateOrder(selectedOrder.id, "entregado");
-    addToast(`Pago procesado. Cambio: $${change.toFixed(2)}`, "success");
+    try {
+      await createPayment({
+        userId: user.id.toString(),
+        amount: selectedOrder.total,
+        currency: "MXN",
+        paymentMethodId: "CASH",
+        description: `Pago en efectivo - Orden #${selectedOrder.id}`,
+        orderId: parseInt(selectedOrder.id),
+      });
+      await updateOrderPayment(selectedOrder.id, true);
+      updateOrder(selectedOrder.id, "entregado");
+      addToast(`Pago procesado. Cambio: $${change.toFixed(2)}`, "success");
+    } catch (e) {
+      addToast("Error procesando pago", "error");
+    }
     setIsModalOpen(false);
   };
 

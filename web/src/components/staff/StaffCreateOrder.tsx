@@ -94,7 +94,7 @@ function StaffCreateOrderContent() {
       {/* Step 1: Customer Info */}
       <div className="bg-card rounded-xl border border-border p-4 md:p-6 space-y-4">
         <h2 className="font-semibold text-foreground flex items-center gap-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
+          <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
           Datos del cliente
         </h2>
         <Input label="Nombre del cliente" placeholder="Ej: Juan Pérez" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
@@ -117,7 +117,7 @@ function StaffCreateOrderContent() {
       {/* Step 2: Products */}
       <div className="bg-card rounded-xl border border-border p-4 md:p-6 space-y-4">
         <h2 className="font-semibold text-foreground flex items-center gap-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
+          <span className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
           Productos {cart.length > 0 && <span className="text-sm text-muted-foreground font-normal">({cart.length} items)</span>}
         </h2>
         {!restaurantId ? (
@@ -153,12 +153,12 @@ function StaffCreateOrderContent() {
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
                     <button onClick={() => handleRemoveFromCart(item.productId)}
-                      className="w-6 h-6 flex items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground text-xs">−</button>
-                    <span className="text-sm font-medium w-5 text-center">{item.quantity}</span>
+                      className="w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground text-sm sm:text-base">−</button>
+                    <span className="text-sm font-medium w-6 sm:w-8 text-center">{item.quantity}</span>
                     <button onClick={() => handleAddToCart({ id: String(item.productId), name: item.name, price: item.price })}
-                      className="w-6 h-6 flex items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground text-xs">+</button>
+                      className="w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-primary hover:text-primary-foreground text-sm sm:text-base">+</button>
                     <button onClick={() => handleDeleteFromCart(item.productId)}
-                      className="w-6 h-6 flex items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground text-xs ml-1">✕</button>
+                      className="w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground text-sm sm:text-base ml-1">✕</button>
                   </div>
                 </div>
               ))}

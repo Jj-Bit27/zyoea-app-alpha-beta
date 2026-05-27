@@ -105,6 +105,34 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Order, error) 
 	return &o, nil
 }
 
+// CreateWithIdempotencyKey creates an order with deduplication.
+func (s *Service) CreateWithIdempotencyKey(ctx context.Context, input model.CreateOrderInput, idempotencyKey string) (*model.Order, error) {
+	if idempotencyKey != "" {
+		// Check if order with this key already exists
+		var existing model.Order
+		err := s.DB.QueryRow(ctx, `
+			SELECT id FROM orders WHERE idempotency_key = $1
+		`, idempotencyKey).Scan(&existing.ID)
+		if err == nil {
+			// Already exists, return full order
+			return s.FindOne(ctx, existing.ID)
+		}
+	}
+	return s.CreateWithKey(ctx, input, idempotencyKey)
+}
+
+// CreateWithKey creates an order and stores the idempotency key.
+func (s *Service) CreateWithKey(ctx context.Context, input model.CreateOrderInput, idempotencyKey string) (*model.Order, error) {
+	order, err := s.Create(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	if idempotencyKey != "" {
+		_, _ = s.DB.Exec(ctx, `UPDATE orders SET idempotency_key = $1 WHERE id = $2`, idempotencyKey, order.ID)
+	}
+	return order, nil
+}
+
 // ---------------------------------------------------------
 // 3. CREATE (Transacción Maestra)
 // ---------------------------------------------------------

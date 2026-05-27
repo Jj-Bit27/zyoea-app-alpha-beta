@@ -1,8 +1,10 @@
-import { useOrder } from "../../context/OrderContext";
+import { useOrder, $cart, addToCart as localAddToCart, clearCart as clearLocalCart } from "../../context/OrderContext";
 import { useAuth } from "../../context/AuthContext";
 import { useCreateOrder, useAddOrderItems, useUserOrders } from "../../hooks/useOrders";
 import { useTables } from "../../hooks/useTables";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useQuery, useMutation } from "@apollo/client/react";
+import { gql } from "@apollo/client";
 import {
   FiTrash2,
   FiMinus,
@@ -15,6 +17,48 @@ import { Card, CardContent } from "../custom/Card";
 import { addToast } from "../custom/Toast";
 import { ApolloWrapper } from "../ApolloWrapper";
 import WaitTimeDisplay from "./WaitTimeDisplay";
+
+const GET_CART = gql`
+  query getCart($userId: ID!) {
+    getCart(userId: $userId) {
+      id
+      productId
+      productName
+      productImage
+      quantity
+      price
+      restaurantId
+    }
+  }
+`;
+
+const ADD_TO_CART = gql`
+  mutation addToCart($userId: ID!, $productId: Int!, $quantity: Int!, $restaurantId: Int!) {
+    addToCart(userId: $userId, productId: $productId, quantity: $quantity, restaurantId: $restaurantId) {
+      id
+    }
+  }
+`;
+
+const UPDATE_CART_ITEM = gql`
+  mutation updateCartItem($userId: ID!, $productId: Int!, $quantity: Int!) {
+    updateCartItem(userId: $userId, productId: $productId, quantity: $quantity) {
+      id
+    }
+  }
+`;
+
+const REMOVE_FROM_CART = gql`
+  mutation removeFromCart($userId: ID!, $productId: Int!) {
+    removeFromCart(userId: $userId, productId: $productId)
+  }
+`;
+
+const CLEAR_CART = gql`
+  mutation clearCart($userId: ID!) {
+    clearCart(userId: $userId)
+  }
+`;
 
 export function CartManagerContent() {
   const { cart, total, updateQuantity, removeFromCart, clearCart } = useOrder();
@@ -46,6 +90,58 @@ export function CartManagerContent() {
 
   const loading = creatingOrder || addingItems;
 
+  const userId = user?.id || "";
+  const { data: cartData } = useQuery(GET_CART, {
+    variables: { userId },
+    skip: !userId,
+  });
+  const [addToCartBd] = useMutation(ADD_TO_CART);
+  const [updateCartItemBd] = useMutation(UPDATE_CART_ITEM);
+  const [removeFromCartBd] = useMutation(REMOVE_FROM_CART);
+  const [clearCartBd] = useMutation(CLEAR_CART);
+
+  // Load BD cart into local state on mount
+  useEffect(() => {
+    if (cartData?.getCart?.length > 0) {
+      const bdCart = cartData.getCart;
+      // Only sync if local cart is empty (initial load)
+      if (cart.length === 0) {
+        clearLocalCart();
+        for (const item of bdCart) {
+          localAddToCart(
+            { id: item.productId, name: item.productName, price: item.price, image: item.productImage },
+            item.restaurantId,
+            item.productName,
+          );
+        }
+      }
+    }
+  }, [cartData]);
+
+  // Wrap local operations with BD sync
+  const syncedUpdateQuantity = (id: string, delta: number) => {
+    if (!userId) return updateQuantity(id, delta);
+    const item = cart.find((i) => i.id === id);
+    if (!item) return;
+    const newQty = Math.max(1, (item.quantity || 1) + delta);
+    updateQuantity(id, delta);
+    updateCartItemBd({
+      variables: { userId, productId: parseInt(id), quantity: newQty },
+    });
+  };
+
+  const syncedRemoveFromCart = (id: string) => {
+    if (!userId) return removeFromCart(id);
+    removeFromCart(id);
+    removeFromCartBd({ variables: { userId, productId: parseInt(id) } });
+  };
+
+  const syncedClearCart = () => {
+    if (!userId) return clearLocalCart();
+    clearLocalCart();
+    clearCartBd({ variables: { userId } });
+  };
+
   const handleFinalizeOrder = async () => {
     if (cart.length === 0) return;
 
@@ -55,7 +151,35 @@ export function CartManagerContent() {
       return;
     }
 
+    if (orderType === "dine_in") {
+      if (!selectedTable) {
+        addToast("Selecciona una mesa para comer aquí", "error");
+        return;
+      }
+      const tableIsAvailable = availableTables.some((t) => String(t.id) === selectedTable);
+      if (!tableIsAvailable) {
+        addToast("La mesa seleccionada ya no está disponible", "error");
+        setSelectedTable("");
+        return;
+      }
+    }
+
     try {
+      // Sync local cart to BD before finalizing
+      if (userId && cart.length > 0 && !activeOrder) {
+        clearCartBd({ variables: { userId } });
+        for (const item of cart) {
+          await addToCartBd({
+            variables: {
+              userId,
+              productId: parseInt(item.id),
+              quantity: item.quantity,
+              restaurantId: parseInt(item.restaurantId),
+            },
+          });
+        }
+      }
+
       if (activeOrder) {
         // Add items to existing active order
         const result = await addItems(activeOrder.id, cart.map((item) => ({
@@ -67,7 +191,7 @@ export function CartManagerContent() {
         setCreatedOrderId(activeOrder.id);
         setOrderCreated(true);
         addToast("¡Productos agregados a tu orden activa!", "success");
-        clearCart();
+        syncedClearCart();
       } else {
         // Create new order
         const result = await createOrder({
@@ -90,7 +214,7 @@ export function CartManagerContent() {
         setCreatedOrderWaitTime((result as { estimatedWaitTime?: number })?.estimatedWaitTime || 0);
         setOrderCreated(true);
         addToast("¡Pedido enviado con éxito!", "success");
-        clearCart();
+        syncedClearCart();
       }
     } catch (error: unknown) {
       console.error("Error creando la orden:", error);
@@ -166,7 +290,7 @@ export function CartManagerContent() {
   }
 
   return (
-    <div className="grid lg:grid-cols-3 gap-8">
+    <div className="grid lg:grid-cols-3 gap-4 md:gap-8">
       {/* Active order banner */}
       {activeOrder && (
         <div className="lg:col-span-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-center gap-3">
@@ -192,7 +316,7 @@ export function CartManagerContent() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={clearCart}
+            onClick={syncedClearCart}
             className="text-destructive"
             disabled={loading}
           >
@@ -218,7 +342,7 @@ export function CartManagerContent() {
               </div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => updateQuantity(item.id, -1)}
+                  onClick={() => syncedUpdateQuantity(item.id, -1)}
                   className="p-1 rounded-md hover:bg-secondary disabled:opacity-50"
                   disabled={item.quantity <= 1 || loading}
                 >
@@ -228,7 +352,7 @@ export function CartManagerContent() {
                   {item.quantity}
                 </span>
                 <button
-                  onClick={() => updateQuantity(item.id, 1)}
+                  onClick={() => syncedUpdateQuantity(item.id, 1)}
                   className="p-1 rounded-md hover:bg-secondary disabled:opacity-50"
                   disabled={loading}
                 >
@@ -236,7 +360,7 @@ export function CartManagerContent() {
                 </button>
               </div>
               <button
-                onClick={() => removeFromCart(item.id)}
+                onClick={() => syncedRemoveFromCart(item.id)}
                 className="p-2 text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
                 disabled={loading}
               >
@@ -297,23 +421,27 @@ export function CartManagerContent() {
             </div>
 
             {/* Selección de mesa solo si es dine_in */}
-            {orderType === "dine_in" && availableTables.length > 0 && (
+            {orderType === "dine_in" && (
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Selecciona tu mesa
+                  Selecciona tu mesa <span className="text-destructive">*</span>
                 </label>
-                <select
-                  value={selectedTable}
-                  onChange={(e) => setSelectedTable(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="">Sin mesa asignada</option>
-                  {availableTables.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      Mesa {t.number} ({t.capacity} pers.)
-                    </option>
-                  ))}
-                </select>
+                {availableTables.length === 0 ? (
+                  <p className="text-sm text-destructive">No hay mesas disponibles en este momento</p>
+                ) : (
+                  <select
+                    value={selectedTable}
+                    onChange={(e) => setSelectedTable(e.target.value)}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">-- Elige una mesa --</option>
+                    {availableTables.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        Mesa {t.number} ({t.capacity} pers.)
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
             <p className="text-xs text-muted-foreground">

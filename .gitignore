@@ -24,3 +24,4 @@ web/npm-debug.log*
 web/logs/
 
 api/database/database.sql
+web/src/files-inactive

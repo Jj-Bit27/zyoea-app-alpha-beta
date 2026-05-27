@@ -125,11 +125,11 @@ function DashboardContent() {
           </CardHeader>
           <CardContent>
             {orders.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
+              <p className="text-sm m-4 text-muted-foreground py-4 text-center">
                 No hay órdenes recientes
               </p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 m-4">
                 {orders.slice(0, 5).map((order) => (
                   <div
                     key={order.id}
@@ -166,11 +166,11 @@ function DashboardContent() {
           </CardHeader>
           <CardContent>
             {bookings.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
+              <p className="text-sm m-4 text-muted-foreground py-4 text-center">
                 No hay reservas próximas
               </p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-4 m-4">
                 {bookings.slice(0, 5).map((b) => (
                   <div
                     key={b.id}

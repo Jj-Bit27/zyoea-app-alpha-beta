@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   IoArrowBack,
   IoCard,
@@ -9,96 +9,44 @@ import { Card, CardContent } from "../custom/Card";
 import { Button } from "../custom/Button";
 import { Input } from "../custom/Input";
 import { useAuth } from "../../context/AuthContext";
-import { addToast } from "../custom/Toast";
-import { useOrderById, useUpdateOrderPayment } from "../../hooks/useOrders";
-import { useCreatePayment } from "../../hooks/usePayments";
+import { useOrderById } from "../../hooks/useOrders";
+import { useCardPayment } from "../../hooks/useCardPayment";
 import { ApolloWrapper } from "../ApolloWrapper";
 
 function CardPaymentFormContent() {
   const { user } = useAuth();
 
-  // Obtener orderId de los URL params
   const urlParams =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search)
       : null;
   const orderId = urlParams?.get("orderId") || "";
 
-  // Hooks centralizados
   const { order, loading: loadingOrder } = useOrderById(orderId);
-  const { createPayment } = useCreatePayment();
-  const { updatePayment } = useUpdateOrderPayment();
-
   const total = order?.total || 0;
 
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const {
+    cardNumber,
+    setCardNumber,
+    cardName,
+    setCardName,
+    expiry,
+    setExpiry,
+    cvv,
+    setCvv,
+    errors,
+    isProcessing,
+    isComplete,
+    handlePay,
+  } = useCardPayment(orderId, total);
 
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-    const parts = v.match(/.{1,4}/g);
-    return parts ? parts.join(" ") : v;
-  };
-
-  const formatExpiry = (value: string) => {
-    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "");
-    if (v.length >= 2) return v.substring(0, 2) + "/" + v.substring(2, 4);
-    return v;
-  };
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    if (!cardNumber || cardNumber.replace(/\s/g, "").length < 16)
-      newErrors.cardNumber = "Ingresa un número válido";
-    if (!cardName.trim()) newErrors.cardName = "Ingresa el nombre del titular";
-    if (!expiry || expiry.length < 5)
-      newErrors.expiry = "Ingresa una fecha válida";
-    if (!cvv || cvv.length < 3) newErrors.cvv = "Ingresa el CVV";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleFinish = () => {
+    window.location.href = "/order/my-orders";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm() || !user || !order) return;
-    setIsProcessing(true);
-
-    try {
-      const mockStripeToken = "pm_mock_" + Math.floor(Math.random() * 10000);
-
-      await createPayment({
-        userId: user.id.toString(),
-        amount: total,
-        currency: "MXN",
-        paymentMethodId: mockStripeToken,
-        description: `Pago con tarjeta - Orden #${order.id}`,
-      });
-
-      await updatePayment(order.id, true);
-
-      setIsComplete(true);
-      addToast("Pago procesado exitosamente", "success");
-    } catch (err: unknown) {
-      console.error("Error procesando pago:", err);
-      const apolloErr = err as { graphQLErrors?: Array<{ message?: string }>; message?: string };
-      addToast(
-        apolloErr?.graphQLErrors?.[0]?.message ||
-          apolloErr?.message ||
-          "Error al procesar el pago",
-        "error",
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleFinish = () => {
-    window.location.href = "/order/my-orders";
+    await handlePay();
   };
 
   if (!user) {
@@ -199,7 +147,7 @@ function CardPaymentFormContent() {
               label="Número de tarjeta"
               placeholder="1234 5678 9012 3456"
               value={cardNumber}
-              onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+              onChange={(e) => setCardNumber(e.target.value)}
               maxLength={19}
               error={errors.cardNumber}
             />
@@ -207,7 +155,7 @@ function CardPaymentFormContent() {
               label="Nombre del titular"
               placeholder="Nombre completo"
               value={cardName}
-              onChange={(e) => setCardName(e.target.value.toUpperCase())}
+              onChange={(e) => setCardName(e.target.value)}
               error={errors.cardName}
             />
             <div className="grid grid-cols-2 gap-4">
@@ -215,7 +163,7 @@ function CardPaymentFormContent() {
                 label="Fecha (MM/AA)"
                 placeholder="MM/AA"
                 value={expiry}
-                onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+                onChange={(e) => setExpiry(e.target.value)}
                 maxLength={5}
                 error={errors.expiry}
               />
@@ -224,7 +172,7 @@ function CardPaymentFormContent() {
                 placeholder="123"
                 type="password"
                 value={cvv}
-                onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setCvv(e.target.value)}
                 maxLength={4}
                 error={errors.cvv}
               />

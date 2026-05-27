@@ -9,6 +9,7 @@ import {
 import { useCreatePayment } from "../../hooks/usePayments";
 import { useProducts } from "../../hooks/useProducts";
 import { useOrderById } from "../../hooks/useOrders";
+import { useCardPayment } from "../../hooks/useCardPayment";
 import { Button } from "../custom/Button";
 import { Card, CardContent } from "../custom/Card";
 import { Input } from "../custom/Input";
@@ -75,58 +76,24 @@ function CardPaymentScreen({
   onSuccess: () => void;
   onBack: () => void;
 }) {
-  const { user } = useAuth();
-  const { createPayment, loading: creatingPayment } = useCreatePayment();
-  const { updatePayment, loading: updatingPayment } = useUpdateOrderPayment();
-  const isProcessing = creatingPayment || updatingPayment;
+  const {
+    cardNumber,
+    setCardNumber,
+    cardName,
+    setCardName,
+    expiry,
+    setExpiry,
+    cvv,
+    setCvv,
+    errors,
+    isProcessing,
+    isComplete,
+    handlePay,
+  } = useCardPayment(order.id, order.total);
 
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const formatCardNumber = (v: string) => {
-    const n = v.replace(/\D/g, "");
-    const parts = n.match(/.{1,4}/g);
-    return parts ? parts.join(" ") : n;
-  };
-
-  const formatExpiry = (v: string) => {
-    const n = v.replace(/\D/g, "");
-    if (n.length >= 2) return n.substring(0, 2) + "/" + n.substring(2, 4);
-    return n;
-  };
-
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!cardNumber || cardNumber.replace(/\s/g, "").length < 16)
-      e.cardNumber = "Ingresa un número válido";
-    if (!cardName.trim()) e.cardName = "Ingresa el nombre del titular";
-    if (!expiry || expiry.length < 5) e.expiry = "Ingresa una fecha válida";
-    if (!cvv || cvv.length < 3) e.cvv = "Ingresa el CVV";
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handlePay = async () => {
-    if (!validate() || !user) return;
-    try {
-      const mockToken = "pm_mock_" + Math.floor(Math.random() * 10000);
-      await createPayment({
-        userId: user.id.toString(),
-        amount: order.total,
-        currency: "MXN",
-        paymentMethodId: mockToken,
-        description: `Pago con tarjeta - Orden #${order.id}`,
-        orderId: parseInt(order.id),
-      });
-      await updatePayment(order.id, true);
-      addToast("¡Pago con tarjeta exitoso!", "success");
-      onSuccess();
-    } catch (err: unknown) {
-      addToast(err instanceof Error ? err.message : "Error al procesar el pago", "error");
-    }
+  const handlePayAndSuccess = async () => {
+    const ok = await handlePay();
+    if (ok) onSuccess();
   };
 
   return (
@@ -147,7 +114,7 @@ function CardPaymentScreen({
         label="Número de tarjeta"
         placeholder="1234 5678 9012 3456"
         value={cardNumber}
-        onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+        onChange={(e) => setCardNumber(e.target.value)}
         maxLength={19}
         error={errors.cardNumber}
       />
@@ -155,7 +122,7 @@ function CardPaymentScreen({
         label="Nombre del titular"
         placeholder="Nombre completo"
         value={cardName}
-        onChange={(e) => setCardName(e.target.value.toUpperCase())}
+        onChange={(e) => setCardName(e.target.value)}
         error={errors.cardName}
       />
       <div className="grid grid-cols-2 gap-3">
@@ -163,7 +130,7 @@ function CardPaymentScreen({
           label="Fecha (MM/AA)"
           placeholder="MM/AA"
           value={expiry}
-          onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+          onChange={(e) => setExpiry(e.target.value)}
           maxLength={5}
           error={errors.expiry}
         />
@@ -172,7 +139,7 @@ function CardPaymentScreen({
           placeholder="123"
           type="password"
           value={cvv}
-          onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
+          onChange={(e) => setCvv(e.target.value)}
           maxLength={4}
           error={errors.cvv}
         />
@@ -180,7 +147,7 @@ function CardPaymentScreen({
       <div className="flex items-center gap-2 rounded-lg bg-secondary p-2 text-xs text-muted-foreground">
         <IoLockClosed /> Datos encriptados con SSL
       </div>
-      <Button className="w-full" onClick={handlePay} isLoading={isProcessing}>
+      <Button className="w-full" onClick={handlePayAndSuccess} isLoading={isProcessing}>
         Pagar ${order.total.toFixed(2)}
       </Button>
     </div>
@@ -371,7 +338,7 @@ function EditOrderPanel({
         {loadingProducts ? (
           <p className="text-sm text-muted-foreground">Cargando productos...</p>
         ) : (
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <div className="space-y-2 max-h-40 sm:max-h-60 overflow-y-auto pr-1">
             {products.map((product) => (
               <div
                 key={product.id}
@@ -386,18 +353,18 @@ function EditOrderPanel({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => decrement(String(product.id))}
-                    className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:bg-secondary"
+                    className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"
                   >
-                    <FiMinus size={12} />
+                    <FiMinus size={14} />
                   </button>
-                  <span className="w-5 text-center text-sm font-medium">
+                  <span className="w-6 sm:w-8 text-center text-sm font-medium">
                     {quantities[String(product.id)] || 0}
                   </span>
                   <button
                     onClick={() => increment(String(product.id))}
-                    className="w-7 h-7 rounded-full border border-border flex items-center justify-center hover:bg-secondary"
+                    className="w-7 h-7 sm:w-9 sm:h-9 rounded-full border border-border flex items-center justify-center hover:bg-secondary"
                   >
-                    <FiPlus size={12} />
+                    <FiPlus size={14} />
                   </button>
                 </div>
               </div>

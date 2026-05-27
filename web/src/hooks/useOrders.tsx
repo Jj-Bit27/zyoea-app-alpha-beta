@@ -89,8 +89,8 @@ const GET_ORDER = gql`
 // ==================== MUTATIONS ====================
 
 const CREATE_ORDER = gql`
-  mutation CreateOrder($input: CreateOrderInput!) {
-    createOrder(input: $input) {
+  mutation CreateOrder($input: CreateOrderInput!, $idempotencyKey: String!) {
+    createOrder(input: $input, idempotencyKey: $idempotencyKey) {
       id
       status
       paid
@@ -275,8 +275,9 @@ export function useCreateOrder() {
     paid?: boolean;
     items: { productId: number; quantity: number; subtotal: number }[];
   }) => {
+    const idempotencyKey = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const { data } = await createOrderMutation({
-      variables: { input },
+      variables: { input, idempotencyKey },
     });
     return data?.createOrder;
   };

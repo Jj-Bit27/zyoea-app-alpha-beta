@@ -13,6 +13,7 @@ import { useProducts } from "../../hooks/useProducts";
 import { useCategories } from "../../hooks/useCategories";
 import { useAuth } from "../../context/AuthContext";
 import { ApolloWrapper } from "../ApolloWrapper";
+import { ImageUploader } from "../upload/ImageUploader";
 import type { Product, Category } from "../../types";
 
 interface FormData {
@@ -217,7 +218,7 @@ function ProductsManagerContent() {
                   "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300"
                 }
                 alt={product.name}
-                className="absolute inset-0 h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover rounded-2xl"
                 loading="lazy"
               />
               {!product.status && (
@@ -320,14 +321,13 @@ function ProductsManagerContent() {
                 ...categories.map((c) => ({ value: c.id, label: c.name })),
               ]}
             />
-            <Input
-              label="URL de imagen"
-              value={formData.image}
-              onChange={(e) =>
-                setFormData({ ...formData, image: e.target.value })
-              }
-              placeholder="https://..."
-            />
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-1.5">Imagen</label>
+              <ImageUploader
+                currentImage={formData.image}
+                onUpload={(url) => setFormData({ ...formData, image: url })}
+              />
+            </div>
             <div className="md:col-span-2">
               <Textarea
                 label="Descripción"

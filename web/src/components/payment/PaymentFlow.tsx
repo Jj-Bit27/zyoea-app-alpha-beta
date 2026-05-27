@@ -42,6 +42,14 @@ function PaymentFlowContent() {
     if (!order || !user) return;
     setIsProcessing(true);
     try {
+      await createPayment({
+        userId: user.id.toString(),
+        amount: total,
+        currency: "MXN",
+        paymentMethodId: "CASH",
+        description: `Pago en efectivo - Orden #${order.id}`,
+        orderId: parseInt(order.id),
+      });
       await updatePayment(order.id, true);
       setIsComplete(true);
       addToast("Pago registrado exitosamente", "success");
@@ -65,6 +73,7 @@ function PaymentFlowContent() {
         currency: "MXN",
         paymentMethodId: mockStripeToken,
         description: `Pago de orden #${order.id}`,
+        orderId: parseInt(order.id),
       });
 
       await updatePayment(order.id, true);
@@ -242,10 +251,23 @@ function PaymentFlowContent() {
             )}
           </div>
           <hr className="my-4 border-border" />
+          {paymentMethod === "card" && (
+            <div className="space-y-2 mb-4">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Comisión Stripe (5%)</span>
+                <span className="text-muted-foreground">${(total * 0.05).toFixed(2)}</span>
+              </div>
+              <hr className="border-border" />
+            </div>
+          )}
           <div className="flex justify-between pt-2">
             <span className="font-semibold">Total</span>
             <span className="text-xl font-bold text-primary">
-              ${total.toFixed(2)}
+              {paymentMethod === "card" ? `$${(total * 1.05).toFixed(2)}` : `$${total.toFixed(2)}`}
             </span>
           </div>
         </CardContent>

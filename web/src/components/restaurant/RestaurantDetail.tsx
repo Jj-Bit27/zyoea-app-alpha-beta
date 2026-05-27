@@ -5,6 +5,7 @@ import { ReviewManager } from "./ReviewManager";
 import { ApolloWrapper } from "../ApolloWrapper";
 import { Spinner } from "../custom/Spinner";
 import { Button } from "../custom/Button";
+import { useReviews } from "../../hooks/useReviews";
 
 function RestaurantDetailsContent({
   restaurantId,
@@ -12,6 +13,7 @@ function RestaurantDetailsContent({
   restaurantId: string;
 }) {
   const { restaurant } = useRestaurantById(restaurantId);
+  const { reviews, loading, error, createReview, deleteReview } = useReviews(restaurantId)
 
   if (!restaurant)
     return (
@@ -22,7 +24,7 @@ function RestaurantDetailsContent({
 
   return (
     <>
-      <div className="relative h-64 md:h-80 w-full">
+      <div className="relative h-56 md:h-80 w-full">
         <img
           src={restaurant?.image}
           alt={restaurant?.name}
@@ -42,7 +44,7 @@ function RestaurantDetailsContent({
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 flex flex-col lg:flex-row gap-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 flex flex-col lg:flex-row gap-4 md:gap-8">
         <div className="flex-1">
           <RestaurantMenu
             restaurantId={restaurantId}
@@ -68,13 +70,6 @@ function RestaurantDetailsContent({
                 </div>
               </div>
             </div>
-
-            <a href={`/restaurants/${restaurantId}/review`}>
-              <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                <FiMessageSquare size={16} />
-                Ver todas las reseñas
-              </Button>
-            </a>
           </div>
         </div>
       </div>
@@ -90,13 +85,15 @@ function RestaurantDetailsContent({
             restaurantName={restaurant?.name || ""}
             compact
           />
-          <div className="mt-6 text-center">
-            <a href={`/restaurants/${restaurantId}/review`}>
-              <Button variant="outline">
-                Ver todas las reseñas
-              </Button>
-            </a>
-          </div>
+          {!reviews && (
+            <div className="mt-6 text-center">
+              <a href={`/restaurants/${restaurantId}/review`}>
+                <Button variant="outline">
+                  Ver todas las reseñas
+                </Button>
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </>

@@ -446,7 +446,7 @@ function TablesManagerContent() {
             {showQR && selectedTable && (
               <div className="flex flex-col items-center p-4">
                 <QRCodeSVG
-                  value={`http://localhost:3000/restaurants/${restaurantId}?table=${selectedTable.number}`}
+                  value={`https://suavus.app/restaurants/${restaurantId}?table=${selectedTable.number}`}
                   size={200}
                 />
                 <p className="text-sm text-muted-foreground mt-4 text-center">

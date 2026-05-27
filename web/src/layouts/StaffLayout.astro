@@ -60,8 +60,8 @@ const currentPath = Astro.url.pathname;
   >
     <StaffSidebar client:load client:only="react" currentPath={currentPath} />
 
-    <main class="flex-1 lg:ml-0">
-      <div class="p-4 lg:p-8 pt-16 lg:pt-8">
+    <main class="flex-1 lg:ml-0 overflow-y-auto">
+      <div class="p-4 lg:p-8 pt-16 lg:pt-8 min-h-full">
         <slot />
       </div>
     </main>

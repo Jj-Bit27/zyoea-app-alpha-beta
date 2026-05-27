@@ -106,7 +106,7 @@ function StaffBookingManagerContent() {
                 {statusLabels[booking.status] || booking.status}
               </Badge>
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <IoCalendar size={14} />
                 {booking.time ? formatDate(booking.time) : "—"}
