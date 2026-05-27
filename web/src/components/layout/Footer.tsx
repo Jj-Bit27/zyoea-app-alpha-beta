@@ -11,7 +11,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-7xl px-4 py-12">
-        <div className="grid gap-6 md:gap-8 md:grid-cols-4">
+        <div className={`grid gap-6 md:gap-8 ${user ? "md:grid-cols-3" : "md:grid-cols-4"}`}>
           {/* Brand */}
           <div className="md:col-span-1">
             <a href="/" className="flex items-center gap-2">
@@ -76,15 +76,23 @@ export function Footer() {
             <ul className="mt-3 space-y-2">
               <li>
                 <a
-                  href="#"
+                  href="/legal/terms-users"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Términos de Servicio
+                  Términos de Servicio del Usuario
+                </a>
+              </li>
+                            <li>
+                <a
+                  href="/legal/terms-restaurants"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Términos de Servicio del Restaurante
                 </a>
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/legal/privacy"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Política de Privacidad
@@ -99,12 +107,6 @@ export function Footer() {
             © 2026 Suavus. Todos los derechos reservados.
           </p>
           <div className="flex items-center gap-4">
-            <a
-              href="#"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <IoLogoGithub className="h-5 w-5" />
-            </a>
             <a
               href="#"
               className="text-muted-foreground hover:text-foreground transition-colors"

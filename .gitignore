@@ -25,3 +25,4 @@ web/logs/
 
 api/database/database.sql
 web/src/files-inactive
+web/src/src-tauri
