@@ -198,8 +198,6 @@ func main() {
 		playground.Handler("GraphQL playground", "/query").ServeHTTP(c.Writer, c.Request)
 	})
 
-	router.StaticFS("/docs", http.Dir("./docs-tools/public"))
-
 	// --- OAuth2 Routes ---
 	// Google OAuth
 	router.GET("/auth/google", func(c *gin.Context) {
@@ -227,60 +225,62 @@ func main() {
 		c.Redirect(http.StatusFound, buildOAuthRedirectURL(authResponse))
 	})
 
-	// Facebook OAuth
-	router.GET("/auth/facebook", func(c *gin.Context) {
-		authURL, state := oauthService.GetFacebookAuthURL()
-		c.SetCookie("oauth_state", state, 600, "/", "", false, true)
-		c.Redirect(http.StatusFound, authURL)
-	})
+	/*
+		// Facebook OAuth
+		router.GET("/auth/facebook", func(c *gin.Context) {
+			authURL, state := oauthService.GetFacebookAuthURL()
+			c.SetCookie("oauth_state", state, 600, "/", "", false, true)
+			c.Redirect(http.StatusFound, authURL)
+		})
 
-	// Facebook OAuth Callback
-	router.GET("/auth/facebook/callback", func(c *gin.Context) {
-		state := c.Query("state")
-		code := c.Query("code")
+		// Facebook OAuth Callback
+		router.GET("/auth/facebook/callback", func(c *gin.Context) {
+			state := c.Query("state")
+			code := c.Query("code")
 
-		if !oauthService.ValidateOAuthState(state) {
-			c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error=invalid_state")
-			return
-		}
+			if !oauthService.ValidateOAuthState(state) {
+				c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error=invalid_state")
+				return
+			}
 
-		authResponse, err := oauthService.HandleFacebookCallback(c.Request.Context(), code)
-		if err != nil {
-			c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error="+url.QueryEscape(err.Error()))
-			return
-		}
+			authResponse, err := oauthService.HandleFacebookCallback(c.Request.Context(), code)
+			if err != nil {
+				c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error="+url.QueryEscape(err.Error()))
+				return
+			}
 
-		c.Redirect(http.StatusFound, buildOAuthRedirectURL(authResponse))
-	})
+			c.Redirect(http.StatusFound, buildOAuthRedirectURL(authResponse))
+		})
 
-	// Twitter (X) OAuth
-	router.GET("/auth/twitter", func(c *gin.Context) {
-		authURL, state := oauthService.GetTwitterAuthURL()
-		c.SetCookie("oauth_state", state, 600, "/", "", false, true)
-		c.Redirect(http.StatusFound, authURL)
-	})
+		// Twitter (X) OAuth
+		router.GET("/auth/twitter", func(c *gin.Context) {
+			authURL, state := oauthService.GetTwitterAuthURL()
+			c.SetCookie("oauth_state", state, 600, "/", "", false, true)
+			c.Redirect(http.StatusFound, authURL)
+		})
 
-	// Twitter (X) OAuth Callback
-	router.GET("/auth/twitter/callback", func(c *gin.Context) {
-		state := c.Query("state")
-		code := c.Query("code")
+		// Twitter (X) OAuth Callback
+		router.GET("/auth/twitter/callback", func(c *gin.Context) {
+			state := c.Query("state")
+			code := c.Query("code")
 
-		if !oauthService.ValidateOAuthState(state) {
-			c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error=invalid_state")
-			return
-		}
+			if !oauthService.ValidateOAuthState(state) {
+				c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error=invalid_state")
+				return
+			}
 
-		authResponse, err := oauthService.HandleTwitterCallback(c.Request.Context(), code)
-		if err != nil {
-			c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error="+url.QueryEscape(err.Error()))
-			return
-		}
+			authResponse, err := oauthService.HandleTwitterCallback(c.Request.Context(), code)
+			if err != nil {
+				c.Redirect(http.StatusFound, frontendURL+"/auth/callback?error="+url.QueryEscape(err.Error()))
+				return
+			}
 
-		c.Redirect(http.StatusFound, buildOAuthRedirectURL(authResponse))
-	})
+			c.Redirect(http.StatusFound, buildOAuthRedirectURL(authResponse))
+		})
+	*/
 
 	router.NoRoute(func(c *gin.Context) {
-		c.File("./static/404.html")
+		c.Redirect(http.StatusFound, "https://suavus.app")
 	})
 
 	// --- Arrancar servidor ---
