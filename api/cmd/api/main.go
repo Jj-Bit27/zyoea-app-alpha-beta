@@ -52,8 +52,7 @@ func buildOAuthRedirectURL(authResponse *model.AuthResponse) string {
 	params := url.Values{}
 	params.Add("access_token", authResponse.AccessToken)
 	params.Add("user_id", authResponse.User.ID)
-	if authResponse.User.NamRESEND_API_KEY=re_KtbdhnPH_FwLs5kowjYYujbVWNw4PSyvm
-EMAIL_FROM=no-reply@suavus.appe != nil {
+	if authResponse.User.Name != nil {
 		params.Add("user_name", *authResponse.User.Name)
 	}
 	if authResponse.User.Email != nil {
