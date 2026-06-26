@@ -17,7 +17,7 @@
 ## Estructura de Directorios
 
 ```
-zyoea-app-alpha-beta/
+suavus-app-alpha-beta/
 ├── api/                          # Backend Go
 │   ├── cmd/api/main.go           # Entry point, inyección de servicios
 │   ├── database/
@@ -39,7 +39,7 @@ zyoea-app-alpha-beta/
 │   │   ├── carts/service.go      # Carrito persistente
 │   │   ├── categories/service.go # Categorías con Redis cache
 │   │   ├── cloudinary/service.go # Subida de imágenes
-│   │   ├── email/service.go      # SMTP para verificación y recovery
+│   │   ├── email/service.go      # Resend API: verificación, recovery y welcome
 │   │   ├── employees/service.go  # CRUD empleados
 │   │   ├── oauth/service.go      # Google OAuth
 │   │   ├── orders/service.go     # CRUD órdenes con WebSocket broadcast
@@ -178,7 +178,7 @@ type RestaurantSubscription { id, restaurantId, planId, plan, stripeSubscription
 ### Auth Service (`services/auth/service.go`)
 - `Register`: Valida email/password, bcrypt hash, token 6 dígitos, JWT, envía email verificación
 - `Login`: Busca usuario, verifica bcrypt, genera JWT con sub/role/restaurant
-- `VerifyEmail`: Actualiza is_verified TRUE, limpia tokens
+- `VerifyEmail`: Actualiza is_verified TRUE, limpia tokens, **envía welcome email en goroutine**
 - `ForgotPassword`: Genera UUID, expiry 1h, envía email con link
 - `ResetPassword`: Valida token + expiry, bcrypt nueva contraseña
 - `UpdateUser`: Actualiza name/email con SQL dinámico
@@ -210,10 +210,12 @@ type RestaurantSubscription { id, restaurantId, planId, plan, stripeSubscription
 - `Create`: INSERT con status='active'
 - `Cancel`: UPDATE status='cancelled', cancelled_at=NOW()
 
-### Email Service (`services/email/service.go`) [NUEVO]
-- SMTP configurable vía env vars
-- `SendVerificationEmail`: Template HTML con código 6 dígitos
-- `SendPasswordRecoveryEmail`: Template HTML con link de reset
+### Email Service (`services/email/service.go`)
+- Resend API (HTTP) con templates HTML responsivos
+- `renderTemplate`: Base template compartida con header degradado naranja (#c2410c → #ea580c), footer con tagline y soporte
+- `SendVerificationEmail`: Template con código 6 dígitos en panel destacado
+- `SendWelcomeEmail`: Template de bienvenida post-verificación con CTA a restaurantes
+- `SendPasswordRecoveryEmail`: Template con botón CTA + enlace alternativo
 
 ### Redis Cache Estrategia
 - Claves: `bookings:restaurant:{id}`, `bookings:user:{id}`, `booking:{id}`, `restaurants`, `restaurant:{id}`, etc.
@@ -283,11 +285,8 @@ STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 FRONTEND_URL=https://suavus.app
 CLOUDINARY_URL=cloudinary://key:secret@cloud
-SMTP_FROM=noreply@suavus.app
-SMTP_HOST=smtp.resend.com
-SMTP_PORT=587
-SMTP_USERNAME=...
-SMTP_PASSWORD=...
+RESEND_API_KEY=re_...
+EMAIL_FROM=noreply@suavus.app
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 ```
@@ -308,6 +307,7 @@ PUBLIC_FRONTEND_URL=http://localhost:4321
 2. Backend: valida, bcrypt, inserta usuario, genera JWT, envía email verificación (goroutine)
 3. Frontend: guarda token en cookie + localStorage, redirige a home
 4. Usuario debe verificar email en `/auth/verify-email` con código de 6 dígitos
+5. Al verificar, backend envía welcome email (goroutine)
 
 ### Recuperación de Contraseña
 1. Usuario va a `/auth/forgot-password`, ingresa email → mutation `forgotPassword`
@@ -335,6 +335,7 @@ PUBLIC_FRONTEND_URL=http://localhost:4321
 1. **Nunca regenerar `generated.go` sin verificar** — los modelos se modifican manualmente
 2. **SQL dinámico** para Updates (evita sobrescribir campos no enviados con cero)
 3. **Goroutines para emails** — no bloquear la respuesta al cliente
+4. **Email via Resend API** — HTTP directo, no SMTP. Templates HTML compartidos con marca Suavus (colores #c2410c naranja, #ea580c gradient, #d97706 dorado)
 4. **Mesa ocupada** se marca al crear orden dine_in, se libera al completar/cancelar
 5. **Double confirm** para eliminar cuenta
 6. **OrderDetail es array** (cambio de schema, frontend ya lo consume como array)
@@ -363,6 +364,7 @@ Sin `<ClientRouter />`, el runtime cliente de Astro nunca se carga y los `<astro
 | Admin/Staff sidebar no interactuaba | `client:only` en StaffSidebar (evita mismatch por `useAuth()`); `client:load` en AdminSidebar (no usa `useAuth`) |
 | Admin sidebar no se mostraba | Faltaba `<ClientRouter />` en `AdminLayout.astro` |
 | LoginForm/RegisterForm isLoading stuck | Manejo de errores en catch |
+| LoginForm/RegisterForm isLoading stuck | Manejo de errores en catch |
 | GetCart resolviendo array vacío | Unmarshal correcto de JSON |
 | Review Update corrompiendo pointers | SQL dinámico (solo campos enviados) |
 | Review modal cerrando incondicionalmente | isOpen condicional |
@@ -385,7 +387,7 @@ Sin `<ClientRouter />`, el runtime cliente de Astro nunca se carga y los `<astro
 - [ ] **Regenerar gqlgen**: Ejecutar `go run github.com/99designs/gqlgen generate` en `/api` para sincronizar `generated.go` con los cambios de schema
 - [ ] **Verificar compilación Go**: `go build ./cmd/api` después de regenerar
 - [ ] **Instalar dependencia Go**: `go mod tidy` si se agregan nuevos imports
-- [ ] **Configurar SMTP**: Agregar variables SMTP_* al .env del backend
+- [ ] **Configurar Resend**: Agregar RESEND_API_KEY y EMAIL_FROM al .env del backend
 - [ ] **Configurar Stripe subscription products**: Crear productos en Stripe y agregar stripe_price_id a subscription_plans
 - [ ] **Facebook/Twitter OAuth**: Descomentar rutas en main.go cuando se necesiten
 - [ ] **Paginación**: queries orders/payments/products sin paginación actualmente

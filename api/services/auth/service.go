@@ -162,6 +162,16 @@ func (s *Service) VerifyEmail(ctx context.Context, code string) (*model.User, er
 	if err == pgx.ErrNoRows {
 		return nil, errors.New("el código es inválido")
 	}
+
+	// Enviar email de bienvenida
+	if s.Email != nil && u.Email != nil && u.Name != nil {
+		go func(emailAddr, userName string) {
+			if err := s.Email.SendWelcomeEmail(emailAddr, userName); err != nil {
+				slog.Warn("Error enviando email de bienvenida", "error", err)
+			}
+		}(*u.Email, *u.Name)
+	}
+
 	return &u, nil
 }
 
