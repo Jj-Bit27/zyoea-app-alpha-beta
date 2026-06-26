@@ -16,7 +16,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
-	"github.com/joho/godotenv"
+	//"github.com/joho/godotenv"
 
 	"api/database"
 	"api/graph"
@@ -52,7 +52,8 @@ func buildOAuthRedirectURL(authResponse *model.AuthResponse) string {
 	params := url.Values{}
 	params.Add("access_token", authResponse.AccessToken)
 	params.Add("user_id", authResponse.User.ID)
-	if authResponse.User.Name != nil {
+	if authResponse.User.NamRESEND_API_KEY=re_KtbdhnPH_FwLs5kowjYYujbVWNw4PSyvm
+EMAIL_FROM=no-reply@suavus.appe != nil {
 		params.Add("user_name", *authResponse.User.Name)
 	}
 	if authResponse.User.Email != nil {
@@ -68,10 +69,10 @@ func buildOAuthRedirectURL(authResponse *model.AuthResponse) string {
 }
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error cargando el archivo .env")
-	}
+	//err := godotenv.Load()
+	//if err != nil {
+	//	log.Fatal("Error cargando el archivo .env")
+	//}
 
 	// --- Configuracion del Puerto ---
 	port := os.Getenv("PORT")
