@@ -208,6 +208,46 @@ func (s *Service) Update(ctx context.Context, id string, input model.UpdateTable
 }
 
 // ---------------------------------------------------------
+// UPDATE STATUS
+// ---------------------------------------------------------
+func (s *Service) UpdateStatus(ctx context.Context, id string, status string) error {
+	sql := `UPDATE tables SET "status" = $1 WHERE id = $2`
+	tag, err := s.DB.Exec(ctx, sql, status, id)
+	if err != nil {
+		return fmt.Errorf("error al actualizar estado de la mesa: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return errors.New("mesa no encontrada")
+	}
+	return nil
+}
+
+// FindByRestaurantAndNumber finds a table by restaurant and number
+func (s *Service) FindByRestaurantAndNumber(ctx context.Context, restaurantID int, number int) (*model.Table, error) {
+	sql := `SELECT id, restaurant, booking, "number", capacity, "status" FROM tables WHERE restaurant = $1 AND "number" = $2`
+	var b model.Table
+	var idScanned, restID int
+	var bookingID *int
+
+	err := s.DB.QueryRow(ctx, sql, restaurantID, number).Scan(
+		&idScanned, &restID, &bookingID, &b.Number, &b.Capacity, &b.Status,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	b.ID = fmt.Sprintf("%d", idScanned)
+	b.Restaurant = &model.Restaurant{ID: strconv.Itoa(restID)}
+	if bookingID != nil {
+		b.Booking = &model.Booking{ID: strconv.Itoa(*bookingID)}
+	}
+	return &b, nil
+}
+
+// ---------------------------------------------------------
 // ELIMINAR (Delete)
 // ---------------------------------------------------------
 func (s *Service) Delete(ctx context.Context, id string) (bool, error) {

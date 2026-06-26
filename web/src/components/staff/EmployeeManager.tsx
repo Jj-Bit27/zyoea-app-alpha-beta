@@ -69,6 +69,10 @@ function EmployeesManagerContent() {
 
   const handleOpenModal = (employee?: Employee) => {
     if (employee) {
+      if (employee.user?.role === "admin" && user?.role !== "superadmin") {
+        addToast("No puedes editar a otro administrador", "error");
+        return;
+      }
       setEditingEmployee(employee);
       setFormData({
         name: employee.user?.name || "",
@@ -178,6 +182,8 @@ function EmployeesManagerContent() {
                       {employee.user?.role || "empleado"}
                     </Badge>
                     <div className="flex gap-1">
+                      {employee.user?.role !== "admin" && (
+                        <>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -188,10 +194,18 @@ function EmployeesManagerContent() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeEmployee(employee.id)}
+                        onClick={() => {
+                          if (employee.user?.role === "admin" && user?.role !== "superadmin") {
+                            addToast("No puedes eliminar a otro administrador", "error");
+                            return;
+                          }
+                          removeEmployee(employee.id);
+                        }}
                       >
                         <FiTrash2 size={16} />
                       </Button>
+                      </>
+                      )}
                     </div>
                   </div>
                 </div>

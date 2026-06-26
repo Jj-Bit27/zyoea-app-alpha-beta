@@ -7,6 +7,7 @@ import { Spinner } from "../custom/Spinner";
 import { Button } from "../custom/Button";
 import { useReviews } from "../../hooks/useReviews";
 import { ScheduleDisplay } from "./ScheduleDisplay";
+import { useEffect } from "react";
 
 function RestaurantDetailsContent({
   restaurantId,
@@ -15,6 +16,16 @@ function RestaurantDetailsContent({
 }) {
   const { restaurant } = useRestaurantById(restaurantId);
   const { reviews, loading, error, createReview, deleteReview } = useReviews(restaurantId)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const table = params.get("table");
+      if (table) {
+        localStorage.setItem("qr_table_number", table);
+      }
+    }
+  }, []);
 
   if (!restaurant)
     return (

@@ -1,0 +1,50 @@
+scalar Time
+
+type SubscriptionPlan {
+  id: ID!
+  name: String!
+  description: String
+  price: Float!
+  interval: String!
+  stripePriceId: String
+  features: String
+  maxRestaurants: Int!
+  maxEmployees: Int!
+  maxProducts: Int!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type RestaurantSubscription {
+  id: ID!
+  restaurantId: Int!
+  planId: Int!
+  plan: SubscriptionPlan!
+  stripeSubscriptionId: String
+  status: String!
+  currentPeriodStart: Time
+  currentPeriodEnd: Time
+  trialEnd: Time
+  cancelledAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+input CreateSubscriptionInput {
+  restaurantId: Int!
+  planId: Int!
+  stripeSubscriptionId: String
+  currentPeriodStart: Time
+  currentPeriodEnd: Time
+}
+
+extend type Query {
+  subscriptionPlans: [SubscriptionPlan!]!
+  restaurantSubscription(restaurantId: ID!): RestaurantSubscription
+  allSubscriptions: [RestaurantSubscription!]!
+}
+
+extend type Mutation {
+  createSubscription(input: CreateSubscriptionInput!): RestaurantSubscription!
+  cancelSubscription(restaurantId: ID!): RestaurantSubscription!
+}

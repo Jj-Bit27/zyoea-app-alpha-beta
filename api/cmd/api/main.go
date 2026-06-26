@@ -16,7 +16,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
-	//"github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 
 	"api/database"
 	"api/graph"
@@ -35,6 +35,7 @@ import (
 	"api/services/products"
 	"api/services/restaurants"
 	"api/services/reviews"
+	"api/services/subscriptions"
 	"api/services/tables"
 	"api/services/terms"
 )
@@ -67,10 +68,10 @@ func buildOAuthRedirectURL(authResponse *model.AuthResponse) string {
 }
 
 func main() {
-	//err := godotenv.Load()
-	//if err != nil {
-	//	log.Fatal("Error cargando el archivo .env")
-	//}
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error cargando el archivo .env")
+	}
 
 	// --- Configuracion del Puerto ---
 	port := os.Getenv("PORT")
@@ -123,6 +124,7 @@ func main() {
 	orderService := orders.NewService(dbPool, hub)
 
 	// Nuevos servicios
+	subscriptionService := subscriptions.NewService(dbPool)
 	cartService := carts.NewService(dbPool)
 	termsService := terms.NewService(dbPool)
 	restaurantPaymentService := payments.NewRestaurantPaymentService(dbPool)
@@ -150,6 +152,7 @@ func main() {
 			TermsService:             termsService,
 			CloudinaryService:        cloudinaryService,
 			RestaurantPaymentService: restaurantPaymentService,
+			SubscriptionService:      subscriptionService,
 		},
 	}))
 

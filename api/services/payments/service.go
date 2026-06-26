@@ -34,36 +34,39 @@ func NewService(db *pgxpool.Pool, stripeKey string) *Service {
 // CREAR PAGO
 // ---------------------------------------------------------
 func (s *Service) Create(ctx context.Context, input model.CreatePaymentInput) (*model.Payment, error) {
-	// Convertir monto a centavos para Stripe
-	amountInCents := int64(input.Amount * 100)
+	var stripePaymentIntentID string
+	var status string
 
-	// Crear Payment Intent en Stripe
-	params := &stripe.PaymentIntentParams{
-		Amount:        stripe.Int64(amountInCents),
-		Currency:      stripe.String(input.Currency),
-		PaymentMethod: stripe.String(input.PaymentMethodID),
-		Confirm:       stripe.Bool(true),
-		AutomaticPaymentMethods: &stripe.PaymentIntentAutomaticPaymentMethodsParams{
-			Enabled:        stripe.Bool(true),
-			AllowRedirects: stripe.String("never"),
-		},
+	if s.StripeKey == "" {
+		stripePaymentIntentID = "manual_" + fmt.Sprintf("%d", time.Now().UnixNano())
+		status = "succeeded"
+	} else {
+		amountInCents := int64(input.Amount * 100)
+
+		params := &stripe.PaymentIntentParams{
+			Amount:        stripe.Int64(amountInCents),
+			Currency:      stripe.String(input.Currency),
+			PaymentMethod: stripe.String(input.PaymentMethodID),
+			Confirm:       stripe.Bool(true),
+			AutomaticPaymentMethods: &stripe.PaymentIntentAutomaticPaymentMethodsParams{
+				Enabled:        stripe.Bool(true),
+				AllowRedirects: stripe.String("never"),
+			},
+		}
+
+		if input.Description != nil {
+			params.Description = stripe.String(*input.Description)
+		}
+
+		pi, err := paymentintent.New(params)
+		if err != nil {
+			return s.saveFailedPayment(ctx, input, err)
+		}
+
+		stripePaymentIntentID = pi.ID
+		status = s.mapStripeStatus(pi.Status)
 	}
 
-	if input.Description != nil {
-		params.Description = stripe.String(*input.Description)
-	}
-
-	// Ejecutar pago en Stripe
-	pi, err := paymentintent.New(params)
-	if err != nil {
-		// Si falla, guardar como fallido
-		return s.saveFailedPayment(ctx, input, err)
-	}
-
-	// Mapear estado de Stripe
-	status := s.mapStripeStatus(pi.Status)
-
-	// Guardar en base de datos
 	var id int
 	var orderID *int
 	if input.OrderID != nil {
@@ -80,10 +83,10 @@ func (s *Service) Create(ctx context.Context, input model.CreatePaymentInput) (*
 		description = *input.Description
 	}
 
-	err = s.DB.QueryRow(ctx, sql,
+	err := s.DB.QueryRow(ctx, sql,
 		input.UserID,
 		orderID,
-		pi.ID,
+		stripePaymentIntentID,
 		input.PaymentMethodID,
 		input.Amount,
 		input.Currency,
@@ -98,7 +101,7 @@ func (s *Service) Create(ctx context.Context, input model.CreatePaymentInput) (*
 	return &model.Payment{
 		ID:                    fmt.Sprintf("%d", id),
 		UserID:                input.UserID,
-		StripePaymentIntentID: pi.ID,
+		StripePaymentIntentID: stripePaymentIntentID,
 		StripePaymentMethodID: &input.PaymentMethodID,
 		Amount:                input.Amount,
 		Currency:              input.Currency,
@@ -145,6 +148,11 @@ func (s *Service) GetAll(ctx context.Context, limit, offset int) ([]*model.Payme
 // OBTENER PAGOS POR USUARIO
 // ---------------------------------------------------------
 func (s *Service) GetByUserID(ctx context.Context, userID string) ([]*model.Payment, error) {
+	dbUserID, err := strconv.Atoi(userID)
+	if err != nil {
+		return nil, fmt.Errorf("userID debe ser numérico: %w", err)
+	}
+
 	sql := `
 		SELECT 
 			id, "user", order_id, stripe_payment_intent_id, stripe_payment_method_id,
@@ -154,7 +162,7 @@ func (s *Service) GetByUserID(ctx context.Context, userID string) ([]*model.Paym
 		ORDER BY created_at DESC
 	`
 
-	rows, err := s.DB.Query(ctx, sql, userID)
+	rows, err := s.DB.Query(ctx, sql, dbUserID)
 	if err != nil {
 		return nil, fmt.Errorf("error al consultar pagos del usuario: %w", err)
 	}

@@ -8,6 +8,7 @@ import (
 	"api/graph/generated"
 	"api/graph/model"
 	"context"
+	"encoding/json"
 	"fmt"
 )
 
@@ -39,6 +40,16 @@ func (r *mutationResolver) ResetPassword(ctx context.Context, token string, pass
 // UpdateUserAllergies is the resolver for the updateUserAllergies field.
 func (r *mutationResolver) UpdateUserAllergies(ctx context.Context, id string, allergies string) (*model.User, error) {
 	return r.AuthService.UpdateAllergies(ctx, id, allergies)
+}
+
+// DeleteAccount is the resolver for the deleteAccount field.
+func (r *mutationResolver) DeleteAccount(ctx context.Context, id string) (bool, error) {
+	return r.AuthService.DeleteAccount(ctx, id)
+}
+
+// UpdateUser is the resolver for the updateUser field.
+func (r *mutationResolver) UpdateUser(ctx context.Context, id string, name *string, email *string) (*model.User, error) {
+	return r.AuthService.UpdateUser(ctx, id, name, email)
 }
 
 // CreateRestaurant is the resolver for the createRestaurant field.
@@ -513,12 +524,17 @@ func (r *queryResolver) GetCart(ctx context.Context, userID string) ([]*model.Ca
 	var uid int
 	fmt.Sscanf(userID, "%d", &uid)
 
-	_, err := r.CartService.GetCart(ctx, uid)
+	data, err := r.CartService.GetCart(ctx, uid)
 	if err != nil {
 		return nil, err
 	}
 
-	return []*model.CartItem{}, nil
+	var items []*model.CartItem
+	if err := json.Unmarshal(data, &items); err != nil {
+		return nil, fmt.Errorf("error al decodificar carrito: %w", err)
+	}
+
+	return items, nil
 }
 
 // GetTermsContent is the resolver for the getTermsContent field.
@@ -617,6 +633,40 @@ func (r *mutationResolver) AcceptTerms(ctx context.Context, userID string, typeA
 	var uid int
 	fmt.Sscanf(userID, "%d", &uid)
 	return r.TermsService.AcceptTerms(ctx, uid, typeArg)
+}
+
+// --- Subscription Resolvers ---
+
+// SubscriptionPlans is the resolver for the subscriptionPlans field.
+func (r *queryResolver) SubscriptionPlans(ctx context.Context) ([]*model.SubscriptionPlan, error) {
+	return r.SubscriptionService.GetPlans(ctx)
+}
+
+// RestaurantSubscription is the resolver for the restaurantSubscription field.
+func (r *queryResolver) RestaurantSubscription(ctx context.Context, restaurantID string) (*model.RestaurantSubscription, error) {
+	return r.SubscriptionService.GetByRestaurant(ctx, restaurantID)
+}
+
+// CreateSubscription is the resolver for the createSubscription field.
+func (r *mutationResolver) CreateSubscription(ctx context.Context, input model.CreateSubscriptionInput) (*model.RestaurantSubscription, error) {
+	return r.SubscriptionService.Create(ctx, input)
+}
+
+// CancelSubscription is the resolver for the cancelSubscription field.
+func (r *mutationResolver) CancelSubscription(ctx context.Context, restaurantID string) (*model.RestaurantSubscription, error) {
+	return r.SubscriptionService.Cancel(ctx, restaurantID)
+}
+
+// AllSubscriptions is the resolver for the allSubscriptions field.
+func (r *queryResolver) AllSubscriptions(ctx context.Context) ([]*model.RestaurantSubscription, error) {
+	return r.SubscriptionService.GetAll(ctx)
+}
+
+// TotalUsers is the resolver for the totalUsers field.
+func (r *queryResolver) TotalUsers(ctx context.Context) (int, error) {
+	var count int
+	err := r.AuthService.DB.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	return count, err
 }
 
 // Mutation returns generated.MutationResolver implementation.

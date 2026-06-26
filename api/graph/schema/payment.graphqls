@@ -8,6 +8,7 @@ type Payment {
   currency: String!
   status: String!
   description: String
+  orderId: ID
   createdAt: String!
   updatedAt: String!
 }

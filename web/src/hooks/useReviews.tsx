@@ -53,7 +53,7 @@ export function useReviews(restaurantId: string) {
     skip: !restaurantId,
   });
 
-  const [createMutation] = useMutation(CREATE_REVIEW, {
+  const [createMutation, { loading: creating }] = useMutation(CREATE_REVIEW, {
     refetchQueries: [{ query: GET_REVIEWS, variables: { restaurantId } }],
     onCompleted: () => addToast("Reseña publicada", "success"),
     onError: (err) => addToast(err.message, "error"),
@@ -72,22 +72,23 @@ export function useReviews(restaurantId: string) {
   });
 
   const createReview = (input: CreateReviewInput) => {
-    createMutation({ variables: { input } });
+    return createMutation({ variables: { input } });
   };
 
   const updateReview = (id: string, input: UpdateReviewInput) => {
-    updateMutation({ variables: { id, input } });
+    return updateMutation({ variables: { id, input } });
   };
 
   const deleteReview = (id: string) => {
     if (confirm("¿Eliminar reseña?")) {
-      deleteMutation({ variables: { id } });
+      return deleteMutation({ variables: { id } });
     }
   };
 
   return {
     reviews: data?.reviews || [],
     loading,
+    creating,
     error,
     createReview,
     updateReview,

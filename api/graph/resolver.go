@@ -13,6 +13,7 @@ import (
 	"api/services/products"
 	"api/services/restaurants"
 	"api/services/reviews"
+	"api/services/subscriptions"
 	"api/services/tables"
 	"api/services/terms"
 	"sync"
@@ -33,6 +34,7 @@ type Resolver struct {
 	TermsService             *terms.Service
 	CloudinaryService        *cloudinary.Service
 	RestaurantPaymentService *payments.RestaurantPaymentService
+	SubscriptionService      *subscriptions.Service
 	mu                       sync.Mutex
 	OrderObservers           map[int][]chan *model.Order
 }

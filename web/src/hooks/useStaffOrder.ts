@@ -32,8 +32,8 @@ const GET_PRODUCTS = gql`
 `;
 
 const CREATE_ORDER = gql`
-  mutation createOrder($input: CreateOrderInput!) {
-    createOrder(input: $input) {
+  mutation createOrder($input: CreateOrderInput!, $idempotencyKey: String!) {
+    createOrder(input: $input, idempotencyKey: $idempotencyKey) {
       id
       status
       total
@@ -89,7 +89,8 @@ export function useStaffOrder(restaurantId: string) {
   );
 
   const createOrder = async (input: CreateOrderVars) => {
-    const { data } = await createOrderMutation({ variables: { input } });
+    const idempotencyKey = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const { data } = await createOrderMutation({ variables: { input, idempotencyKey } });
     if (data?.createOrder) {
       addToast("Orden creada exitosamente", "success");
     }

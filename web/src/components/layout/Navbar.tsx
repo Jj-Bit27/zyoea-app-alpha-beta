@@ -9,6 +9,8 @@ import {
   IoPerson,
   IoLogOut,
   IoHome,
+  IoPricetag,
+  IoQrCode,
 } from "react-icons/io5";
 import { useAuth } from "../../context/AuthContext";
 import { useOrder } from "../../context/OrderContext";
@@ -69,23 +71,46 @@ export function Navbar({ currentPath = "" }: NavbarProps) {
                 ))}
             </>
           ) : (
-            <a
-              href="/restaurants"
-              className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive("/restaurants")
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
-              }`}
-            >
-              <IoRestaurant className="h-4 w-4" />
-              Restaurantes
-            </a>
+            <>
+              <a
+                href="/restaurants"
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive("/restaurants")
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                <IoRestaurant className="h-4 w-4" />
+                Restaurantes
+              </a>
+              <a
+                href="/plans"
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive("/plans")
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                }`}
+              >
+                <IoPricetag className="h-4 w-4" />
+                Planes
+              </a>
+            </>
           )}
         </nav>
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
+
+          {user && (
+            <a
+              href="/scan"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground hover:bg-secondary transition-colors"
+              title="Escanear QR"
+            >
+              <IoQrCode className="h-5 w-5" />
+            </a>
+          )}
 
           {user?.role === "client" && (
             <a
@@ -257,18 +282,27 @@ export function Navbar({ currentPath = "" }: NavbarProps) {
                   Cerrar Sesión
                 </button>
               </>
-            ) : (
-              <>
-                <a
-                  href="/restaurants"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
-                >
-                  <IoRestaurant className="h-5 w-5" />
-                  Restaurantes
-                </a>
-                <hr className="my-2 border-border" />
-                <a
+              ) : (
+                <>
+                  <a
+                    href="/restaurants"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  >
+                    <IoRestaurant className="h-5 w-5" />
+                    Restaurantes
+                  </a>
+                  <hr className="my-2 border-border" />
+                  <a
+                    href="/plans"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  >
+                    <IoPricetag className="h-5 w-5" />
+                    Planes
+                  </a>
+                  <hr className="my-2 border-border" />
+                  <a
                   href="/login"
                   onClick={() => setIsMenuOpen(false)}
                   className="flex items-center justify-center rounded-lg bg-secondary px-3 py-2.5 text-sm font-medium text-foreground"

@@ -47,6 +47,7 @@ const CREATE_PAYMENT = gql`
     createPayment(input: $input) {
       id
       status
+      stripePaymentIntentId
     }
   }
 `;

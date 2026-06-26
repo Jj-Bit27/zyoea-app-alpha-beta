@@ -172,6 +172,12 @@ function BookingManagerContent() {
       showToast("Completa todos los campos requeridos", "error");
       return;
     }
+    // Phase 2: Past-date validation
+    const selectedDate = new Date(`${createForm.date}T${createForm.time}:00`);
+    if (selectedDate < new Date()) {
+      showToast("No puedes seleccionar una fecha u hora pasada", "error");
+      return;
+    }
     const timeString = `${createForm.date}T${createForm.time}:00Z`;
     createBooking({
       restaurant: parseInt(createForm.restaurantId),
@@ -210,6 +216,11 @@ function BookingManagerContent() {
       showToast("Completa todos los campos requeridos", "error");
       return;
     }
+    const selectedDate = new Date(`${editForm.date}T${editForm.time}:00`);
+    if (selectedDate < new Date()) {
+      showToast("No puedes seleccionar una fecha u hora pasada", "error");
+      return;
+    }
     const timeString = `${editForm.date}T${editForm.time}:00Z`;
     updateBooking(editingBooking.id, {
       restaurant: parseInt(editForm.restaurantId),
@@ -221,6 +232,29 @@ function BookingManagerContent() {
     });
     setIsEditModalOpen(false);
     setEditingBooking(null);
+  };
+
+  // Cancel booking with reason
+  const [cancelReason, setCancelReason] = useState("");
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancellingBooking, setCancellingBooking] = useState<Booking | null>(null);
+
+  const handleCancelWithReason = (booking: Booking) => {
+    setCancellingBooking(booking);
+    setCancelReason("");
+    setIsCancelModalOpen(true);
+  };
+
+  const confirmCancel = () => {
+    if (cancellingBooking) {
+      updateBooking(cancellingBooking.id, {
+        status: "cancelled",
+        cancellationReason: cancelReason || undefined,
+      });
+    }
+    setIsCancelModalOpen(false);
+    setCancellingBooking(null);
+    setCancelReason("");
   };
 
   return (
@@ -301,14 +335,26 @@ function BookingManagerContent() {
                         <IoPencil size={16} />
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteBooking(booking.id)}
-                      title="Eliminar reserva"
-                    >
-                      <FiTrash2 size={16} />
-                    </Button>
+                      {(booking.status === "pending" ||
+                        booking.status === "confirmed") && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCancelWithReason(booking)}
+                          title="Cancelar reserva"
+                          className="text-destructive hover:text-destructive"
+                        >
+                          Cancelar
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteBooking(booking.id)}
+                        title="Eliminar reserva"
+                      >
+                        <FiTrash2 size={16} />
+                      </Button>
                   </div>
                 </div>
               </CardContent>
@@ -335,6 +381,7 @@ function BookingManagerContent() {
             <Input
               label="Fecha"
               type="date"
+              min={new Date().toISOString().split("T")[0]}
               value={createForm.date}
               onChange={(e) =>
                 setCreateForm({ ...createForm, date: e.target.value })
@@ -399,6 +446,7 @@ function BookingManagerContent() {
             <Input
               label="Fecha"
               type="date"
+              min={new Date().toISOString().split("T")[0]}
               value={editForm.date}
               onChange={(e) =>
                 setEditForm({ ...editForm, date: e.target.value })
@@ -442,6 +490,35 @@ function BookingManagerContent() {
             Cancelar
           </Button>
           <Button onClick={handleSaveEdit}>Guardar cambios</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Modal — Cancelar Reserva con Razón */}
+      <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)}>
+        <ModalHeader onClose={() => setIsCancelModalOpen(false)}>
+          Cancelar Reservación
+        </ModalHeader>
+        <ModalBody>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              ¿Estás seguro de cancelar esta reservación?
+            </p>
+            <Textarea
+              label="Motivo de cancelación (opcional)"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Ej: Cambio de planes, emergencia..."
+              rows={3}
+            />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="outline" onClick={() => setIsCancelModalOpen(false)}>
+            Volver
+          </Button>
+          <Button variant="destructive" onClick={confirmCancel}>
+            Confirmar Cancelación
+          </Button>
         </ModalFooter>
       </Modal>
     </div>

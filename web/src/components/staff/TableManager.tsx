@@ -144,8 +144,7 @@ function TablesManagerContent() {
       setIsHistoryModalOpen(false);
     } catch (err) {
       console.error(err);
-      addToast("Pago simulado en modo offline.", "success");
-      setIsHistoryModalOpen(false);
+      addToast("Error al registrar el pago en efectivo", "error");
     }
   };
 
@@ -200,19 +199,29 @@ function TablesManagerContent() {
       !formData.number.trim() ||
       isNaN(parseInt(formData.number)) ||
       formData.number.startsWith("-") ||
-      formData.number.startsWith(".")
+      formData.number.startsWith(".") ||
+      parseInt(formData.number) <= 0
     ) {
       addToast("El numero de mesa no es valido", "error");
       return;
     }
     if (
       !formData.capacity.trim() ||
-      isNaN(parseFloat(formData.capacity)) ||
-      formData.capacity.trim() === "" ||
+      isNaN(parseInt(formData.capacity)) ||
       formData.capacity.startsWith("-") ||
-      formData.capacity.startsWith(".")
+      formData.capacity.startsWith(".") ||
+      parseInt(formData.capacity) <= 0
     ) {
       addToast("La capacidad no es valida", "error");
+      return;
+    }
+    if (
+      !editingTable &&
+      tables.some(
+        (t) => String(t.number) === formData.number.trim(),
+      )
+    ) {
+      addToast("Ya existe una mesa con ese número", "error");
       return;
     }
     const input = {

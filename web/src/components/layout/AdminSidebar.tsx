@@ -6,6 +6,7 @@ import {
   FiShoppingBag,
   FiLogOut,
   FiChevronLeft,
+  FiCreditCard,
 } from "react-icons/fi";
 import { ThemeToggle } from "../custom/ThemeToggle";
 import { MdOutlineSecurity } from "react-icons/md";
@@ -22,6 +23,11 @@ const navItems: NavItem[] = [
     label: "Restaurantes",
     href: "/admin/restaurants",
     icon: <FiShoppingBag size={20} />,
+  },
+  {
+    label: "Suscripciones",
+    href: "/admin/subscriptions",
+    icon: <FiCreditCard size={20} />,
   },
 ];
 

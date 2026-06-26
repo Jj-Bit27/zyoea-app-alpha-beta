@@ -11,6 +11,7 @@ import { Input } from "../custom/Input";
 import { useAuth } from "../../context/AuthContext";
 import { useOrderById } from "../../hooks/useOrders";
 import { useCardPayment } from "../../hooks/useCardPayment";
+import { STRIPE_PUBLIC_KEY } from "../../config";
 import { ApolloWrapper } from "../ApolloWrapper";
 
 function CardPaymentFormContent() {
@@ -178,7 +179,7 @@ function CardPaymentFormContent() {
               />
             </div>
             <div className="flex items-center gap-2 rounded-lg bg-secondary p-3 text-xs text-muted-foreground">
-              <IoLockClosed /> Datos encriptados con SSL
+              <IoLockClosed /> {STRIPE_PUBLIC_KEY ? "Pago seguro con Stripe" : "Pago de prueba (sin Stripe)"}
             </div>
             <hr className="border-border" />
             <div className="flex justify-between items-center">

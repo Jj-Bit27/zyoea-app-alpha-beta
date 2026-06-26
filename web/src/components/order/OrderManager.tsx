@@ -79,6 +79,19 @@ export function CartManagerContent() {
     (t) => t.status === "available" || t.status === "disponible",
   );
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const qrTable = localStorage.getItem("qr_table_number");
+      if (qrTable) {
+        const table = availableTables.find(
+          (t) => String(t.number) === qrTable,
+        );
+        if (table) setSelectedTable(String(table.id));
+        localStorage.removeItem("qr_table_number");
+      }
+    }
+  }, [availableTables]);
+
   const activeOrder = useMemo(() => {
     if (!restaurantId) return null;
     return userOrders.find(

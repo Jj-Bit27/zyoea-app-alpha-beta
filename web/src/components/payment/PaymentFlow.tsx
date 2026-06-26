@@ -11,6 +11,7 @@ import { useAuth } from "../../context/AuthContext";
 import { addToast } from "../custom/Toast";
 import { useOrderById, useUpdateOrderPayment } from "../../hooks/useOrders";
 import { useCreatePayment } from "../../hooks/usePayments";
+import { STRIPE_PUBLIC_KEY } from "../../config";
 import { ApolloWrapper } from "../ApolloWrapper";
 
 type PaymentMethod = "cash" | "card" | null;
@@ -65,13 +66,36 @@ function PaymentFlowContent() {
     if (!order || !user) return;
     setIsProcessing(true);
     try {
-      const mockStripeToken = "pm_mock_" + Math.floor(Math.random() * 10000);
+      let paymentMethodId = "pm_mock_" + Math.floor(Math.random() * 10000);
+
+      if (STRIPE_PUBLIC_KEY) {
+        const { loadStripe } = await import("@stripe/stripe-js");
+        const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
+        if (stripe) {
+          const { error, paymentMethod } = await stripe.createPaymentMethod({
+            type: "card",
+            card: {
+              number: "4242424242424242",
+              exp_month: 12,
+              exp_year: 2030,
+              cvc: "123",
+            },
+            billing_details: { name: user.name || "Cliente" },
+          });
+          if (error) {
+            addToast(error.message || "Error al procesar tarjeta", "error");
+            setIsProcessing(false);
+            return;
+          }
+          paymentMethodId = paymentMethod.id;
+        }
+      }
 
       await createPayment({
         userId: user.id.toString(),
         amount: total,
         currency: "MXN",
-        paymentMethodId: mockStripeToken,
+        paymentMethodId,
         description: `Pago de orden #${order.id}`,
         orderId: parseInt(order.id),
       });

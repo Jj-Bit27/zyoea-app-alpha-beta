@@ -84,6 +84,25 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return next();
   }
 
+  // /subscribe requiere autenticación
+  if (url.pathname.startsWith("/subscribe")) {
+    const token = context.cookies.get("auth_token")?.value;
+    if (!token) {
+      const redirect = encodeURIComponent(url.pathname + url.search);
+      return context.redirect(`/login?redirect=${redirect}`);
+    }
+    return next();
+  }
+
+  // /plans solo para usuarios no autenticados
+  if (url.pathname.startsWith("/plans")) {
+    const token = context.cookies.get("auth_token")?.value;
+    if (token) {
+      return context.redirect("/");
+    }
+    return next();
+  }
+
   // /login y /register se muestran siempre (no redirigir aunque haya sesión)
   // para evitar bloqueos cuando el usuario necesita iniciar sesión de nuevo.
 

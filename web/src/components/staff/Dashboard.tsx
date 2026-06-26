@@ -47,9 +47,28 @@ function DashboardContent() {
   const totalRevenue = orders
     .filter((o) => o.status !== "CANCELADA" && o.status !== "cancelado")
     .reduce((sum, o) => sum + (o.total || 0), 0);
-  const occupiedTables = tables.filter(
-    (t) => t.status === "ocupada" || t.status === "occupied",
-  ).length;
+  const getTableStatus = (table: { id: number | string; status: string }): string => {
+    const hasActiveOrder = orders.some(
+      (o) =>
+        String(o.tableId) === String(table.id) &&
+        (o.status === "ABIERTA" || o.status === "LISTA"),
+    );
+    if (hasActiveOrder) return "occupied";
+
+    const hasActiveBooking = bookings.some(
+      (b) =>
+        String(b.tableId) === String(table.id) &&
+        (b.status === "pending" || b.status === "confirmed"),
+    );
+    if (hasActiveBooking) return "reserved";
+
+    return table.status || "available";
+  };
+
+  const occupiedTables = tables.filter((t) => {
+    const s = getTableStatus(t);
+    return s === "ocupada" || s === "occupied";
+  }).length;
   const todayBookings = bookings.filter((b) => {
     if (!b.time) return false;
     const bookingDate = new Date(b.time);

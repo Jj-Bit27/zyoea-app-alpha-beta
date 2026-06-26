@@ -10,6 +10,7 @@ type Booking {
   people: Int!
   time: Time!
   status: String!
+  cancellationReason: String
 }
 
 input CreateBookingInput {
@@ -29,6 +30,7 @@ input UpdateBookingInput {
   people: Int
   time: Time
   status: String
+  cancellationReason: String
 }
 
 type Query {

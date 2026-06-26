@@ -14,7 +14,7 @@ type Order {
   tableId: Int
   date: Time!
   paid: Boolean!
-  orderDetail: OrderDetail
+  orderDetail: [OrderDetail!]
 }
 
 type OrderDetail {

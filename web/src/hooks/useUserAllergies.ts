@@ -22,6 +22,12 @@ const UPDATE_USER_ALLERGIES = gql`
   }
 `;
 
+const DELETE_ACCOUNT = gql`
+  mutation DeleteAccount($id: ID!) {
+    deleteAccount(id: $id)
+  }
+`;
+
 export function useUserAllergies(userId: string | undefined) {
   const { data, loading, error } = useQuery(GET_USER, {
     variables: { id: userId },
@@ -29,6 +35,7 @@ export function useUserAllergies(userId: string | undefined) {
   });
 
   const [updateMutation, { loading: saving }] = useMutation(UPDATE_USER_ALLERGIES);
+  const [deleteMutation, { loading: deleting }] = useMutation(DELETE_ACCOUNT);
 
   const allergies = data?.user?.allergies || "";
 
@@ -40,11 +47,21 @@ export function useUserAllergies(userId: string | undefined) {
     return result.data?.updateUserAllergies;
   };
 
+  const deleteAccount = async () => {
+    if (!userId) return;
+    const result = await deleteMutation({
+      variables: { id: userId },
+    });
+    return result.data?.deleteAccount;
+  };
+
   return {
     allergies,
     loading,
     saving,
+    deleting,
     error,
     updateAllergies,
+    deleteAccount,
   };
 }

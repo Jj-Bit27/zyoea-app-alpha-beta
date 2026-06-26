@@ -35,13 +35,22 @@ func NewService(db *pgxpool.Pool, hub *websocket.OrderHub) *Service {
 // 1. FIND BY RESTAURANT
 // ---------------------------------------------------------
 func (s *Service) FindAllByRestaurant(ctx context.Context, restaurantID string) ([]*model.Order, error) {
+	restID, err := strconv.Atoi(restaurantID)
+	if err != nil {
+		return nil, fmt.Errorf("restaurantID debe ser numérico: %w", err)
+	}
+
 	sql := `
-		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid, 
-		       COALESCE(estimated_wait_time, 0), actual_wait_time, completed_at
-		FROM orders
-		WHERE restaurant = $1
+		SELECT o.id, o."user", o.user_name, o.restaurant, o.status, o.type, o.total, o.notes, o."table", o.date, o.paid, 
+		       COALESCE(o.estimated_wait_time, 0), o.actual_wait_time, o.completed_at,
+		       u.id, u."name", u.email, u."role", u.is_verified,
+		       r.id, r."name", r.address, r.email
+		FROM orders o
+		LEFT JOIN users u ON o."user" = u.id
+		LEFT JOIN restaurants r ON o.restaurant = r.id
+		WHERE o.restaurant = $1
 	`
-	rows, err := s.DB.Query(ctx, sql, restaurantID)
+	rows, err := s.DB.Query(ctx, sql, restID)
 	if err != nil {
 		return nil, err
 	}
@@ -55,10 +64,24 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurantID string) 
 		var actualWait *int
 		var completedAt *time.Time
 
+		var (
+			uID   *int
+			uName *string
+			uMail *string
+			uRole *string
+			uVrf  *bool
+			rID   *int
+			rName *string
+			rAddr *string
+			rMail *string
+		)
+
 		err := rows.Scan(
 			&o.ID, &o.UserID, &o.UserName, &o.RestaurantID, &o.Status,
 			&o.Type, &o.Total, &notes, &mesaId, &o.Date, &o.Paid,
 			&o.EstimatedWaitTime, &actualWait, &completedAt,
+			&uID, &uName, &uMail, &uRole, &uVrf,
+			&rID, &rName, &rAddr, &rMail,
 		)
 		if err != nil {
 			return nil, err
@@ -67,13 +90,35 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurantID string) 
 		o.TableID = mesaId
 		o.ActualWaitTime = actualWait
 		o.CompletedAt = completedAt
+
+		if uID != nil {
+			isVerified := false
+			if uVrf != nil {
+				isVerified = *uVrf
+			}
+			o.User = &model.User{
+				ID:         fmt.Sprintf("%d", *uID),
+				Name:       uName,
+				Email:      uMail,
+				Role:       uRole,
+				IsVerified: isVerified,
+			}
+		}
+		if rID != nil {
+			o.Restaurant = &model.Restaurant{
+				ID:      fmt.Sprintf("%d", *rID),
+				Name:    safeStr(rName),
+				Address: safeStr(rAddr),
+				Email:   safeStr(rMail),
+			}
+		}
 		orders = append(orders, &o)
 	}
 	return orders, nil
 }
 
 // ---------------------------------------------------------
-// 2. FIND ONE
+// 2. FIND ONE (with User + Restaurant JOINs)
 // ---------------------------------------------------------
 func (s *Service) FindOne(ctx context.Context, id string) (*model.Order, error) {
 	var o model.Order
@@ -82,15 +127,35 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Order, error) 
 	var actualWait *int
 	var completedAt *time.Time
 
+	var (
+		uID   *int
+		uName *string
+		uMail *string
+		uRole *string
+		uVrf  *bool
+
+		rID   *int
+		rName *string
+		rAddr *string
+		rMail *string
+	)
+
 	sql := `
-		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid,
-		       COALESCE(estimated_wait_time, 0), actual_wait_time, completed_at
-		FROM orders WHERE id = $1
+		SELECT o.id, o."user", o.user_name, o.restaurant, o.status, o.type, o.total, o.notes, o."table", o.date, o.paid,
+		       COALESCE(o.estimated_wait_time, 0), o.actual_wait_time, o.completed_at,
+		       u.id, u."name", u.email, u."role", u.is_verified,
+		       r.id, r."name", r.address, r.email
+		FROM orders o
+		LEFT JOIN users u ON o."user" = u.id
+		LEFT JOIN restaurants r ON o.restaurant = r.id
+		WHERE o.id = $1
 	`
 	err := s.DB.QueryRow(ctx, sql, id).Scan(
 		&o.ID, &o.UserID, &o.UserName, &o.RestaurantID, &o.Status,
 		&o.Type, &o.Total, &notes, &mesaId, &o.Date, &o.Paid,
 		&o.EstimatedWaitTime, &actualWait, &completedAt,
+		&uID, &uName, &uMail, &uRole, &uVrf,
+		&rID, &rName, &rAddr, &rMail,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -102,6 +167,28 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Order, error) 
 	o.TableID = mesaId
 	o.ActualWaitTime = actualWait
 	o.CompletedAt = completedAt
+
+	if uID != nil {
+		isVerified := false
+		if uVrf != nil {
+			isVerified = *uVrf
+		}
+		o.User = &model.User{
+			ID:         fmt.Sprintf("%d", *uID),
+			Name:       uName,
+			Email:      uMail,
+			Role:       uRole,
+			IsVerified: isVerified,
+		}
+	}
+	if rID != nil {
+		o.Restaurant = &model.Restaurant{
+			ID:      fmt.Sprintf("%d", *rID),
+			Name:    safeStr(rName),
+			Address: safeStr(rAddr),
+			Email:   safeStr(rMail),
+		}
+	}
 	return &o, nil
 }
 
@@ -203,7 +290,13 @@ func (s *Service) Create(ctx context.Context, input model.CreateOrderInput) (*mo
 		return nil, err
 	}
 
-	// F. Broadcast DESPUÉS del commit para no enviar datos de transacción no confirmada
+	// F. Update table status to occupied if this is a dine-in order with a table
+	if input.Table != nil && input.Type == "dine_in" {
+		tableID := strconv.Itoa(*input.Table)
+		_, _ = s.DB.Exec(ctx, `UPDATE tables SET "status" = 'occupied' WHERE id = $1`, tableID)
+	}
+
+	// G. Broadcast DESPUÉS del commit para no enviar datos de transacción no confirmada
 	RestID := strconv.Itoa(newOrder.RestaurantID)
 	s.Hub.BroadcastToRestaurant(RestID, newOrder)
 
@@ -224,24 +317,44 @@ func (s *Service) Update(ctx context.Context, input model.UpdateOrderInput) (*mo
 		return nil, err
 	}
 
-	// Actualizar el status
-	sql := `UPDATE orders SET status = $1 WHERE id = $2`
-	tag, err := s.DB.Exec(ctx, sql, *input.Estado, input.ID)
+	// Si la orden pasa a COMPLETADA o PAGADO, auto-crear payment y liberar mesa
+	if *input.Estado == "COMPLETADA" || *input.Estado == "PAGADO" {
+		// Auto-crear payment si no existe
+		var existingCount int
+		s.DB.QueryRow(ctx, `SELECT COUNT(*) FROM payments WHERE order_id = $1`, input.ID).Scan(&existingCount)
+		if existingCount == 0 {
+			s.DB.QueryRow(ctx,
+				`INSERT INTO payments ("user", order_id, stripe_payment_intent_id, stripe_payment_method_id, amount, currency, status, description, created_at, updated_at)
+				 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING id`,
+				strconv.Itoa(currentOrder.UserID), input.ID, "auto_"+input.ID, "auto", currentOrder.Total, "MXN", "succeeded",
+				fmt.Sprintf("Pago automático - Orden #%s", input.ID),
+			)
+		}
+	}
+
+	// Actualizar el status (y paid si es COMPLETADA/PAGADO)
+	if *input.Estado == "COMPLETADA" || *input.Estado == "PAGADO" {
+		_, err = s.DB.Exec(ctx, `UPDATE orders SET status = $1, paid = true WHERE id = $2`, *input.Estado, input.ID)
+	} else {
+		_, err = s.DB.Exec(ctx, `UPDATE orders SET status = $1 WHERE id = $2`, *input.Estado, input.ID)
+	}
 	if err != nil {
 		return nil, err
 	}
-	if tag.RowsAffected() == 0 {
-		return nil, errors.New("pedido no encontrado")
+
+	// Liberar mesa
+	if currentOrder.TableID != nil && (*input.Estado == "COMPLETADA" || *input.Estado == "PAGADO" || *input.Estado == "CANCELADA") {
+		tableID := strconv.Itoa(*currentOrder.TableID)
+		_, _ = s.DB.Exec(ctx, `UPDATE tables SET "status" = 'available' WHERE id = $1`, tableID)
 	}
 
-	// Si la orden pasa a COMPLETADA o PAGADO, registrar las métricas
+	// Registrar las métricas
 	if *input.Estado == "COMPLETADA" || *input.Estado == "PAGADO" {
 		orderID, err := strconv.Atoi(currentOrder.ID)
 		if err == nil {
 			err := s.MetricsS.OnOrderStatusUpdate(ctx, currentOrder.RestaurantID, orderID, *input.Estado, currentOrder.Date)
 			if err != nil {
 				fmt.Printf("Advertencia: error registrando métricas: %v\n", err)
-				// No fallar si esto falla, es no-crítico
 			}
 		}
 	}
@@ -330,14 +443,57 @@ func (s *Service) UpdateStatus(ctx context.Context, id string, newStatus string)
 // 7. UPDATE PAID STATUS (Marcar como pagado)
 // ---------------------------------------------------------
 func (s *Service) UpdatePaidStatus(ctx context.Context, id string, paid bool) (*model.Order, error) {
-	sql := `UPDATE orders SET paid = $1 WHERE id = $2`
-	tag, err := s.DB.Exec(ctx, sql, paid, id)
+	order, err := s.FindOne(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if tag.RowsAffected() == 0 {
-		return nil, errors.New("pedido no encontrado")
+
+	if paid && !order.Paid {
+		// Auto-crear payment record si no existe uno para esta orden
+		var existingCount int
+		s.DB.QueryRow(ctx, `SELECT COUNT(*) FROM payments WHERE order_id = $1`, id).Scan(&existingCount)
+		if existingCount == 0 {
+			var paymentID int
+			err := s.DB.QueryRow(ctx,
+				`INSERT INTO payments ("user", order_id, stripe_payment_intent_id, stripe_payment_method_id, amount, currency, status, description, created_at, updated_at)
+				 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING id`,
+				strconv.Itoa(order.UserID), id, "auto_"+id, "auto", order.Total, "MXN", "succeeded",
+				fmt.Sprintf("Pago automático - Orden #%s", id),
+			).Scan(&paymentID)
+			if err != nil {
+				return nil, fmt.Errorf("error creando pago automático: %w", err)
+			}
+		}
+
+		// Actualizar status y paid
+		sql := `UPDATE orders SET paid = true, status = 'COMPLETADA' WHERE id = $1`
+		tag, err := s.DB.Exec(ctx, sql, id)
+		if err != nil {
+			return nil, err
+		}
+		if tag.RowsAffected() == 0 {
+			return nil, errors.New("pedido no encontrado")
+		}
+
+		// Liberar mesa si existe
+		if order.TableID != nil {
+			tableID := strconv.Itoa(*order.TableID)
+			s.DB.Exec(ctx, `UPDATE tables SET "status" = 'available' WHERE id = $1`, tableID)
+		}
+
+		// Registrar métricas
+		orderID, _ := strconv.Atoi(id)
+		if orderID > 0 {
+			s.MetricsS.OnOrderStatusUpdate(ctx, order.RestaurantID, orderID, "COMPLETADA", order.Date)
+		}
+	} else {
+		sql := `UPDATE orders SET paid = $1 WHERE id = $2`
+		_, err := s.DB.Exec(ctx, sql, paid, id)
+		if err != nil {
+			return nil, err
+		}
 	}
+
 	updated, err := s.FindOne(ctx, id)
 	if err != nil {
 		return nil, err
@@ -351,14 +507,23 @@ func (s *Service) UpdatePaidStatus(ctx context.Context, id string, paid bool) (*
 // 8. FIND OPEN ORDERS BY RESTAURANT (Para dashboard del mesero)
 // ---------------------------------------------------------
 func (s *Service) FindOpenOrdersByRestaurant(ctx context.Context, restaurantID string) ([]*model.Order, error) {
+	restID, err := strconv.Atoi(restaurantID)
+	if err != nil {
+		return nil, fmt.Errorf("restaurantID debe ser numérico: %w", err)
+	}
+
 	sql := `
-		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid,
-		       COALESCE(estimated_wait_time, 0), actual_wait_time, completed_at
-		FROM orders
-		WHERE restaurant = $1 AND status IN ('ABIERTA', 'LISTA')
-		ORDER BY date DESC
+		SELECT o.id, o."user", o.user_name, o.restaurant, o.status, o.type, o.total, o.notes, o."table", o.date, o.paid,
+		       COALESCE(o.estimated_wait_time, 0), o.actual_wait_time, o.completed_at,
+		       u.id, u."name", u.email, u."role", u.is_verified,
+		       r.id, r."name", r.address, r.email
+		FROM orders o
+		LEFT JOIN users u ON o."user" = u.id
+		LEFT JOIN restaurants r ON o.restaurant = r.id
+		WHERE o.restaurant = $1 AND o.status IN ('ABIERTA', 'LISTA')
+		ORDER BY o.date DESC
 	`
-	rows, err := s.DB.Query(ctx, sql, restaurantID)
+	rows, err := s.DB.Query(ctx, sql, restID)
 	if err != nil {
 		return nil, err
 	}
@@ -372,10 +537,24 @@ func (s *Service) FindOpenOrdersByRestaurant(ctx context.Context, restaurantID s
 		var actualWait *int
 		var completedAt *time.Time
 
+		var (
+			uID   *int
+			uName *string
+			uMail *string
+			uRole *string
+			uVrf  *bool
+			rID   *int
+			rName *string
+			rAddr *string
+			rMail *string
+		)
+
 		err := rows.Scan(
 			&o.ID, &o.UserID, &o.UserName, &o.RestaurantID, &o.Status,
 			&o.Type, &o.Total, &notes, &mesaId, &o.Date, &o.Paid,
 			&o.EstimatedWaitTime, &actualWait, &completedAt,
+			&uID, &uName, &uMail, &uRole, &uVrf,
+			&rID, &rName, &rAddr, &rMail,
 		)
 		if err != nil {
 			return nil, err
@@ -384,6 +563,28 @@ func (s *Service) FindOpenOrdersByRestaurant(ctx context.Context, restaurantID s
 		o.TableID = mesaId
 		o.ActualWaitTime = actualWait
 		o.CompletedAt = completedAt
+
+		if uID != nil {
+			isVerified := false
+			if uVrf != nil {
+				isVerified = *uVrf
+			}
+			o.User = &model.User{
+				ID:         fmt.Sprintf("%d", *uID),
+				Name:       uName,
+				Email:      uMail,
+				Role:       uRole,
+				IsVerified: isVerified,
+			}
+		}
+		if rID != nil {
+			o.Restaurant = &model.Restaurant{
+				ID:      fmt.Sprintf("%d", *rID),
+				Name:    safeStr(rName),
+				Address: safeStr(rAddr),
+				Email:   safeStr(rMail),
+			}
+		}
 		orders = append(orders, &o)
 	}
 	return orders, nil
@@ -493,14 +694,23 @@ func (s *Service) FindOpenOrdersWithDetails(ctx context.Context, restaurantID st
 // 9. FIND ORDERS BY USER (Para "Mis Órdenes" del cliente)
 // ---------------------------------------------------------
 func (s *Service) FindAllByUser(ctx context.Context, userID string) ([]*model.Order, error) {
+	uid, err := strconv.Atoi(userID)
+	if err != nil {
+		return nil, fmt.Errorf("userID debe ser numérico: %w", err)
+	}
+
 	sql := `
-		SELECT id, "user", user_name, restaurant, status, type, total, notes, "table", date, paid,
-		       COALESCE(estimated_wait_time, 0), actual_wait_time, completed_at
-		FROM orders
-		WHERE "user" = $1
-		ORDER BY date DESC
+		SELECT o.id, o."user", o.user_name, o.restaurant, o.status, o.type, o.total, o.notes, o."table", o.date, o.paid,
+		       COALESCE(o.estimated_wait_time, 0), o.actual_wait_time, o.completed_at,
+		       u.id, u."name", u.email, u."role", u.is_verified,
+		       r.id, r."name", r.address, r.email
+		FROM orders o
+		LEFT JOIN users u ON o."user" = u.id
+		LEFT JOIN restaurants r ON o.restaurant = r.id
+		WHERE o."user" = $1
+		ORDER BY o.date DESC
 	`
-	rows, err := s.DB.Query(ctx, sql, userID)
+	rows, err := s.DB.Query(ctx, sql, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -514,10 +724,24 @@ func (s *Service) FindAllByUser(ctx context.Context, userID string) ([]*model.Or
 		var actualWait *int
 		var completedAt *time.Time
 
+		var (
+			uID   *int
+			uName *string
+			uMail *string
+			uRole *string
+			uVrf  *bool
+			rID   *int
+			rName *string
+			rAddr *string
+			rMail *string
+		)
+
 		err := rows.Scan(
 			&o.ID, &o.UserID, &o.UserName, &o.RestaurantID, &o.Status,
 			&o.Type, &o.Total, &notes, &mesaId, &o.Date, &o.Paid,
 			&o.EstimatedWaitTime, &actualWait, &completedAt,
+			&uID, &uName, &uMail, &uRole, &uVrf,
+			&rID, &rName, &rAddr, &rMail,
 		)
 		if err != nil {
 			return nil, err
@@ -526,6 +750,28 @@ func (s *Service) FindAllByUser(ctx context.Context, userID string) ([]*model.Or
 		o.TableID = mesaId
 		o.ActualWaitTime = actualWait
 		o.CompletedAt = completedAt
+
+		if uID != nil {
+			isVerified := false
+			if uVrf != nil {
+				isVerified = *uVrf
+			}
+			o.User = &model.User{
+				ID:         fmt.Sprintf("%d", *uID),
+				Name:       uName,
+				Email:      uMail,
+				Role:       uRole,
+				IsVerified: isVerified,
+			}
+		}
+		if rID != nil {
+			o.Restaurant = &model.Restaurant{
+				ID:      fmt.Sprintf("%d", *rID),
+				Name:    safeStr(rName),
+				Address: safeStr(rAddr),
+				Email:   safeStr(rMail),
+			}
+		}
 		orders = append(orders, &o)
 	}
 	return orders, nil
@@ -642,4 +888,11 @@ func (s *Service) RemoveItem(ctx context.Context, orderID string, itemID string)
 	s.Hub.BroadcastToRestaurant(restID, updated)
 
 	return updated, nil
+}
+
+func safeStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

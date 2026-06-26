@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -96,6 +97,8 @@ func (s *Service) Create(ctx context.Context, input model.CreateReviewInput) (*m
 		return nil, fmt.Errorf("error al obtener comentario creado: %w", err)
 	}
 
+	s.Redis.Del(ctx, fmt.Sprintf("reviews:restaurant:%d", b.RestaurantID))
+
 	return b, nil
 }
 
@@ -172,22 +175,40 @@ func (s *Service) Update(ctx context.Context, id string, input model.UpdateRevie
 		return nil, fmt.Errorf("ID inválido: %w", err)
 	}
 
-	sql := `
-		UPDATE reviews 
-		SET restaurant = $1, "user" = $2, rating = $3, comment = $4
-		WHERE id = $5
-		RETURNING id
-	`
+	sets := []string{}
+	args := []interface{}{}
+	argIdx := 1
+
+	if input.Restaurant != nil {
+		sets = append(sets, fmt.Sprintf("restaurant = $%d", argIdx))
+		args = append(args, *input.Restaurant)
+		argIdx++
+	}
+	if input.User != nil {
+		sets = append(sets, fmt.Sprintf(`"user" = $%d`, argIdx))
+		args = append(args, *input.User)
+		argIdx++
+	}
+	if input.Rating != nil {
+		sets = append(sets, fmt.Sprintf("rating = $%d", argIdx))
+		args = append(args, *input.Rating)
+		argIdx++
+	}
+	if input.Comment != nil {
+		sets = append(sets, fmt.Sprintf("comment = $%d", argIdx))
+		args = append(args, *input.Comment)
+		argIdx++
+	}
+
+	if len(sets) == 0 {
+		return nil, errors.New("no hay campos para actualizar")
+	}
+
+	args = append(args, dbID)
+	sql := fmt.Sprintf(`UPDATE reviews SET %s WHERE id = $%d RETURNING id`, strings.Join(sets, ", "), argIdx)
 
 	var updatedID int
-	err = s.DB.QueryRow(ctx, sql,
-		input.Restaurant,
-		input.User,
-		input.Rating,
-		input.Comment,
-		dbID,
-	).Scan(&updatedID)
-
+	err = s.DB.QueryRow(ctx, sql, args...).Scan(&updatedID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, errors.New("no se encontró el comentario para actualizar")
@@ -201,6 +222,9 @@ func (s *Service) Update(ctx context.Context, id string, input model.UpdateRevie
 	if err != nil {
 		return nil, fmt.Errorf("error al obtener comentario actualizado: %w", err)
 	}
+
+	s.Redis.Del(ctx, fmt.Sprintf("review:%d", dbID))
+	s.Redis.Del(ctx, fmt.Sprintf("reviews:restaurant:%d", b.RestaurantID))
 
 	return b, nil
 }
@@ -221,6 +245,9 @@ func (s *Service) Delete(ctx context.Context, id string) (bool, error) {
 	if tag.RowsAffected() == 0 {
 		return false, nil
 	}
+
+	s.Redis.Del(ctx, fmt.Sprintf("review:%d", dbID))
+	s.Redis.Del(ctx, fmt.Sprintf("reviews:restaurant:%d", dbID))
 
 	return true, nil
 }

@@ -22,15 +22,23 @@ export function LoginForm() {
     password: "",
   });
 
+  const getRedirect = () => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("redirect");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     if (!formData.email || !validarEmail(formData.email)) {
+      setIsLoading(false);
       addToast("El correo esta mal escrito o no hay correo", "error")
       return;
     }
     if (!formData.password) {
+      setIsLoading(false);
       addToast("La contraseña es obligatoria", "error")
       return;
     }
@@ -39,6 +47,11 @@ export function LoginForm() {
       await login(formData.email, formData.password);
       
       setTimeout(() => {
+        const redirect = getRedirect();
+        if (redirect) {
+          window.location.href = decodeURIComponent(redirect);
+          return;
+        }
         const user = JSON.parse(localStorage.getItem("Suavus_user") || "{}");
 
         if (user.role === "superadmin") window.location.href = "/admin";
@@ -93,7 +106,7 @@ export function LoginForm() {
                 required
               />
               <div className="flex justify-end">
-                <a href="#" className="text-xs text-primary hover:underline">
+                <a href="/auth/forgot-password" className="text-xs text-primary hover:underline">
                   ¿Olvidaste tu contraseña?
                 </a>
               </div>
@@ -153,7 +166,7 @@ export function LoginForm() {
             <div className="mt-4 text-center text-sm text-muted-foreground">
               ¿No tienes una cuenta?{" "}
               <a
-                href="/register"
+                href={getRedirect() ? `/register?redirect=${getRedirect()}` : "/register"}
                 className="text-primary hover:underline font-medium"
               >
                 Regístrate

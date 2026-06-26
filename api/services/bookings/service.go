@@ -3,10 +3,10 @@ package bookings
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -26,7 +26,7 @@ func NewService(db *pgxpool.Pool, rdb *redis.Client) *Service {
 }
 
 const bookingJoinSelect = `SELECT 
-	b.id, b.restaurant, b."user", b."table", b.people, b."time", b.status,
+	b.id, b.restaurant, b."user", b."table", b.people, b."time", b.status, b.cancellation_reason,
 	r.id, r."name", r.address, r.email,
 	u.id, u."name", u.email, u."role"`
 
@@ -42,7 +42,7 @@ func scanBookingWithJoins(scanner interface {
 	var u model.User
 
 	err := scanner.Scan(
-		&b.ID, &b.RestaurantID, &b.UserID, &b.TableID, &b.People, &b.Time, &b.Status,
+		&b.ID, &b.RestaurantID, &b.UserID, &b.TableID, &b.People, &b.Time, &b.Status, &b.CancellationReason,
 		&r.ID, &r.Name, &r.Address, &r.Email,
 		&u.ID, &u.Name, &u.Email, &u.Role,
 	)
@@ -201,7 +201,7 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Booking, error
 		}
 	}
 
-	sql := `SELECT id, restaurant, "user", "table", people, "time", status FROM bookings WHERE id = $1`
+	sql := `SELECT id, restaurant, "user", "table", people, "time", status, cancellation_reason FROM bookings WHERE id = $1`
 
 	var b model.Booking
 	var idScanned, restID, userID int
@@ -214,6 +214,7 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Booking, error
 		&b.People,
 		&b.Time,
 		&b.Status,
+		&b.CancellationReason,
 	)
 
 	if err != nil {
@@ -238,47 +239,75 @@ func (s *Service) Update(ctx context.Context, id string, input model.UpdateBooki
 		return nil, fmt.Errorf("ID inválido: %w", err)
 	}
 
-	sql := `
-		UPDATE bookings 
-		SET restaurant = $1, "user" = $2, "table" = $3, people = $4, "time" = $5, status = $6
-		WHERE id = $7
-		RETURNING id, restaurant, "user", "table", people, "time", status
-	`
+	sets := []string{}
+	args := []interface{}{}
+	argIdx := 1
 
-	var b model.Booking
-	var idScanned, restID, userID int
+	if input.Restaurant != nil {
+		sets = append(sets, fmt.Sprintf(`restaurant = $%d`, argIdx))
+		args = append(args, *input.Restaurant)
+		argIdx++
+	}
+	if input.User != nil {
+		sets = append(sets, fmt.Sprintf(`"user" = $%d`, argIdx))
+		args = append(args, *input.User)
+		argIdx++
+	}
+	if input.Table != nil {
+		sets = append(sets, fmt.Sprintf(`"table" = $%d`, argIdx))
+		args = append(args, *input.Table)
+		argIdx++
+	}
+	if input.People != nil {
+		sets = append(sets, fmt.Sprintf(`people = $%d`, argIdx))
+		args = append(args, *input.People)
+		argIdx++
+	}
+	if input.Time != nil {
+		sets = append(sets, fmt.Sprintf(`"time" = $%d`, argIdx))
+		args = append(args, *input.Time)
+		argIdx++
+	}
+	if input.Status != nil {
+		sets = append(sets, fmt.Sprintf(`status = $%d`, argIdx))
+		args = append(args, *input.Status)
+		argIdx++
+	}
+	if input.CancellationReason != nil {
+		sets = append(sets, fmt.Sprintf(`cancellation_reason = $%d`, argIdx))
+		args = append(args, *input.CancellationReason)
+		argIdx++
+	}
 
-	err = s.DB.QueryRow(ctx, sql,
-		input.Restaurant,
-		input.User,
-		input.Table,
-		input.People,
-		input.Time,
-		input.Status,
-		dbID,
-	).Scan(&idScanned, &restID, &userID, &b.TableID, &b.People, &b.Time, &b.Status)
+	if len(sets) == 0 {
+		return s.FindOne(ctx, id)
+	}
 
+	sql := fmt.Sprintf(`UPDATE bookings SET %s WHERE id = $%d`, strings.Join(sets, ", "), argIdx)
+	args = append(args, dbID)
+
+	_, err = s.DB.Exec(ctx, sql, args...)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, errors.New("no se encontró la reserva para actualizar")
-		}
-		return nil, fmt.Errorf("error al actualizar: %w", err)
+		return nil, fmt.Errorf("error al actualizar reserva: %w", err)
 	}
 
-	b.ID = fmt.Sprintf("%d", idScanned)
-	b.RestaurantID = restID
-	b.UserID = userID
-
-	cacheKey := fmt.Sprintf("bookings:restaurant:%d", input.Restaurant)
-	cacheKeyUser := fmt.Sprintf("bookings:user:%d", input.User)
-	cacheKeyBooking := fmt.Sprintf("bookings:%d", dbID)
-
-	_, err = s.Redis.Get(ctx, cacheKey).Result()
-	if err == nil {
-		s.Redis.Del(ctx, cacheKey, cacheKeyUser, cacheKeyBooking)
+	// Invalidate cache
+	existing, err := s.FindOne(ctx, id)
+	if err != nil {
+		return nil, err
 	}
 
-	return &b, nil
+	if input.Restaurant != nil {
+		cacheKey := fmt.Sprintf("bookings:restaurant:%d", *input.Restaurant)
+		s.Redis.Del(ctx, cacheKey)
+	}
+	if input.User != nil {
+		cacheKeyUser := fmt.Sprintf("bookings:user:%d", *input.User)
+		s.Redis.Del(ctx, cacheKeyUser)
+	}
+	s.Redis.Del(ctx, fmt.Sprintf("booking:%d", dbID))
+
+	return existing, nil
 }
 
 func (s *Service) Delete(ctx context.Context, id string) (bool, error) {

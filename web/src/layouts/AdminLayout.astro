@@ -1,6 +1,7 @@
 ---
 import { AdminSidebar } from "../components/layout/AdminSidebar";
 import { ToastContainer } from "../components/custom/Toast";
+import { ClientRouter } from "astro:transitions";
 import "../styles/global.css";
 
 interface Props {
@@ -18,6 +19,8 @@ const currentPath = Astro.url.pathname;
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/logo.png" />
     <title>{title}</title>
+    <ClientRouter />
+
     <script is:inline>
       (function () {
         function applyTheme() {
@@ -48,12 +51,12 @@ const currentPath = Astro.url.pathname;
   <body
     class="bg-background text-foreground antialiased flex h-screen overflow-hidden"
   >
-    <AdminSidebar client:load client:only="react" currentPath={currentPath} />
+    <AdminSidebar client:load currentPath={currentPath} />
 
     <main class="flex-1 overflow-y-auto bg-secondary/20 p-4 md:p-8">
       <slot />
     </main>
 
-    <ToastContainer client:load client:only="react" />
+    <ToastContainer client:load />
   </body>
 </html>

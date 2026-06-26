@@ -179,7 +179,7 @@ export interface Order {
   tableId?: number;
   date: string;
   paid: boolean;
-  orderDetail?: OrderDetail;
+  orderDetail?: OrderDetail[];
   estimatedWaitTime?: number;
   actualWaitTime?: number | null;
   completedAt?: string | null;
@@ -253,8 +253,13 @@ export interface Booking {
   people: number;
   time: string;
   status: string;
+  cancellationReason?: string;
   user?: User;
   restaurant?: Restaurant;
+}
+
+export interface BookingsData {
+  bookings: Booking[];
 }
 
 export interface BookingData {
@@ -282,6 +287,7 @@ export interface UpdateBookingInput {
   people?: number;
   time?: string;
   status?: string;
+  cancellationReason?: string;
 }
 
 // ==================== RESENAS ====================

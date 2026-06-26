@@ -17,15 +17,16 @@ type AuthResponse struct {
 }
 
 type Booking struct {
-	ID           string      `json:"id"`
-	RestaurantID int         `json:"restaurantId"`
-	Restaurant   *Restaurant `json:"restaurant"`
-	UserID       int         `json:"userId"`
-	User         *User       `json:"user"`
-	TableID      int         `json:"tableId"`
-	People       int         `json:"people"`
-	Time         time.Time   `json:"time"`
-	Status       string      `json:"status"`
+	ID                 string      `json:"id"`
+	RestaurantID       int         `json:"restaurantId"`
+	Restaurant         *Restaurant `json:"restaurant"`
+	UserID             int         `json:"userId"`
+	User               *User       `json:"user"`
+	TableID            int         `json:"tableId"`
+	People             int         `json:"people"`
+	Time               time.Time   `json:"time"`
+	Status             string      `json:"status"`
+	CancellationReason *string     `json:"cancellationReason,omitempty"`
 }
 
 type CartItem struct {
@@ -133,6 +134,14 @@ type CreateReviewInput struct {
 	Comment    string `json:"comment"`
 }
 
+type CreateSubscriptionInput struct {
+	RestaurantID         int        `json:"restaurantId"`
+	PlanID               int        `json:"planId"`
+	StripeSubscriptionID *string    `json:"stripeSubscriptionId,omitempty"`
+	CurrentPeriodStart   *time.Time `json:"currentPeriodStart,omitempty"`
+	CurrentPeriodEnd     *time.Time `json:"currentPeriodEnd,omitempty"`
+}
+
 type CreateTableInput struct {
 	Restaurant int    `json:"restaurant"`
 	Number     int    `json:"number"`
@@ -160,23 +169,23 @@ type Mutation struct {
 }
 
 type Order struct {
-	ID                string       `json:"id"`
-	UserID            int          `json:"userId"`
-	User              *User        `json:"user"`
-	UserName          string       `json:"user_name"`
-	RestaurantID      int          `json:"restaurantId"`
-	Restaurant        *Restaurant  `json:"restaurant"`
-	Status            string       `json:"status"`
-	Type              string       `json:"type"`
-	Total             float64      `json:"total"`
-	Notes             *string      `json:"notes,omitempty"`
-	TableID           *int         `json:"tableId,omitempty"`
-	Date              time.Time    `json:"date"`
-	Paid              bool         `json:"paid"`
-	OrderDetail       *OrderDetail `json:"orderDetail,omitempty"`
-	EstimatedWaitTime int          `json:"estimatedWaitTime"`
-	ActualWaitTime    *int         `json:"actualWaitTime,omitempty"`
-	CompletedAt       *time.Time   `json:"completedAt,omitempty"`
+	ID                string         `json:"id"`
+	UserID            int            `json:"userId"`
+	User              *User          `json:"user"`
+	UserName          string         `json:"user_name"`
+	RestaurantID      int            `json:"restaurantId"`
+	Restaurant        *Restaurant    `json:"restaurant"`
+	Status            string         `json:"status"`
+	Type              string         `json:"type"`
+	Total             float64        `json:"total"`
+	Notes             *string        `json:"notes,omitempty"`
+	TableID           *int           `json:"tableId,omitempty"`
+	Date              time.Time      `json:"date"`
+	Paid              bool           `json:"paid"`
+	OrderDetail       []*OrderDetail `json:"orderDetail,omitempty"`
+	EstimatedWaitTime int            `json:"estimatedWaitTime"`
+	ActualWaitTime    *int           `json:"actualWaitTime,omitempty"`
+	CompletedAt       *time.Time     `json:"completedAt,omitempty"`
 }
 
 type OrderDetail struct {
@@ -290,6 +299,21 @@ type RestaurantPaymentMethod struct {
 	UpdatedAt                 time.Time  `json:"updatedAt"`
 }
 
+type RestaurantSubscription struct {
+	ID                   string            `json:"id"`
+	RestaurantID         int               `json:"restaurantId"`
+	PlanID               int               `json:"planId"`
+	Plan                 *SubscriptionPlan `json:"plan"`
+	StripeSubscriptionID *string           `json:"stripeSubscriptionId,omitempty"`
+	Status               string            `json:"status"`
+	CurrentPeriodStart   *time.Time        `json:"currentPeriodStart,omitempty"`
+	CurrentPeriodEnd     *time.Time        `json:"currentPeriodEnd,omitempty"`
+	TrialEnd             *time.Time        `json:"trialEnd,omitempty"`
+	CancelledAt          *time.Time        `json:"cancelledAt,omitempty"`
+	CreatedAt            time.Time         `json:"createdAt"`
+	UpdatedAt            time.Time         `json:"updatedAt"`
+}
+
 type Review struct {
 	ID           string      `json:"id"`
 	RestaurantID int         `json:"restaurantId"`
@@ -302,6 +326,21 @@ type Review struct {
 }
 
 type Subscription struct {
+}
+
+type SubscriptionPlan struct {
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	Description    *string   `json:"description,omitempty"`
+	Price          float64   `json:"price"`
+	Interval       string    `json:"interval"`
+	StripePriceID  *string   `json:"stripePriceId,omitempty"`
+	Features       *string   `json:"features,omitempty"`
+	MaxRestaurants int       `json:"maxRestaurants"`
+	MaxEmployees   int       `json:"maxEmployees"`
+	MaxProducts    int       `json:"maxProducts"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
 type Table struct {
@@ -330,13 +369,14 @@ type TermsContent struct {
 }
 
 type UpdateBookingInput struct {
-	ID         string     `json:"id"`
-	Restaurant *int       `json:"restaurant,omitempty"`
-	User       *int       `json:"user,omitempty"`
-	Table      *int       `json:"table,omitempty"`
-	People     *int       `json:"people,omitempty"`
-	Time       *time.Time `json:"time,omitempty"`
-	Status     *string    `json:"status,omitempty"`
+	ID                 string     `json:"id"`
+	Restaurant         *int       `json:"restaurant,omitempty"`
+	User               *int       `json:"user,omitempty"`
+	Table              *int       `json:"table,omitempty"`
+	People             *int       `json:"people,omitempty"`
+	Time               *time.Time `json:"time,omitempty"`
+	Status             *string    `json:"status,omitempty"`
+	CancellationReason *string    `json:"cancellationReason,omitempty"`
 }
 
 type UpdateCategoryInput struct {

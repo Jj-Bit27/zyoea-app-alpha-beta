@@ -28,6 +28,12 @@ export function RegisterForm() {
     confirmPassword: "",
   });
 
+  const getRedirect = () => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    return params.get("redirect") || (params.get("plan") ? `/subscribe/setup?planId=${params.get("plan")}` : null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -39,17 +45,14 @@ export function RegisterForm() {
       addToast("La contraseña es obligatoria", "error")
       return;
     }
-
     if (formData.password !== formData.confirmPassword) {
       addToast("Las contraseñas no coinciden", "error");
       return;
     }
-
     if (formData.password.length < 6) {
       addToast("La contraseña debe tener al menos 6 caracteres", "error");
       return;
     }
-
     if (!acceptTerms) {
       addToast("Debes aceptar los términos y condiciones", "error");
       return;
@@ -76,7 +79,12 @@ export function RegisterForm() {
         }
       }
       setTimeout(() => {
-        window.location.href = "/";
+        const redirect = getRedirect();
+        if (redirect) {
+          window.location.href = redirect;
+          return;
+        }
+        window.location.href = "/auth/verify-email";
       }, 500);
     } catch (error) {
       // Error manejado en context

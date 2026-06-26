@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useUserAllergies } from "../../hooks/useUserAllergies";
+import { useUserProfile } from "../../hooks/useUserProfile";
 import { ApolloWrapper } from "../ApolloWrapper";
 import { Button } from "../custom/Button";
 import { Input } from "../custom/Input";
 import { Textarea } from "../custom/Textarea";
 import { Avatar } from "../custom/Avatar";
 import { addToast } from "../custom/Toast";
-import { FiLogOut, FiAlertTriangle } from "react-icons/fi";
+import { FiLogOut, FiAlertTriangle, FiTrash2, FiSave } from "react-icons/fi";
 
 const ALLERGEN_OPTIONS = [
   "Gluten",
@@ -32,9 +33,13 @@ export function UserProfileContent() {
     allergies: savedAllergies,
     updateAllergies,
     saving,
+    deleteAccount,
   } = useUserAllergies(user?.id);
+  const { updateUser, saving: savingProfile } = useUserProfile(user?.id);
   const [allergies, setAllergies] = useState("");
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+  const [editName, setEditName] = useState(user?.name || "");
+  const [editEmail, setEditEmail] = useState(user?.email || "");
 
   useEffect(() => {
     if (savedAllergies) {
@@ -57,6 +62,25 @@ export function UserProfileContent() {
       setAllergies(str);
       return next;
     });
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user?.id) return;
+    if (!editName.trim() || !editEmail.trim()) {
+      addToast("Nombre y email son requeridos", "error");
+      return;
+    }
+    try {
+      const result = await updateUser(editName.trim(), editEmail.trim());
+      if (result) {
+        user.name = result.name;
+        user.email = result.email;
+        localStorage.setItem("Suavus_user", JSON.stringify(user));
+        addToast("Perfil actualizado", "success");
+      }
+    } catch {
+      addToast("Error al actualizar perfil", "error");
+    }
   };
 
   const handleSave = async () => {
@@ -94,9 +118,21 @@ export function UserProfileContent() {
       <div className="space-y-4">
         <h3 className="text-lg font-bold">Mis Datos</h3>
         <div className="grid gap-4 md:grid-cols-2">
-          <Input label="Nombre" defaultValue={user.name} disabled readOnly />
-          <Input label="Email" defaultValue={user.email} disabled readOnly />
+          <Input
+            label="Nombre"
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+          />
+          <Input
+            label="Email"
+            type="email"
+            value={editEmail}
+            onChange={(e) => setEditEmail(e.target.value)}
+          />
         </div>
+        <Button onClick={handleSaveProfile} disabled={savingProfile}>
+          <FiSave className="mr-1" /> {savingProfile ? "Guardando..." : "Guardar cambios"}
+        </Button>
       </div>
 
       <div className="space-y-4 p-6 bg-card rounded-xl border border-border">
@@ -144,7 +180,7 @@ export function UserProfileContent() {
         </Button>
       </div>
 
-      <div className="pt-8 border-t border-border">
+      <div className="pt-8 border-t border-border space-y-4">
         <Button
           variant="destructive"
           onClick={logout}
@@ -152,6 +188,29 @@ export function UserProfileContent() {
         >
           <FiLogOut className="mr-2" /> Cerrar Sesión
         </Button>
+
+        <div className="pt-4 border-t border-border">
+          <p className="text-sm text-muted-foreground mb-3">
+            Eliminarás permanentemente tu cuenta y todos tus datos.
+          </p>
+          <Button
+            variant="destructive"
+            className="w-full md:w-auto bg-destructive/80 hover:bg-destructive"
+            onClick={async () => {
+              if (!confirm("¿Estás seguro de eliminar tu cuenta? Esta acción no se puede deshacer.")) return;
+              if (!confirm("¿Confirmas que deseas eliminar permanentemente tu cuenta y todos tus datos?")) return;
+              try {
+                await deleteAccount();
+                addToast("Cuenta eliminada permanentemente", "info");
+                logout();
+              } catch {
+                addToast("Error al eliminar la cuenta", "error");
+              }
+            }}
+          >
+            <FiTrash2 className="mr-2" /> Borrar cuenta
+          </Button>
+        </div>
       </div>
     </div>
   );

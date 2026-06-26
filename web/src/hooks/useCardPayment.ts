@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useCreatePayment } from "./usePayments";
 import { useUpdateOrderPayment } from "./useOrders";
 import { addToast } from "../components/custom/Toast";
+import { STRIPE_PUBLIC_KEY } from "../config";
 import { formatCardNumber, formatExpiry, extractGraphQLError } from "../libs/formatters";
 
 export function useCardPayment(orderId: string, total: number) {
@@ -36,12 +37,36 @@ export function useCardPayment(orderId: string, total: number) {
     if (!validate() || !user || !orderId) return false;
     setIsProcessing(true);
     try {
-      const mockToken = "pm_mock_" + Math.floor(Math.random() * 10000);
+      let paymentMethodId = "pm_mock_" + Math.floor(Math.random() * 10000);
+
+      if (STRIPE_PUBLIC_KEY) {
+        const { loadStripe } = await import("@stripe/stripe-js");
+        const stripe = await loadStripe(STRIPE_PUBLIC_KEY);
+        if (stripe) {
+          const { error, paymentMethod } = await stripe.createPaymentMethod({
+            type: "card",
+            card: {
+              number: cardNumber.replace(/\s/g, ""),
+              exp_month: parseInt(expiry.split("/")[0]),
+              exp_year: parseInt("20" + expiry.split("/")[1]),
+              cvc: cvv,
+            },
+            billing_details: { name: cardName },
+          });
+          if (error) {
+            addToast(error.message || "Error con la tarjeta", "error");
+            setIsProcessing(false);
+            return false;
+          }
+          paymentMethodId = paymentMethod.id;
+        }
+      }
+
       await createPayment({
         userId: user.id.toString(),
         amount: total,
         currency: "MXN",
-        paymentMethodId: mockToken,
+        paymentMethodId,
         description: `Pago con tarjeta - Orden #${orderId}`,
         orderId: parseInt(orderId),
       });

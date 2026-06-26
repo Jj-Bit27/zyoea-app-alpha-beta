@@ -131,6 +131,7 @@ function ProductsManagerContent() {
       !formData.name.trim() ||
       isNaN(parseFloat(formData.price)) ||
       formData.price.trim() === "" ||
+      parseFloat(formData.price) <= 0 ||
       formData.price.startsWith("-") ||
       formData.price.startsWith(".") ||
       !formData.description.trim() ||
@@ -151,7 +152,7 @@ function ProductsManagerContent() {
       ingredients: formData.ingredients,
       allergens: formData.allergens,
       description: formData.description,
-      price: parseFloat(formData.price) || 0,
+      price: parseFloat(formData.price),
       image: formData.image || null,
       status: formData.status,
     };

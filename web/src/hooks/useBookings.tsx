@@ -18,6 +18,7 @@ const GET_BOOKINGS = gql`
       people
       time
       status
+      cancellationReason
     }
   }
 `;
@@ -37,6 +38,7 @@ const GET_BOOKINGS_USER = gql`
       people
       time
       status
+      cancellationReason
     }
   }
 `;
@@ -60,6 +62,7 @@ const UPDATE_BOOKING = gql`
     updateBooking(id: $id, input: $input) {
       id
       status
+      cancellationReason
     }
   }
 `;

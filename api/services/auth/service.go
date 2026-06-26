@@ -13,21 +13,26 @@ import (
 	"strings"
 	"time"
 
+	"api/graph/model"
+	"api/services/email"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
-
-	"api/graph/model" // Asegúrate que este path coincida con tu go.mod
 )
 
 type Service struct {
-	DB *pgxpool.Pool
+	DB          *pgxpool.Pool
+	Email       *email.Service
 }
 
 func NewService(db *pgxpool.Pool) *Service {
-	return &Service{DB: db}
+	return &Service{
+		DB:    db,
+		Email: email.NewService(),
+	}
 }
 
 // Clave secreta (debería venir de .env)
@@ -78,8 +83,14 @@ func (s *Service) Register(ctx context.Context, input model.RegisterInput) (*mod
 		return nil, fmt.Errorf("error DB: %w", err)
 	}
 
-	// TODO: Enviar Email (usar goroutine)
-	// go sendVerificationEmail(u.Email, verificationToken)
+	// Enviar email de verificación
+	if s.Email != nil && u.Email != nil {
+		go func(emailAddr, code string) {
+			if err := s.Email.SendVerificationEmail(emailAddr, code); err != nil {
+				slog.Warn("Error enviando email de verificación", "error", err)
+			}
+		}(*u.Email, verificationToken)
+	}
 	dbID, err := strconv.Atoi(u.ID)
 	if err != nil {
 		return nil, fmt.Errorf("error convirtiendo ID de usuario: %w", err)
@@ -168,7 +179,19 @@ func (s *Service) ForgotPassword(ctx context.Context, email string) (bool, error
 	if err != nil || tag.RowsAffected() == 0 {
 		return false, errors.New("la cuenta no se encontró")
 	}
-	// go sendRecoveryEmail(...)
+	// Enviar email de recuperación
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "https://suavus.app"
+	}
+	resetLink := fmt.Sprintf("%s/auth/reset-password?token=%s", frontendURL, resetToken)
+	if s.Email != nil {
+		go func(e, link string) {
+			if err := s.Email.SendPasswordRecoveryEmail(e, link); err != nil {
+				slog.Warn("Error enviando email de recuperación", "error", err)
+			}
+		}(email, resetLink)
+	}
 	return true, nil
 }
 
@@ -255,6 +278,61 @@ func (s *Service) UpdateAllergies(ctx context.Context, id string, allergies stri
 	}
 	if err != nil {
 		return nil, fmt.Errorf("error al actualizar alergias: %w", err)
+	}
+	return &u, nil
+}
+
+// ----------------------------------------------------------------
+// DELETE ACCOUNT
+// ----------------------------------------------------------------
+func (s *Service) DeleteAccount(ctx context.Context, id string) (bool, error) {
+	dbID, err := strconv.Atoi(id)
+	if err != nil {
+		return false, fmt.Errorf("ID inválido: %w", err)
+	}
+
+	tag, err := s.DB.Exec(ctx, `DELETE FROM users WHERE id = $1`, dbID)
+	if err != nil {
+		return false, fmt.Errorf("error al eliminar cuenta: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return false, errors.New("cuenta no encontrada")
+	}
+
+	return true, nil
+}
+
+// ----------------------------------------------------------------
+// UPDATE USER (name, email)
+// ----------------------------------------------------------------
+func (s *Service) UpdateUser(ctx context.Context, id string, name *string, email *string) (*model.User, error) {
+	sets := []string{}
+	args := []interface{}{}
+	argIdx := 1
+
+	if name != nil {
+		sets = append(sets, fmt.Sprintf(`"name" = $%d`, argIdx))
+		args = append(args, *name)
+		argIdx++
+	}
+	if email != nil {
+		sets = append(sets, fmt.Sprintf(`"email" = $%d`, argIdx))
+		args = append(args, *email)
+		argIdx++
+	}
+
+	if len(sets) == 0 {
+		return s.GetUser(ctx, id)
+	}
+
+	sql := fmt.Sprintf(`UPDATE users SET %s WHERE id = $%d RETURNING id, name, email, role, is_verified, allergies`, strings.Join(sets, ", "), argIdx)
+	args = append(args, id)
+
+	var u model.User
+	err := s.DB.QueryRow(ctx, sql, args...).Scan(&u.ID, &u.Name, &u.Email, &u.Role, &u.IsVerified, &u.Allergies)
+	if err != nil {
+		return nil, fmt.Errorf("error al actualizar usuario: %w", err)
 	}
 	return &u, nil
 }

@@ -16,10 +16,11 @@ import { ApolloWrapper } from '../ApolloWrapper'
 function ReviewManagerContent({ restaurantId, restaurantName, compact }: { restaurantId: string, restaurantName: string, compact?: boolean }) {
   const { user } = useAuth()
   const { showToast } = useToast()
-  const { reviews, loading, error, createReview, deleteReview } = useReviews(restaurantId)
+  const { reviews, loading, error, creating, createReview, deleteReview } = useReviews(restaurantId)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [newReview, setNewReview] = useState({ title: '', content: '', rating: 5 })
+  const [newReview, setNewReview] = useState({ content: '', rating: 5 })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const userReview = useMemo(() => reviews.find((r) => String(r.userId) === user?.id), [reviews, user?.id])
 
@@ -29,7 +30,7 @@ function ReviewManagerContent({ restaurantId, restaurantName, compact }: { resta
 
   const displayReviews = compact ? reviews.slice(0, 3) : reviews
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (!newReview.content.trim()) {
       showToast('Escribe un comentario', 'error')
       return
@@ -38,14 +39,25 @@ function ReviewManagerContent({ restaurantId, restaurantName, compact }: { resta
       showToast('Inicia sesión para escribir una reseña', 'error')
       return
     }
-    createReview({
-      restaurant: parseInt(restaurantId),
-      user: parseInt(user.id),
-      rating: newReview.rating,
-      comment: newReview.content,
-    })
-    setIsModalOpen(false)
-    setNewReview({ title: '', content: '', rating: 5 })
+    if (newReview.rating < 1 || newReview.rating > 5) {
+      showToast('La calificación debe ser entre 1 y 5', 'error')
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      await createReview({
+        restaurant: parseInt(restaurantId),
+        user: parseInt(user.id),
+        rating: newReview.rating,
+        comment: newReview.content,
+      })
+      setIsModalOpen(false)
+      setNewReview({ content: '', rating: 5 })
+    } catch {
+      // Error handled by hook toast
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (loading) return <div className="flex justify-center py-10"><Spinner size="lg" /></div>
@@ -114,7 +126,9 @@ function ReviewManagerContent({ restaurantId, restaurantName, compact }: { resta
         </ModalBody>
         <ModalFooter>
           <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-          <Button onClick={handleSubmitReview}>Publicar</Button>
+          <Button onClick={handleSubmitReview} disabled={isSubmitting || creating}>
+            {isSubmitting || creating ? "Publicando..." : "Publicar"}
+          </Button>
         </ModalFooter>
       </Modal>
     </>

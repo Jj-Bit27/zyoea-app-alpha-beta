@@ -19,7 +19,7 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
-// region    ************************** generated!.gotpl **************************
+// region    ***************************** api!.gotpl *****************************
 
 // NewExecutableSchema creates an ExecutableSchema from the ResolverRoot interface.
 func NewExecutableSchema(cfg Config) graphql.ExecutableSchema {
@@ -45,15 +45,16 @@ type ComplexityRoot struct {
 	}
 
 	Booking struct {
-		ID           func(childComplexity int) int
-		People       func(childComplexity int) int
-		Restaurant   func(childComplexity int) int
-		RestaurantID func(childComplexity int) int
-		Status       func(childComplexity int) int
-		TableID      func(childComplexity int) int
-		Time         func(childComplexity int) int
-		User         func(childComplexity int) int
-		UserID       func(childComplexity int) int
+		CancellationReason func(childComplexity int) int
+		ID                 func(childComplexity int) int
+		People             func(childComplexity int) int
+		Restaurant         func(childComplexity int) int
+		RestaurantID       func(childComplexity int) int
+		Status             func(childComplexity int) int
+		TableID            func(childComplexity int) int
+		Time               func(childComplexity int) int
+		User               func(childComplexity int) int
+		UserID             func(childComplexity int) int
 	}
 
 	CartItem struct {
@@ -95,6 +96,7 @@ type ComplexityRoot struct {
 		AcceptTerms                   func(childComplexity int, userID string, typeArg model.TermsType) int
 		AddOrderItems                 func(childComplexity int, orderID string, items []*model.OrderItemInput) int
 		AddToCart                     func(childComplexity int, userID string, productID int, quantity int, restaurantID int) int
+		CancelSubscription            func(childComplexity int, restaurantID string) int
 		ClearCart                     func(childComplexity int, userID string) int
 		CreateBooking                 func(childComplexity int, input model.CreateBookingInput) int
 		CreateCategory                func(childComplexity int, input model.CreateCategoryInput) int
@@ -105,7 +107,9 @@ type ComplexityRoot struct {
 		CreateRestaurant              func(childComplexity int, input model.CreateRestaurantInput) int
 		CreateRestaurantPaymentMethod func(childComplexity int, userID string, input model.CreateRestaurantPaymentMethodInput) int
 		CreateReview                  func(childComplexity int, input model.CreateReviewInput) int
+		CreateSubscription            func(childComplexity int, input model.CreateSubscriptionInput) int
 		CreateTable                   func(childComplexity int, input model.CreateTableInput) int
+		DeleteAccount                 func(childComplexity int, id string) int
 		DeleteBooking                 func(childComplexity int, id string) int
 		DeleteCategory                func(childComplexity int, id string) int
 		DeleteProduct                 func(childComplexity int, id string) int
@@ -132,6 +136,7 @@ type ComplexityRoot struct {
 		UpdateRestaurantPaymentMethod func(childComplexity int, userID string, input model.CreateRestaurantPaymentMethodInput) int
 		UpdateReview                  func(childComplexity int, id string, input model.UpdateReviewInput) int
 		UpdateTable                   func(childComplexity int, id string, input model.UpdateTableInput) int
+		UpdateUser                    func(childComplexity int, id string, name *string, email *string) int
 		UpdateUserAllergies           func(childComplexity int, id string, allergies string) int
 		VerifyEmail                   func(childComplexity int, code string) int
 	}
@@ -208,6 +213,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		AllSubscriptions                 func(childComplexity int) int
 		Booking                          func(childComplexity int, id string) int
 		Bookings                         func(childComplexity int, restaurantID string) int
 		BookingsUser                     func(childComplexity int, userID string) int
@@ -233,12 +239,15 @@ type ComplexityRoot struct {
 		Products                         func(childComplexity int, restaurantID string) int
 		RecentOrderMetrics               func(childComplexity int, restaurantID string, limit *int) int
 		Restaurant                       func(childComplexity int, id string) int
+		RestaurantSubscription           func(childComplexity int, restaurantID string) int
 		RestaurantWaitMetrics            func(childComplexity int, restaurantID string) int
 		Restaurants                      func(childComplexity int) int
 		Review                           func(childComplexity int, id string) int
 		Reviews                          func(childComplexity int, restaurantID string) int
+		SubscriptionPlans                func(childComplexity int) int
 		Table                            func(childComplexity int, id string) int
 		Tables                           func(childComplexity int, restaurantID string) int
+		TotalUsers                       func(childComplexity int) int
 		User                             func(childComplexity int, id string) int
 		UserPayments                     func(childComplexity int, userID string) int
 		VerifyToken                      func(childComplexity int, token *string) int
@@ -283,6 +292,21 @@ type ComplexityRoot struct {
 		VerificationRequiredAt    func(childComplexity int) int
 	}
 
+	RestaurantSubscription struct {
+		CancelledAt          func(childComplexity int) int
+		CreatedAt            func(childComplexity int) int
+		CurrentPeriodEnd     func(childComplexity int) int
+		CurrentPeriodStart   func(childComplexity int) int
+		ID                   func(childComplexity int) int
+		Plan                 func(childComplexity int) int
+		PlanID               func(childComplexity int) int
+		RestaurantID         func(childComplexity int) int
+		Status               func(childComplexity int) int
+		StripeSubscriptionID func(childComplexity int) int
+		TrialEnd             func(childComplexity int) int
+		UpdatedAt            func(childComplexity int) int
+	}
+
 	Review struct {
 		Comment      func(childComplexity int) int
 		Date         func(childComplexity int) int
@@ -297,6 +321,21 @@ type ComplexityRoot struct {
 	Subscription struct {
 		OrderCreated       func(childComplexity int, restaurantID int) int
 		OrderStatusUpdated func(childComplexity int, restaurantID int) int
+	}
+
+	SubscriptionPlan struct {
+		CreatedAt      func(childComplexity int) int
+		Description    func(childComplexity int) int
+		Features       func(childComplexity int) int
+		ID             func(childComplexity int) int
+		Interval       func(childComplexity int) int
+		MaxEmployees   func(childComplexity int) int
+		MaxProducts    func(childComplexity int) int
+		MaxRestaurants func(childComplexity int) int
+		Name           func(childComplexity int) int
+		Price          func(childComplexity int) int
+		StripePriceID  func(childComplexity int) int
+		UpdatedAt      func(childComplexity int) int
 	}
 
 	Table struct {
@@ -343,13 +382,19 @@ type ComplexityRoot struct {
 	}
 }
 
+// endregion ***************************** api!.gotpl *****************************
+
+// region    ************************** generated!.gotpl **************************
+
 type MutationResolver interface {
 	Register(ctx context.Context, input model.RegisterInput) (*model.AuthResponse, error)
 	Login(ctx context.Context, input model.LoginInput) (*model.AuthResponse, error)
 	VerifyEmail(ctx context.Context, code string) (*model.User, error)
 	ForgotPassword(ctx context.Context, email string) (bool, error)
 	ResetPassword(ctx context.Context, token string, password string) (bool, error)
+	UpdateUser(ctx context.Context, id string, name *string, email *string) (*model.User, error)
 	UpdateUserAllergies(ctx context.Context, id string, allergies string) (*model.User, error)
+	DeleteAccount(ctx context.Context, id string) (bool, error)
 	CreateRestaurant(ctx context.Context, input model.CreateRestaurantInput) (*model.Restaurant, error)
 	UpdateRestaurant(ctx context.Context, id string, input model.UpdateRestaurantInput) (*model.Restaurant, error)
 	DeleteRestaurant(ctx context.Context, id string) (bool, error)
@@ -386,6 +431,8 @@ type MutationResolver interface {
 	RemoveFromCart(ctx context.Context, userID string, productID int) (bool, error)
 	ClearCart(ctx context.Context, userID string) (bool, error)
 	AcceptTerms(ctx context.Context, userID string, typeArg model.TermsType) (*model.TermsAcceptance, error)
+	CreateSubscription(ctx context.Context, input model.CreateSubscriptionInput) (*model.RestaurantSubscription, error)
+	CancelSubscription(ctx context.Context, restaurantID string) (*model.RestaurantSubscription, error)
 }
 type QueryResolver interface {
 	VerifyToken(ctx context.Context, token *string) (*model.UserWithRestaurant, error)
@@ -422,11 +469,19 @@ type QueryResolver interface {
 	GetCurrentTermsAcceptance(ctx context.Context, typeArg model.TermsType) (*model.TermsAcceptance, error)
 	CheckPendingTermsAcceptance(ctx context.Context) ([]model.TermsType, error)
 	GetCloudinarySignature(ctx context.Context, publicID string, timestamp int) (*model.CloudinarySignature, error)
+	SubscriptionPlans(ctx context.Context) ([]*model.SubscriptionPlan, error)
+	RestaurantSubscription(ctx context.Context, restaurantID string) (*model.RestaurantSubscription, error)
+	AllSubscriptions(ctx context.Context) ([]*model.RestaurantSubscription, error)
+	TotalUsers(ctx context.Context) (int, error)
 }
 type SubscriptionResolver interface {
 	OrderCreated(ctx context.Context, restaurantID int) (<-chan *model.Order, error)
 	OrderStatusUpdated(ctx context.Context, restaurantID int) (<-chan *model.Order, error)
 }
+
+// endregion ************************** generated!.gotpl **************************
+
+// region    ************************** internal!.gotpl ***************************
 
 type executableSchema graphql.ExecutableSchemaState[ResolverRoot, DirectiveRoot, ComplexityRoot]
 
@@ -461,6 +516,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.AuthResponse.User(childComplexity), true
 
+	case "Booking.cancellationReason":
+		if e.ComplexityRoot.Booking.CancellationReason == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Booking.CancellationReason(childComplexity), true
 	case "Booking.id":
 		if e.ComplexityRoot.Booking.ID == nil {
 			break
@@ -691,6 +752,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.AddToCart(childComplexity, args["userId"].(string), args["productId"].(int), args["quantity"].(int), args["restaurantId"].(int)), true
+	case "Mutation.cancelSubscription":
+		if e.ComplexityRoot.Mutation.CancelSubscription == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_cancelSubscription_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CancelSubscription(childComplexity, args["restaurantId"].(string)), true
 	case "Mutation.clearCart":
 		if e.ComplexityRoot.Mutation.ClearCart == nil {
 			break
@@ -801,6 +873,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.CreateReview(childComplexity, args["input"].(model.CreateReviewInput)), true
+	case "Mutation.createSubscription":
+		if e.ComplexityRoot.Mutation.CreateSubscription == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createSubscription_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateSubscription(childComplexity, args["input"].(model.CreateSubscriptionInput)), true
 	case "Mutation.createTable":
 		if e.ComplexityRoot.Mutation.CreateTable == nil {
 			break
@@ -812,6 +895,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.CreateTable(childComplexity, args["input"].(model.CreateTableInput)), true
+	case "Mutation.deleteAccount":
+		if e.ComplexityRoot.Mutation.DeleteAccount == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteAccount_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.DeleteAccount(childComplexity, args["id"].(string)), true
 	case "Mutation.deleteBooking":
 		if e.ComplexityRoot.Mutation.DeleteBooking == nil {
 			break
@@ -1098,6 +1192,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.UpdateTable(childComplexity, args["id"].(string), args["input"].(model.UpdateTableInput)), true
+	case "Mutation.updateUser":
+		if e.ComplexityRoot.Mutation.UpdateUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UpdateUser(childComplexity, args["id"].(string), args["name"].(*string), args["email"].(*string)), true
 	case "Mutation.updateUserAllergies":
 		if e.ComplexityRoot.Mutation.UpdateUserAllergies == nil {
 			break
@@ -1462,6 +1567,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Product.Status(childComplexity), true
 
+	case "Query.allSubscriptions":
+		if e.ComplexityRoot.Query.AllSubscriptions == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.AllSubscriptions(childComplexity), true
 	case "Query.booking":
 		if e.ComplexityRoot.Query.Booking == nil {
 			break
@@ -1733,6 +1844,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Restaurant(childComplexity, args["id"].(string)), true
+	case "Query.restaurantSubscription":
+		if e.ComplexityRoot.Query.RestaurantSubscription == nil {
+			break
+		}
+
+		args, err := ec.field_Query_restaurantSubscription_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.RestaurantSubscription(childComplexity, args["restaurantId"].(string)), true
 	case "Query.restaurantWaitMetrics":
 		if e.ComplexityRoot.Query.RestaurantWaitMetrics == nil {
 			break
@@ -1772,6 +1894,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Reviews(childComplexity, args["restaurantId"].(string)), true
+	case "Query.subscriptionPlans":
+		if e.ComplexityRoot.Query.SubscriptionPlans == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.SubscriptionPlans(childComplexity), true
 	case "Query.table":
 		if e.ComplexityRoot.Query.Table == nil {
 			break
@@ -1794,6 +1922,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Tables(childComplexity, args["restaurantId"].(string)), true
+	case "Query.totalUsers":
+		if e.ComplexityRoot.Query.TotalUsers == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.TotalUsers(childComplexity), true
 	case "Query.user":
 		if e.ComplexityRoot.Query.User == nil {
 			break
@@ -2011,6 +2145,79 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.RestaurantPaymentMethod.VerificationRequiredAt(childComplexity), true
 
+	case "RestaurantSubscription.cancelledAt":
+		if e.ComplexityRoot.RestaurantSubscription.CancelledAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.CancelledAt(childComplexity), true
+	case "RestaurantSubscription.createdAt":
+		if e.ComplexityRoot.RestaurantSubscription.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.CreatedAt(childComplexity), true
+	case "RestaurantSubscription.currentPeriodEnd":
+		if e.ComplexityRoot.RestaurantSubscription.CurrentPeriodEnd == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.CurrentPeriodEnd(childComplexity), true
+	case "RestaurantSubscription.currentPeriodStart":
+		if e.ComplexityRoot.RestaurantSubscription.CurrentPeriodStart == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.CurrentPeriodStart(childComplexity), true
+	case "RestaurantSubscription.id":
+		if e.ComplexityRoot.RestaurantSubscription.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.ID(childComplexity), true
+	case "RestaurantSubscription.plan":
+		if e.ComplexityRoot.RestaurantSubscription.Plan == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.Plan(childComplexity), true
+	case "RestaurantSubscription.planId":
+		if e.ComplexityRoot.RestaurantSubscription.PlanID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.PlanID(childComplexity), true
+	case "RestaurantSubscription.restaurantId":
+		if e.ComplexityRoot.RestaurantSubscription.RestaurantID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.RestaurantID(childComplexity), true
+	case "RestaurantSubscription.status":
+		if e.ComplexityRoot.RestaurantSubscription.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.Status(childComplexity), true
+	case "RestaurantSubscription.stripeSubscriptionId":
+		if e.ComplexityRoot.RestaurantSubscription.StripeSubscriptionID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.StripeSubscriptionID(childComplexity), true
+	case "RestaurantSubscription.trialEnd":
+		if e.ComplexityRoot.RestaurantSubscription.TrialEnd == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.TrialEnd(childComplexity), true
+	case "RestaurantSubscription.updatedAt":
+		if e.ComplexityRoot.RestaurantSubscription.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.RestaurantSubscription.UpdatedAt(childComplexity), true
+
 	case "Review.comment":
 		if e.ComplexityRoot.Review.Comment == nil {
 			break
@@ -2082,6 +2289,79 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Subscription.OrderStatusUpdated(childComplexity, args["restaurantId"].(int)), true
+
+	case "SubscriptionPlan.createdAt":
+		if e.ComplexityRoot.SubscriptionPlan.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.CreatedAt(childComplexity), true
+	case "SubscriptionPlan.description":
+		if e.ComplexityRoot.SubscriptionPlan.Description == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.Description(childComplexity), true
+	case "SubscriptionPlan.features":
+		if e.ComplexityRoot.SubscriptionPlan.Features == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.Features(childComplexity), true
+	case "SubscriptionPlan.id":
+		if e.ComplexityRoot.SubscriptionPlan.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.ID(childComplexity), true
+	case "SubscriptionPlan.interval":
+		if e.ComplexityRoot.SubscriptionPlan.Interval == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.Interval(childComplexity), true
+	case "SubscriptionPlan.maxEmployees":
+		if e.ComplexityRoot.SubscriptionPlan.MaxEmployees == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.MaxEmployees(childComplexity), true
+	case "SubscriptionPlan.maxProducts":
+		if e.ComplexityRoot.SubscriptionPlan.MaxProducts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.MaxProducts(childComplexity), true
+	case "SubscriptionPlan.maxRestaurants":
+		if e.ComplexityRoot.SubscriptionPlan.MaxRestaurants == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.MaxRestaurants(childComplexity), true
+	case "SubscriptionPlan.name":
+		if e.ComplexityRoot.SubscriptionPlan.Name == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.Name(childComplexity), true
+	case "SubscriptionPlan.price":
+		if e.ComplexityRoot.SubscriptionPlan.Price == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.Price(childComplexity), true
+	case "SubscriptionPlan.stripePriceId":
+		if e.ComplexityRoot.SubscriptionPlan.StripePriceID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.StripePriceID(childComplexity), true
+	case "SubscriptionPlan.updatedAt":
+		if e.ComplexityRoot.SubscriptionPlan.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.SubscriptionPlan.UpdatedAt(childComplexity), true
 
 	case "Table.booking":
 		if e.ComplexityRoot.Table.Booking == nil {
@@ -2273,6 +2553,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateRestaurantInput,
 		ec.unmarshalInputCreateRestaurantPaymentMethodInput,
 		ec.unmarshalInputCreateReviewInput,
+		ec.unmarshalInputCreateSubscriptionInput,
 		ec.unmarshalInputCreateTableInput,
 		ec.unmarshalInputLoginInput,
 		ec.unmarshalInputOrderItemInput,
@@ -2538,6 +2819,7 @@ type Booking {
   people: Int!
   time: Time!
   status: String!
+  cancellationReason: String
 }
 
 input CreateBookingInput {
@@ -2557,6 +2839,7 @@ input UpdateBookingInput {
   people: Int
   time: Time
   status: String
+  cancellationReason: String
 }
 
 # --- Reviews (Comentarios) ---
@@ -2676,7 +2959,7 @@ type Order {
   tableId: Int
   date: Time!
   paid: Boolean!
-  orderDetail: OrderDetail
+  orderDetail: [OrderDetail!]
   estimatedWaitTime: Int!  # Tiempo estimado en minutos
   actualWaitTime: Int      # Tiempo real en minutos (null si no completado)
   completedAt: Time        # Cuándo se completó la orden
@@ -2790,7 +3073,9 @@ type Mutation {
   verifyEmail(code: String!): User!
   forgotPassword(email: String!): Boolean!
   resetPassword(token: String!, password: String!): Boolean!
+  updateUser(id: ID!, name: String, email: String): User!
   updateUserAllergies(id: ID!, allergies: String!): User!
+  deleteAccount(id: ID!): Boolean!
 
   # -- Restaurants (Restaurantes) --
   createRestaurant(input: CreateRestaurantInput!): Restaurant!
@@ -2940,6 +3225,61 @@ type CloudinarySignature {
   publicId: String!
 }
 
+# --- Subscription System (Planes y Suscripciones) ---
+type SubscriptionPlan {
+  id: ID!
+  name: String!
+  description: String
+  price: Float!
+  interval: String!
+  stripePriceId: String
+  features: String
+  maxRestaurants: Int!
+  maxEmployees: Int!
+  maxProducts: Int!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type RestaurantSubscription {
+  id: ID!
+  restaurantId: Int!
+  planId: Int!
+  plan: SubscriptionPlan!
+  stripeSubscriptionId: String
+  status: String!
+  currentPeriodStart: Time
+  currentPeriodEnd: Time
+  trialEnd: Time
+  cancelledAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+input CreateSubscriptionInput {
+  restaurantId: Int!
+  planId: Int!
+  stripeSubscriptionId: String
+  currentPeriodStart: Time
+  currentPeriodEnd: Time
+}
+
+extend type Query {
+  subscriptionPlans: [SubscriptionPlan!]!
+  restaurantSubscription(restaurantId: ID!): RestaurantSubscription
+  allSubscriptions: [RestaurantSubscription!]!
+}
+
+extend type Mutation {
+  createSubscription(input: CreateSubscriptionInput!): RestaurantSubscription!
+  cancelSubscription(restaurantId: ID!): RestaurantSubscription!
+}
+
+# --- SuperAdmin ---
+extend type Query {
+  totalUsers: Int!
+}
+
 type Subscription {
   # El backend enviará una Order cada vez que ocurra este evento
   orderCreated(restaurantId: Int!): Order!
@@ -2985,6 +3325,8 @@ func (ec *executionContext) childFields_Booking(ctx context.Context, field graph
 		return ec.fieldContext_Booking_time(ctx, field)
 	case "status":
 		return ec.fieldContext_Booking_status(ctx, field)
+	case "cancellationReason":
+		return ec.fieldContext_Booking_cancellationReason(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Booking", field.Name)
 }
@@ -3279,6 +3621,36 @@ func (ec *executionContext) childFields_RestaurantPaymentMethod(ctx context.Cont
 	return nil, fmt.Errorf("no field named %q was found under type RestaurantPaymentMethod", field.Name)
 }
 
+func (ec *executionContext) childFields_RestaurantSubscription(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_RestaurantSubscription_id(ctx, field)
+	case "restaurantId":
+		return ec.fieldContext_RestaurantSubscription_restaurantId(ctx, field)
+	case "planId":
+		return ec.fieldContext_RestaurantSubscription_planId(ctx, field)
+	case "plan":
+		return ec.fieldContext_RestaurantSubscription_plan(ctx, field)
+	case "stripeSubscriptionId":
+		return ec.fieldContext_RestaurantSubscription_stripeSubscriptionId(ctx, field)
+	case "status":
+		return ec.fieldContext_RestaurantSubscription_status(ctx, field)
+	case "currentPeriodStart":
+		return ec.fieldContext_RestaurantSubscription_currentPeriodStart(ctx, field)
+	case "currentPeriodEnd":
+		return ec.fieldContext_RestaurantSubscription_currentPeriodEnd(ctx, field)
+	case "trialEnd":
+		return ec.fieldContext_RestaurantSubscription_trialEnd(ctx, field)
+	case "cancelledAt":
+		return ec.fieldContext_RestaurantSubscription_cancelledAt(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_RestaurantSubscription_createdAt(ctx, field)
+	case "updatedAt":
+		return ec.fieldContext_RestaurantSubscription_updatedAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type RestaurantSubscription", field.Name)
+}
+
 func (ec *executionContext) childFields_Review(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "id":
@@ -3299,6 +3671,36 @@ func (ec *executionContext) childFields_Review(ctx context.Context, field graphq
 		return ec.fieldContext_Review_date(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Review", field.Name)
+}
+
+func (ec *executionContext) childFields_SubscriptionPlan(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_SubscriptionPlan_id(ctx, field)
+	case "name":
+		return ec.fieldContext_SubscriptionPlan_name(ctx, field)
+	case "description":
+		return ec.fieldContext_SubscriptionPlan_description(ctx, field)
+	case "price":
+		return ec.fieldContext_SubscriptionPlan_price(ctx, field)
+	case "interval":
+		return ec.fieldContext_SubscriptionPlan_interval(ctx, field)
+	case "stripePriceId":
+		return ec.fieldContext_SubscriptionPlan_stripePriceId(ctx, field)
+	case "features":
+		return ec.fieldContext_SubscriptionPlan_features(ctx, field)
+	case "maxRestaurants":
+		return ec.fieldContext_SubscriptionPlan_maxRestaurants(ctx, field)
+	case "maxEmployees":
+		return ec.fieldContext_SubscriptionPlan_maxEmployees(ctx, field)
+	case "maxProducts":
+		return ec.fieldContext_SubscriptionPlan_maxProducts(ctx, field)
+	case "createdAt":
+		return ec.fieldContext_SubscriptionPlan_createdAt(ctx, field)
+	case "updatedAt":
+		return ec.fieldContext_SubscriptionPlan_updatedAt(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type SubscriptionPlan", field.Name)
 }
 
 func (ec *executionContext) childFields_Table(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -3499,7 +3901,7 @@ func (ec *executionContext) childFields___Type(ctx context.Context, field graphq
 	return nil, fmt.Errorf("no field named %q was found under type __Type", field.Name)
 }
 
-// endregion ************************** generated!.gotpl **************************
+// endregion ************************** internal!.gotpl ***************************
 
 // region    ***************************** args.gotpl *****************************
 
@@ -3582,6 +3984,20 @@ func (ec *executionContext) field_Mutation_addToCart_args(ctx context.Context, r
 		return nil, err
 	}
 	args["restaurantId"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_cancelSubscription_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["restaurantId"] = arg0
 	return args, nil
 }
 
@@ -3741,6 +4157,20 @@ func (ec *executionContext) field_Mutation_createReview_args(ctx context.Context
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createSubscription_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input",
+		func(ctx context.Context, v any) (model.CreateSubscriptionInput, error) {
+			return ec.unmarshalNCreateSubscriptionInput2apiᚋgraphᚋmodelᚐCreateSubscriptionInput(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createTable_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3752,6 +4182,20 @@ func (ec *executionContext) field_Mutation_createTable_args(ctx context.Context,
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteAccount_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -4253,6 +4697,36 @@ func (ec *executionContext) field_Mutation_updateUserAllergies_args(ctx context.
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "name",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["name"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "email",
+		func(ctx context.Context, v any) (*string, error) {
+			return ec.unmarshalOString2ᚖstring(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["email"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_verifyEmail_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4627,6 +5101,20 @@ func (ec *executionContext) field_Query_recentOrderMetrics_args(ctx context.Cont
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_restaurantSubscription_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["restaurantId"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_restaurantWaitMetrics_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -4838,10 +5326,6 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 }
 
 // endregion ***************************** args.gotpl *****************************
-
-// region    ************************** directives.gotpl **************************
-
-// endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
 
@@ -5145,6 +5629,29 @@ func (ec *executionContext) _Booking_status(ctx context.Context, field graphql.C
 	)
 }
 func (ec *executionContext) fieldContext_Booking_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Booking", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Booking_cancellationReason(ctx context.Context, field graphql.CollectedField, obj *model.Booking) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Booking_cancellationReason(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CancellationReason, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Booking_cancellationReason(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Booking", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
@@ -5924,6 +6431,50 @@ func (ec *executionContext) fieldContext_Mutation_resetPassword(ctx context.Cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_updateUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_updateUser(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpdateUser(ctx, fc.Args["id"].(string), fc.Args["name"].(*string), fc.Args["email"].(*string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.User) graphql.Marshaler {
+			return ec.marshalNUser2ᚖapiᚋgraphᚋmodelᚐUser(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_updateUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_User(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_updateUserAllergies(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5962,6 +6513,50 @@ func (ec *executionContext) fieldContext_Mutation_updateUserAllergies(ctx contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateUserAllergies_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteAccount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_deleteAccount(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().DeleteAccount(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_deleteAccount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteAccount_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -7552,6 +8147,94 @@ func (ec *executionContext) fieldContext_Mutation_acceptTerms(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createSubscription(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createSubscription(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateSubscription(ctx, fc.Args["input"].(model.CreateSubscriptionInput))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.RestaurantSubscription) graphql.Marshaler {
+			return ec.marshalNRestaurantSubscription2ᚖapiᚋgraphᚋmodelᚐRestaurantSubscription(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createSubscription(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RestaurantSubscription(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createSubscription_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_cancelSubscription(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_cancelSubscription(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CancelSubscription(ctx, fc.Args["restaurantId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.RestaurantSubscription) graphql.Marshaler {
+			return ec.marshalNRestaurantSubscription2ᚖapiᚋgraphᚋmodelᚐRestaurantSubscription(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_cancelSubscription(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RestaurantSubscription(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_cancelSubscription_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Order_id(ctx context.Context, field graphql.CollectedField, obj *model.Order) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -7881,8 +8564,8 @@ func (ec *executionContext) _Order_orderDetail(ctx context.Context, field graphq
 			return obj.OrderDetail, nil
 		},
 		nil,
-		func(ctx context.Context, selections ast.SelectionSet, v *model.OrderDetail) graphql.Marshaler {
-			return ec.marshalOOrderDetail2ᚖapiᚋgraphᚋmodelᚐOrderDetail(ctx, selections, v)
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.OrderDetail) graphql.Marshaler {
+			return ec.marshalOOrderDetail2ᚕᚖapiᚋgraphᚋmodelᚐOrderDetailᚄ(ctx, selections, v)
 		},
 		true,
 		false,
@@ -10366,6 +11049,137 @@ func (ec *executionContext) fieldContext_Query_getCloudinarySignature(ctx contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_subscriptionPlans(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_subscriptionPlans(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().SubscriptionPlans(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.SubscriptionPlan) graphql.Marshaler {
+			return ec.marshalNSubscriptionPlan2ᚕᚖapiᚋgraphᚋmodelᚐSubscriptionPlanᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_subscriptionPlans(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_SubscriptionPlan(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_restaurantSubscription(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_restaurantSubscription(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().RestaurantSubscription(ctx, fc.Args["restaurantId"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.RestaurantSubscription) graphql.Marshaler {
+			return ec.marshalORestaurantSubscription2ᚖapiᚋgraphᚋmodelᚐRestaurantSubscription(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Query_restaurantSubscription(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RestaurantSubscription(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_restaurantSubscription_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_allSubscriptions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_allSubscriptions(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().AllSubscriptions(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.RestaurantSubscription) graphql.Marshaler {
+			return ec.marshalNRestaurantSubscription2ᚕᚖapiᚋgraphᚋmodelᚐRestaurantSubscriptionᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_allSubscriptions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_RestaurantSubscription(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_totalUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_totalUsers(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().TotalUsers(ctx)
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_totalUsers(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Query", field, true, true, errors.New("field of type Int does not have child fields"))
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11132,6 +11946,291 @@ func (ec *executionContext) fieldContext_RestaurantPaymentMethod_updatedAt(_ con
 	return graphql.NewScalarFieldContext("RestaurantPaymentMethod", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
+func (ec *executionContext) _RestaurantSubscription_id(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _RestaurantSubscription_restaurantId(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_restaurantId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.RestaurantID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_restaurantId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _RestaurantSubscription_planId(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_planId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PlanID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_planId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _RestaurantSubscription_plan(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_plan(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Plan, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *model.SubscriptionPlan) graphql.Marshaler {
+			return ec.marshalNSubscriptionPlan2ᚖapiᚋgraphᚋmodelᚐSubscriptionPlan(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_plan(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestaurantSubscription",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_SubscriptionPlan(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RestaurantSubscription_stripeSubscriptionId(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_stripeSubscriptionId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.StripeSubscriptionID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_stripeSubscriptionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _RestaurantSubscription_status(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_status(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _RestaurantSubscription_currentPeriodStart(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_currentPeriodStart(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CurrentPeriodStart, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_currentPeriodStart(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _RestaurantSubscription_currentPeriodEnd(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_currentPeriodEnd(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CurrentPeriodEnd, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_currentPeriodEnd(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _RestaurantSubscription_trialEnd(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_trialEnd(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.TrialEnd, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_trialEnd(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _RestaurantSubscription_cancelledAt(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_cancelledAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CancelledAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *time.Time) graphql.Marshaler {
+			return ec.marshalOTime2ᚖtimeᚐTime(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_cancelledAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _RestaurantSubscription_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _RestaurantSubscription_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.RestaurantSubscription) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_RestaurantSubscription_updatedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_RestaurantSubscription_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("RestaurantSubscription", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
 func (ec *executionContext) _Review_id(ctx context.Context, field graphql.CollectedField, obj *model.Review) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11420,6 +12519,282 @@ func (ec *executionContext) fieldContext_Subscription_orderStatusUpdated(ctx con
 		return fc, err
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _SubscriptionPlan_id(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_name(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_name(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_description(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_description(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_price(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_price(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Price, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_price(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_interval(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_interval(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Interval, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_interval(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_stripePriceId(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_stripePriceId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.StripePriceID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_stripePriceId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_features(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_features(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Features, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_features(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_maxRestaurants(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_maxRestaurants(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxRestaurants, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_maxRestaurants(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_maxEmployees(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_maxEmployees(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxEmployees, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_maxEmployees(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_maxProducts(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_maxProducts(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxProducts, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int) graphql.Marshaler {
+			return ec.marshalNInt2int(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_maxProducts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_createdAt(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_createdAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _SubscriptionPlan_updatedAt(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionPlan) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_SubscriptionPlan_updatedAt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_SubscriptionPlan_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("SubscriptionPlan", field, false, false, errors.New("field of type Time does not have child fields"))
 }
 
 func (ec *executionContext) _Table_id(ctx context.Context, field graphql.CollectedField, obj *model.Table) (ret graphql.Marshaler) {
@@ -13721,6 +15096,64 @@ func (ec *executionContext) unmarshalInputCreateReviewInput(ctx context.Context,
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateSubscriptionInput(ctx context.Context, obj any) (model.CreateSubscriptionInput, error) {
+	var it model.CreateSubscriptionInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"restaurantId", "planId", "stripeSubscriptionId", "currentPeriodStart", "currentPeriodEnd"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "restaurantId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("restaurantId"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RestaurantID = data
+		case "planId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("planId"))
+			data, err := ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PlanID = data
+		case "stripeSubscriptionId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("stripeSubscriptionId"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StripeSubscriptionID = data
+		case "currentPeriodStart":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currentPeriodStart"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CurrentPeriodStart = data
+		case "currentPeriodEnd":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("currentPeriodEnd"))
+			data, err := ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CurrentPeriodEnd = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateTableInput(ctx context.Context, obj any) (model.CreateTableInput, error) {
 	var it model.CreateTableInput
 	if obj == nil {
@@ -13959,7 +15392,7 @@ func (ec *executionContext) unmarshalInputUpdateBookingInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"id", "restaurant", "user", "table", "people", "time", "status"}
+	fieldsInOrder := [...]string{"id", "restaurant", "user", "table", "people", "time", "status", "cancellationReason"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14015,6 +15448,13 @@ func (ec *executionContext) unmarshalInputUpdateBookingInput(ctx context.Context
 				return it, err
 			}
 			it.Status = data
+		case "cancellationReason":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cancellationReason"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CancellationReason = data
 		}
 	}
 	return it, nil
@@ -14468,7 +15908,8 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 	fields := graphql.CollectFields(ec.OperationContext, sel, authResponseImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -14485,6 +15926,9 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			}
 		case "restaurant":
 			out.Values[i] = ec._AuthResponse_restaurant(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -14494,16 +15938,14 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -14514,7 +15956,8 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 	fields := graphql.CollectFields(ec.OperationContext, sel, bookingImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -14564,6 +16007,11 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "cancellationReason":
+			out.Values[i] = ec._Booking_cancellationReason(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -14573,16 +16021,14 @@ func (ec *executionContext) _Booking(ctx context.Context, sel ast.SelectionSet, 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -14593,7 +16039,8 @@ func (ec *executionContext) _CartItem(ctx context.Context, sel ast.SelectionSet,
 	fields := graphql.CollectFields(ec.OperationContext, sel, cartItemImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -14615,6 +16062,9 @@ func (ec *executionContext) _CartItem(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "productImage":
 			out.Values[i] = ec._CartItem_productImage(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "quantity":
 			out.Values[i] = ec._CartItem_quantity(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -14639,16 +16089,14 @@ func (ec *executionContext) _CartItem(ctx context.Context, sel ast.SelectionSet,
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -14659,7 +16107,8 @@ func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet,
 	fields := graphql.CollectFields(ec.OperationContext, sel, categoryImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -14693,16 +16142,14 @@ func (ec *executionContext) _Category(ctx context.Context, sel ast.SelectionSet,
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -14713,7 +16160,8 @@ func (ec *executionContext) _CloudinarySignature(ctx context.Context, sel ast.Se
 	fields := graphql.CollectFields(ec.OperationContext, sel, cloudinarySignatureImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -14752,16 +16200,14 @@ func (ec *executionContext) _CloudinarySignature(ctx context.Context, sel ast.Se
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -14772,7 +16218,8 @@ func (ec *executionContext) _Employee(ctx context.Context, sel ast.SelectionSet,
 	fields := graphql.CollectFields(ec.OperationContext, sel, employeeImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -14799,6 +16246,9 @@ func (ec *executionContext) _Employee(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "hireDate":
 			out.Values[i] = ec._Employee_hireDate(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "userId":
 			out.Values[i] = ec._Employee_userId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -14818,16 +16268,14 @@ func (ec *executionContext) _Employee(ctx context.Context, sel ast.SelectionSet,
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -14841,7 +16289,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 	})
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
 			Object: field.Name,
@@ -14886,9 +16335,23 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "updateUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "updateUserAllergies":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateUserAllergies(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteAccount":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteAccount(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -15145,6 +16608,20 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "createSubscription":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createSubscription(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cancelSubscription":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_cancelSubscription(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15154,16 +16631,14 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -15174,7 +16649,8 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 	fields := graphql.CollectFields(ec.OperationContext, sel, orderImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -15226,8 +16702,14 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "notes":
 			out.Values[i] = ec._Order_notes(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "tableId":
 			out.Values[i] = ec._Order_tableId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "date":
 			out.Values[i] = ec._Order_date(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -15240,6 +16722,9 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "orderDetail":
 			out.Values[i] = ec._Order_orderDetail(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "estimatedWaitTime":
 			out.Values[i] = ec._Order_estimatedWaitTime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -15247,8 +16732,14 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "actualWaitTime":
 			out.Values[i] = ec._Order_actualWaitTime(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "completedAt":
 			out.Values[i] = ec._Order_completedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15258,16 +16749,14 @@ func (ec *executionContext) _Order(ctx context.Context, sel ast.SelectionSet, ob
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -15278,7 +16767,8 @@ func (ec *executionContext) _OrderDetail(ctx context.Context, sel ast.SelectionS
 	fields := graphql.CollectFields(ec.OperationContext, sel, orderDetailImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -15322,16 +16812,14 @@ func (ec *executionContext) _OrderDetail(ctx context.Context, sel ast.SelectionS
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -15342,7 +16830,8 @@ func (ec *executionContext) _Payment(ctx context.Context, sel ast.SelectionSet, 
 	fields := graphql.CollectFields(ec.OperationContext, sel, paymentImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -15369,6 +16858,9 @@ func (ec *executionContext) _Payment(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "stripePaymentMethodId":
 			out.Values[i] = ec._Payment_stripePaymentMethodId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "amount":
 			out.Values[i] = ec._Payment_amount(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -15386,10 +16878,19 @@ func (ec *executionContext) _Payment(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "description":
 			out.Values[i] = ec._Payment_description(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "stripeApplicationFeeAmount":
 			out.Values[i] = ec._Payment_stripeApplicationFeeAmount(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "paymentMethodType":
 			out.Values[i] = ec._Payment_paymentMethodType(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "createdAt":
 			out.Values[i] = ec._Payment_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -15402,6 +16903,9 @@ func (ec *executionContext) _Payment(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "orderId":
 			out.Values[i] = ec._Payment_orderId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15411,16 +16915,14 @@ func (ec *executionContext) _Payment(ctx context.Context, sel ast.SelectionSet, 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -15431,7 +16933,8 @@ func (ec *executionContext) _PreparedOrderMetric(ctx context.Context, sel ast.Se
 	fields := graphql.CollectFields(ec.OperationContext, sel, preparedOrderMetricImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -15480,16 +16983,14 @@ func (ec *executionContext) _PreparedOrderMetric(ctx context.Context, sel ast.Se
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -15500,7 +17001,8 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 	fields := graphql.CollectFields(ec.OperationContext, sel, productImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -15537,10 +17039,19 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "description":
 			out.Values[i] = ec._Product_description(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "ingredients":
 			out.Values[i] = ec._Product_ingredients(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "allergens":
 			out.Values[i] = ec._Product_allergens(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "price":
 			out.Values[i] = ec._Product_price(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -15553,6 +17064,9 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "image":
 			out.Values[i] = ec._Product_image(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15562,16 +17076,14 @@ func (ec *executionContext) _Product(ctx context.Context, sel ast.SelectionSet, 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -15585,7 +17097,8 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 	})
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		innerCtx := graphql.WithRootFieldContext(ctx, &graphql.RootFieldContext{
 			Object: field.Name,
@@ -15598,13 +17111,16 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		case "verifyToken":
 			field := field
 
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
 				defer func() {
 					if r := recover(); r != nil {
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
 				res = ec._Query_verifyToken(ctx, field)
+				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -15683,13 +17199,16 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		case "payment":
 			field := field
 
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
 				defer func() {
 					if r := recover(); r != nil {
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
 				res = ec._Query_payment(ctx, field)
+				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -16186,13 +17705,16 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		case "getRestaurantPaymentMethod":
 			field := field
 
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
 				defer func() {
 					if r := recover(); r != nil {
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
 				res = ec._Query_getRestaurantPaymentMethod(ctx, field)
+				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -16205,13 +17727,16 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		case "getRestaurantPaymentMethodStatus":
 			field := field
 
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
 				defer func() {
 					if r := recover(); r != nil {
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
 				res = ec._Query_getRestaurantPaymentMethodStatus(ctx, field)
+				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -16268,13 +17793,16 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		case "getCurrentTermsAcceptance":
 			field := field
 
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
 				defer func() {
 					if r := recover(); r != nil {
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
 				res = ec._Query_getCurrentTermsAcceptance(ctx, field)
+				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
 				return res
 			}
 
@@ -16328,14 +17856,108 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "subscriptionPlans":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_subscriptionPlans(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "restaurantSubscription":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_restaurantSubscription(ctx, field)
+				if res == graphql.RequiredNull {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "allSubscriptions":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allSubscriptions(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "totalUsers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_totalUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
 			})
+			if out.Values[i] == graphql.RequiredNull {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "__schema":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___schema(ctx, field)
 			})
+			if out.Values[i] == graphql.RequiredNull {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -16345,16 +17967,14 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -16365,7 +17985,8 @@ func (ec *executionContext) _Restaurant(ctx context.Context, sel ast.SelectionSe
 	fields := graphql.CollectFields(ec.OperationContext, sel, restaurantImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -16397,6 +18018,9 @@ func (ec *executionContext) _Restaurant(ctx context.Context, sel ast.SelectionSe
 			}
 		case "image":
 			out.Values[i] = ec._Restaurant_image(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "phone":
 			out.Values[i] = ec._Restaurant_phone(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16416,16 +18040,14 @@ func (ec *executionContext) _Restaurant(ctx context.Context, sel ast.SelectionSe
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -16436,7 +18058,8 @@ func (ec *executionContext) _RestaurantMetrics(ctx context.Context, sel ast.Sele
 	fields := graphql.CollectFields(ec.OperationContext, sel, restaurantMetricsImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -16485,16 +18108,14 @@ func (ec *executionContext) _RestaurantMetrics(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -16505,7 +18126,8 @@ func (ec *executionContext) _RestaurantPaymentMethod(ctx context.Context, sel as
 	fields := graphql.CollectFields(ec.OperationContext, sel, restaurantPaymentMethodImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -16522,8 +18144,14 @@ func (ec *executionContext) _RestaurantPaymentMethod(ctx context.Context, sel as
 			}
 		case "stripeConnectAccountId":
 			out.Values[i] = ec._RestaurantPaymentMethod_stripeConnectAccountId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "stripeOnboardingUrl":
 			out.Values[i] = ec._RestaurantPaymentMethod_stripeOnboardingUrl(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "stripeOnboardingCompleted":
 			out.Values[i] = ec._RestaurantPaymentMethod_stripeOnboardingCompleted(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16541,8 +18169,14 @@ func (ec *executionContext) _RestaurantPaymentMethod(ctx context.Context, sel as
 			}
 		case "bankAccountLast4":
 			out.Values[i] = ec._RestaurantPaymentMethod_bankAccountLast4(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "routingNumber":
 			out.Values[i] = ec._RestaurantPaymentMethod_routingNumber(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "countryCode":
 			out.Values[i] = ec._RestaurantPaymentMethod_countryCode(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16555,8 +18189,14 @@ func (ec *executionContext) _RestaurantPaymentMethod(ctx context.Context, sel as
 			}
 		case "verificationRequiredAt":
 			out.Values[i] = ec._RestaurantPaymentMethod_verificationRequiredAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "activatedAt":
 			out.Values[i] = ec._RestaurantPaymentMethod_activatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "createdAt":
 			out.Values[i] = ec._RestaurantPaymentMethod_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16576,16 +18216,107 @@ func (ec *executionContext) _RestaurantPaymentMethod(ctx context.Context, sel as
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var restaurantSubscriptionImplementors = []string{"RestaurantSubscription"}
+
+func (ec *executionContext) _RestaurantSubscription(ctx context.Context, sel ast.SelectionSet, obj *model.RestaurantSubscription) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, restaurantSubscriptionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RestaurantSubscription")
+		case "id":
+			out.Values[i] = ec._RestaurantSubscription_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "restaurantId":
+			out.Values[i] = ec._RestaurantSubscription_restaurantId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "planId":
+			out.Values[i] = ec._RestaurantSubscription_planId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "plan":
+			out.Values[i] = ec._RestaurantSubscription_plan(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "stripeSubscriptionId":
+			out.Values[i] = ec._RestaurantSubscription_stripeSubscriptionId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._RestaurantSubscription_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "currentPeriodStart":
+			out.Values[i] = ec._RestaurantSubscription_currentPeriodStart(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "currentPeriodEnd":
+			out.Values[i] = ec._RestaurantSubscription_currentPeriodEnd(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "trialEnd":
+			out.Values[i] = ec._RestaurantSubscription_trialEnd(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "cancelledAt":
+			out.Values[i] = ec._RestaurantSubscription_cancelledAt(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._RestaurantSubscription_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._RestaurantSubscription_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
 	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -16596,7 +18327,8 @@ func (ec *executionContext) _Review(ctx context.Context, sel ast.SelectionSet, o
 	fields := graphql.CollectFields(ec.OperationContext, sel, reviewImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -16650,16 +18382,14 @@ func (ec *executionContext) _Review(ctx context.Context, sel ast.SelectionSet, o
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -16686,13 +18416,107 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	}
 }
 
+var subscriptionPlanImplementors = []string{"SubscriptionPlan"}
+
+func (ec *executionContext) _SubscriptionPlan(ctx context.Context, sel ast.SelectionSet, obj *model.SubscriptionPlan) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, subscriptionPlanImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SubscriptionPlan")
+		case "id":
+			out.Values[i] = ec._SubscriptionPlan_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._SubscriptionPlan_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._SubscriptionPlan_description(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "price":
+			out.Values[i] = ec._SubscriptionPlan_price(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "interval":
+			out.Values[i] = ec._SubscriptionPlan_interval(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "stripePriceId":
+			out.Values[i] = ec._SubscriptionPlan_stripePriceId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "features":
+			out.Values[i] = ec._SubscriptionPlan_features(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "maxRestaurants":
+			out.Values[i] = ec._SubscriptionPlan_maxRestaurants(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxEmployees":
+			out.Values[i] = ec._SubscriptionPlan_maxEmployees(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxProducts":
+			out.Values[i] = ec._SubscriptionPlan_maxProducts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._SubscriptionPlan_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._SubscriptionPlan_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var tableImplementors = []string{"Table"}
 
 func (ec *executionContext) _Table(ctx context.Context, sel ast.SelectionSet, obj *model.Table) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, tableImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -16714,8 +18538,14 @@ func (ec *executionContext) _Table(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "bookingId":
 			out.Values[i] = ec._Table_bookingId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "booking":
 			out.Values[i] = ec._Table_booking(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "number":
 			out.Values[i] = ec._Table_number(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16740,16 +18570,14 @@ func (ec *executionContext) _Table(ctx context.Context, sel ast.SelectionSet, ob
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -16760,7 +18588,8 @@ func (ec *executionContext) _TermsAcceptance(ctx context.Context, sel ast.Select
 	fields := graphql.CollectFields(ec.OperationContext, sel, termsAcceptanceImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -16789,16 +18618,14 @@ func (ec *executionContext) _TermsAcceptance(ctx context.Context, sel ast.Select
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -16809,7 +18636,8 @@ func (ec *executionContext) _TermsContent(ctx context.Context, sel ast.Selection
 	fields := graphql.CollectFields(ec.OperationContext, sel, termsContentImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -16848,16 +18676,14 @@ func (ec *executionContext) _TermsContent(ctx context.Context, sel ast.Selection
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -16868,7 +18694,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -16880,10 +18707,19 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "name":
 			out.Values[i] = ec._User_name(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "email":
 			out.Values[i] = ec._User_email(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "role":
 			out.Values[i] = ec._User_role(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "isVerified":
 			out.Values[i] = ec._User_isVerified(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16891,6 +18727,9 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "allergies":
 			out.Values[i] = ec._User_allergies(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -16900,16 +18739,14 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -16920,7 +18757,8 @@ func (ec *executionContext) _UserWithRestaurant(ctx context.Context, sel ast.Sel
 	fields := graphql.CollectFields(ec.OperationContext, sel, userWithRestaurantImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -16932,10 +18770,19 @@ func (ec *executionContext) _UserWithRestaurant(ctx context.Context, sel ast.Sel
 			}
 		case "name":
 			out.Values[i] = ec._UserWithRestaurant_name(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "email":
 			out.Values[i] = ec._UserWithRestaurant_email(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "role":
 			out.Values[i] = ec._UserWithRestaurant_role(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "isVerified":
 			out.Values[i] = ec._UserWithRestaurant_isVerified(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -16943,6 +18790,9 @@ func (ec *executionContext) _UserWithRestaurant(ctx context.Context, sel ast.Sel
 			}
 		case "restaurant":
 			out.Values[i] = ec._UserWithRestaurant_restaurant(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -16952,16 +18802,14 @@ func (ec *executionContext) _UserWithRestaurant(ctx context.Context, sel ast.Sel
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -16972,7 +18820,8 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 	fields := graphql.CollectFields(ec.OperationContext, sel, __DirectiveImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -16984,6 +18833,9 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 			}
 		case "description":
 			out.Values[i] = ec.___Directive_description(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "isRepeatable":
 			out.Values[i] = ec.___Directive_isRepeatable(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -17008,16 +18860,14 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -17028,7 +18878,8 @@ func (ec *executionContext) ___EnumValue(ctx context.Context, sel ast.SelectionS
 	fields := graphql.CollectFields(ec.OperationContext, sel, __EnumValueImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -17040,6 +18891,9 @@ func (ec *executionContext) ___EnumValue(ctx context.Context, sel ast.SelectionS
 			}
 		case "description":
 			out.Values[i] = ec.___EnumValue_description(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "isDeprecated":
 			out.Values[i] = ec.___EnumValue_isDeprecated(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -17047,6 +18901,9 @@ func (ec *executionContext) ___EnumValue(ctx context.Context, sel ast.SelectionS
 			}
 		case "deprecationReason":
 			out.Values[i] = ec.___EnumValue_deprecationReason(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -17056,16 +18913,14 @@ func (ec *executionContext) ___EnumValue(ctx context.Context, sel ast.SelectionS
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -17076,7 +18931,8 @@ func (ec *executionContext) ___Field(ctx context.Context, sel ast.SelectionSet, 
 	fields := graphql.CollectFields(ec.OperationContext, sel, __FieldImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -17088,6 +18944,9 @@ func (ec *executionContext) ___Field(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "description":
 			out.Values[i] = ec.___Field_description(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "args":
 			out.Values[i] = ec.___Field_args(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -17105,6 +18964,9 @@ func (ec *executionContext) ___Field(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "deprecationReason":
 			out.Values[i] = ec.___Field_deprecationReason(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -17114,16 +18976,14 @@ func (ec *executionContext) ___Field(ctx context.Context, sel ast.SelectionSet, 
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -17134,7 +18994,8 @@ func (ec *executionContext) ___InputValue(ctx context.Context, sel ast.Selection
 	fields := graphql.CollectFields(ec.OperationContext, sel, __InputValueImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -17146,6 +19007,9 @@ func (ec *executionContext) ___InputValue(ctx context.Context, sel ast.Selection
 			}
 		case "description":
 			out.Values[i] = ec.___InputValue_description(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "type":
 			out.Values[i] = ec.___InputValue_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -17153,6 +19017,9 @@ func (ec *executionContext) ___InputValue(ctx context.Context, sel ast.Selection
 			}
 		case "defaultValue":
 			out.Values[i] = ec.___InputValue_defaultValue(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "isDeprecated":
 			out.Values[i] = ec.___InputValue_isDeprecated(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -17160,6 +19027,9 @@ func (ec *executionContext) ___InputValue(ctx context.Context, sel ast.Selection
 			}
 		case "deprecationReason":
 			out.Values[i] = ec.___InputValue_deprecationReason(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -17169,16 +19039,14 @@ func (ec *executionContext) ___InputValue(ctx context.Context, sel ast.Selection
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -17189,13 +19057,17 @@ func (ec *executionContext) ___Schema(ctx context.Context, sel ast.SelectionSet,
 	fields := graphql.CollectFields(ec.OperationContext, sel, __SchemaImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("__Schema")
 		case "description":
 			out.Values[i] = ec.___Schema_description(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "types":
 			out.Values[i] = ec.___Schema_types(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -17208,8 +19080,14 @@ func (ec *executionContext) ___Schema(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "mutationType":
 			out.Values[i] = ec.___Schema_mutationType(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "subscriptionType":
 			out.Values[i] = ec.___Schema_subscriptionType(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "directives":
 			out.Values[i] = ec.___Schema_directives(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -17224,16 +19102,14 @@ func (ec *executionContext) ___Schema(ctx context.Context, sel ast.SelectionSet,
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -17244,7 +19120,8 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 	fields := graphql.CollectFields(ec.OperationContext, sel, __TypeImplementors)
 
 	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
@@ -17256,24 +19133,54 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 			}
 		case "name":
 			out.Values[i] = ec.___Type_name(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "description":
 			out.Values[i] = ec.___Type_description(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "specifiedByURL":
 			out.Values[i] = ec.___Type_specifiedByURL(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "fields":
 			out.Values[i] = ec.___Type_fields(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "interfaces":
 			out.Values[i] = ec.___Type_interfaces(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "possibleTypes":
 			out.Values[i] = ec.___Type_possibleTypes(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "enumValues":
 			out.Values[i] = ec.___Type_enumValues(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "inputFields":
 			out.Values[i] = ec.___Type_inputFields(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "ofType":
 			out.Values[i] = ec.___Type_ofType(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		case "isOneOf":
 			out.Values[i] = ec.___Type_isOneOf(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -17283,16 +19190,14 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 		return graphql.Null
 	}
 
-	atomic.AddInt32(&ec.Deferred, int32(min(len(deferred), math.MaxInt32)))
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
 
-	for label, dfs := range deferred {
-		ec.ProcessDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
 
 	return out
 }
@@ -17480,6 +19385,11 @@ func (ec *executionContext) unmarshalNCreateReviewInput2apiᚋgraphᚋmodelᚐCr
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateSubscriptionInput2apiᚋgraphᚋmodelᚐCreateSubscriptionInput(ctx context.Context, v any) (model.CreateSubscriptionInput, error) {
+	res, err := ec.unmarshalInputCreateSubscriptionInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCreateTableInput2apiᚋgraphᚋmodelᚐCreateTableInput(ctx context.Context, v any) (model.CreateTableInput, error) {
 	res, err := ec.unmarshalInputCreateTableInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -17596,6 +19506,16 @@ func (ec *executionContext) marshalNOrder2ᚖapiᚋgraphᚋmodelᚐOrder(ctx con
 		return graphql.Null
 	}
 	return ec._Order(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNOrderDetail2ᚖapiᚋgraphᚋmodelᚐOrderDetail(ctx context.Context, sel ast.SelectionSet, v *model.OrderDetail) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._OrderDetail(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNOrderItemInput2ᚕᚖapiᚋgraphᚋmodelᚐOrderItemInputᚄ(ctx context.Context, v any) ([]*model.OrderItemInput, error) {
@@ -17772,6 +19692,36 @@ func (ec *executionContext) marshalNRestaurantPaymentMethod2ᚖapiᚋgraphᚋmod
 	return ec._RestaurantPaymentMethod(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNRestaurantSubscription2apiᚋgraphᚋmodelᚐRestaurantSubscription(ctx context.Context, sel ast.SelectionSet, v model.RestaurantSubscription) graphql.Marshaler {
+	return ec._RestaurantSubscription(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRestaurantSubscription2ᚕᚖapiᚋgraphᚋmodelᚐRestaurantSubscriptionᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.RestaurantSubscription) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNRestaurantSubscription2ᚖapiᚋgraphᚋmodelᚐRestaurantSubscription(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNRestaurantSubscription2ᚖapiᚋgraphᚋmodelᚐRestaurantSubscription(ctx context.Context, sel ast.SelectionSet, v *model.RestaurantSubscription) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RestaurantSubscription(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNReview2apiᚋgraphᚋmodelᚐReview(ctx context.Context, sel ast.SelectionSet, v model.Review) graphql.Marshaler {
 	return ec._Review(ctx, sel, &v)
 }
@@ -17816,6 +19766,32 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNSubscriptionPlan2ᚕᚖapiᚋgraphᚋmodelᚐSubscriptionPlanᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.SubscriptionPlan) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNSubscriptionPlan2ᚖapiᚋgraphᚋmodelᚐSubscriptionPlan(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSubscriptionPlan2ᚖapiᚋgraphᚋmodelᚐSubscriptionPlan(ctx context.Context, sel ast.SelectionSet, v *model.SubscriptionPlan) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SubscriptionPlan(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNTable2apiᚋgraphᚋmodelᚐTable(ctx context.Context, sel ast.SelectionSet, v model.Table) graphql.Marshaler {
@@ -18195,11 +20171,23 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) marshalOOrderDetail2ᚖapiᚋgraphᚋmodelᚐOrderDetail(ctx context.Context, sel ast.SelectionSet, v *model.OrderDetail) graphql.Marshaler {
+func (ec *executionContext) marshalOOrderDetail2ᚕᚖapiᚋgraphᚋmodelᚐOrderDetailᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.OrderDetail) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
-	return ec._OrderDetail(ctx, sel, v)
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNOrderDetail2ᚖapiᚋgraphᚋmodelᚐOrderDetail(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalOPayment2ᚖapiᚋgraphᚋmodelᚐPayment(ctx context.Context, sel ast.SelectionSet, v *model.Payment) graphql.Marshaler {
@@ -18214,6 +20202,13 @@ func (ec *executionContext) marshalORestaurantPaymentMethod2ᚖapiᚋgraphᚋmod
 		return graphql.Null
 	}
 	return ec._RestaurantPaymentMethod(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalORestaurantSubscription2ᚖapiᚋgraphᚋmodelᚐRestaurantSubscription(ctx context.Context, sel ast.SelectionSet, v *model.RestaurantSubscription) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RestaurantSubscription(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
