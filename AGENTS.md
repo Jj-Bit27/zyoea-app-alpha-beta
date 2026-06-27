@@ -396,6 +396,44 @@ Sin `<ClientRouter />`, el runtime cliente de Astro nunca se carga y los `<astro
 
 ---
 
+## Resultados de Load Testing (Fase 1 — 27 Jun 2026)
+
+### Resumen
+
+| Test | VUs | Duración | Requests | Errores | p95 | p99 | Máx |
+|------|-----|----------|----------|---------|-----|-----|-----|
+| Smoke | 1 | 10s | 10 | 0% | 536ms | 536ms | 536ms |
+| Baseline | 10 | 1m | 450 | 0% | 438ms | 917ms | 919ms |
+| Media | 30 | 2m | 2,808 | 0% | 433ms | 535ms | 911ms |
+| Alta | 50 | 2m | 4,809 | 0% | 433ms | 531ms | 843ms |
+| **Spike** | **200** | **100s** | **10,281** | **0%** | **2.58s** | **2.66s** | **3.07s** |
+| Mutations | 5 | 40s | 88 | 28%† | 444ms | 505ms | 566ms |
+| WebSocket | 10 | 70s | 19 | 0% | — | — | — |
+| **Soak** | **30** | **30min** | **21,646** | **0%** | **469ms** | **1s** | **12s** |
+
+† Errores en mutations corresponden a datos de prueba inexistentes (IDs de producto no válidos, cuenta login inexistente), no a bugs del backend. createBooking/createReview/acceptTerms funcionaron al 100%.
+
+### Hallazgos Clave
+
+| # | Hallazgo | Severidad | Recomendación |
+|---|----------|-----------|---------------|
+| 1 | **200 usuarios concurrentes sin errores** | ✅ | El servidor escala bien; la infraestructura (Cloudflare + PaaS) maneja picos |
+| 2 | **p95 estable de ~430ms entre 10-50 VUs** | ✅ | Sin degradación en el rango normal de uso |
+| 3 | **Respuesta máxima outlier de 12s en soak** | ⚠️ | Posible cold start de la PaaS o GC pause. Monitorear |
+| 4 | **Rate limiter comentado en main.go** | 🔴 | Habilitar rate limiter: sin él, 200 VUs podrían ser 2000 y tumbar el servidor |
+| 5 | **Sin paginación en queries** | 🟡 | `restaurants`, `products`, `orders` no tienen paginación — payload crece con datos |
+| 6 | **WebSocket funciona correctamente** | ✅ | Hub acepta conexiones, Cloudflare pasa WebSocket sin problema |
+| 7 | **addToCart falla con FK constraint** | 🟡 | Product IDs aleatorios no existen en restaurantId=1; no es bug del backend |
+
+### Recomendaciones Priorizadas
+
+1. **🔴 Habilitar rate limiter** — Descomentar `rateLimiter` en `main.go:136`. Configurar 100 req/min por IP, 200 req/min por usuario autenticado.
+2. **🟡 Agregar paginación** — `restaurants`, `products(restaurantId)`, `ordersByRestaurant` necesitan `limit`/`offset` para evitar payloads gigantes a futuro.
+3. **🟡 Monitoreo de cold starts** — El outlier de 12s en soak sugiere que la PaaS hace scale-to-zero. Agregar health check + mantener 1 instancia siempre activa.
+4. **🔬 Test de breakpoint** — El p95 a 200 VUs fue 2.58s (aceptable). Probar 500 VUs para encontrar el límite real de la infraestructura.
+
+---
+
 ## Cómo Trabajar con Este Archivo
 
 1. **Al inicio de cada sesión**: Leer este archivo completo para restaurar el contexto

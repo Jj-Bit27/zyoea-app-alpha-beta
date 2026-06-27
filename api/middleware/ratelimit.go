@@ -23,7 +23,18 @@ func NewRateLimiter(rdb *redis.Client, db *pgxpool.Pool) *RateLimiter {
 // Hook para Gin - rechaza si rate limit excedido o IP/USUARIO bloqueado
 func (rl *RateLimiter) GinMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		ip := c.ClientIP()
+		// Detectar IP real detrás de Cloudflare o proxies
+		ip := c.GetHeader("CF-Connecting-IP")
+		if ip == "" {
+			ip = c.GetHeader("X-Real-Ip")
+		}
+		if ip == "" {
+			ip = c.GetHeader("X-Forwarded-For")
+		}
+		if ip == "" {
+			ip = c.ClientIP()
+		}
+
 		userID := c.GetString("user_id")
 
 		allowed, msg := rl.check(c, userID, ip)

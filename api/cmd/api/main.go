@@ -19,6 +19,7 @@ import (
 	//"github.com/joho/godotenv"
 
 	"api/database"
+	"api/middleware"
 	"api/graph"
 	"api/graph/generated"
 	"api/graph/model"
@@ -133,7 +134,7 @@ func main() {
 	cloudinaryService, err := cloudinary.NewService(cloudinaryURL)
 
 	// Rate limiter
-	//rateLimiter := middleware.NewRateLimiter(rdb, dbPool)
+	rateLimiter := middleware.NewRateLimiter(rdb, dbPool)
 
 	// --- Inicializar Servidor GraphQL (Inyectando el servicio) ---
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
@@ -173,7 +174,7 @@ func main() {
 	srv.Use(extension.Introspection{})
 
 	// --- Rutas ---
-	router.POST("/query", func(c *gin.Context) { // rateLimiter.GinMiddleware()
+	router.POST("/query", rateLimiter.GinMiddleware(), func(c *gin.Context) {
 		srv.ServeHTTP(c.Writer, c.Request)
 	})
 
