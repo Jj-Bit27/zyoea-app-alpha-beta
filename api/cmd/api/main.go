@@ -174,6 +174,9 @@ func main() {
 	srv.Use(extension.Introspection{})
 
 	// --- Rutas ---
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 	router.POST("/query", rateLimiter.GinMiddleware(), func(c *gin.Context) {
 		srv.ServeHTTP(c.Writer, c.Request)
 	})

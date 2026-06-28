@@ -179,6 +179,7 @@ export function StaffSidebar({ currentPath }: StaffSidebarProps) {
                     ${isCollapsed ? "justify-center" : ""}
                   `}
                   title={isCollapsed ? item.label : undefined}
+                  aria-label={item.label}
                 >
                   {item.icon}
                   {!isCollapsed && <span>{item.label}</span>}

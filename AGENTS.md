@@ -379,6 +379,7 @@ Sin `<ClientRouter />`, el runtime cliente de Astro nunca se carga y los `<astro
 | Ticket perforation dots responsive | CSS radial-gradient |
 | Payment schema orderId | Columna agregada a tabla payments |
 | Duplicado import "api/graph/model" | Eliminado en auth/service.go |
+| Rate limiter desactivado (comentado en main.go) | Descomentado + fallback in-memory cuando Redis no disponible + detección IP real Cloudflare |
 
 ---
 
@@ -420,17 +421,61 @@ Sin `<ClientRouter />`, el runtime cliente de Astro nunca se carga y los `<astro
 | 1 | **200 usuarios concurrentes sin errores** | ✅ | El servidor escala bien; la infraestructura (Cloudflare + PaaS) maneja picos |
 | 2 | **p95 estable de ~430ms entre 10-50 VUs** | ✅ | Sin degradación en el rango normal de uso |
 | 3 | **Respuesta máxima outlier de 12s en soak** | ⚠️ | Posible cold start de la PaaS o GC pause. Monitorear |
-| 4 | **Rate limiter comentado en main.go** | 🔴 | Habilitar rate limiter: sin él, 200 VUs podrían ser 2000 y tumbar el servidor |
+| 4 | **Rate limiter funcionando** | 🔴→✅ | **FIXED**: 93% de requests bloqueadas al exceder 30 req/min por IP. Fallback in-memory si Redis no está disponible |
 | 5 | **Sin paginación en queries** | 🟡 | `restaurants`, `products`, `orders` no tienen paginación — payload crece con datos |
 | 6 | **WebSocket funciona correctamente** | ✅ | Hub acepta conexiones, Cloudflare pasa WebSocket sin problema |
 | 7 | **addToCart falla con FK constraint** | 🟡 | Product IDs aleatorios no existen en restaurantId=1; no es bug del backend |
 
 ### Recomendaciones Priorizadas
 
-1. **🔴 Habilitar rate limiter** — Descomentar `rateLimiter` en `main.go:136`. Configurar 100 req/min por IP, 200 req/min por usuario autenticado.
+1. **✅ Rate limiter habilitado** — 30 req/min por IP, 100 req/min por usuario autenticado. Fallback in-memory si Redis no responde. IP real vía `CF-Connecting-IP` → `X-Real-Ip` → `X-Forwarded-For`.
 2. **🟡 Agregar paginación** — `restaurants`, `products(restaurantId)`, `ordersByRestaurant` necesitan `limit`/`offset` para evitar payloads gigantes a futuro.
 3. **🟡 Monitoreo de cold starts** — El outlier de 12s en soak sugiere que la PaaS hace scale-to-zero. Agregar health check + mantener 1 instancia siempre activa.
 4. **🔬 Test de breakpoint** — El p95 a 200 VUs fue 2.58s (aceptable). Probar 500 VUs para encontrar el límite real de la infraestructura.
+
+---
+
+## Resultados Tests de Accesibilidad + E2E (Fase 2 — 27 Jun 2026)
+
+### Lighthouse (Core Web Vitals)
+
+| Ruta | Performance | Accesibilidad | Best Practices | SEO |
+|------|------------|---------------|----------------|-----|
+| `/` (Landing) | **93** | **86** | **100** | **91** |
+| `/login` | **98** | **87** | **100** | **90** |
+
+### axe-core (WCAG 2.1 AA)
+
+13/13 páginas evaluadas. **0 violaciones críticas** en todas las rutas.
+
+| Ruta | Violaciones | Críticas | Serias |
+|------|------------|----------|--------|
+| Landing (`/`) | 1 | 0 | 1 |
+| Login (`/login`) | 1 | 0 | 1 |
+| Register (`/register`) | 1 | 0 | 1 |
+| Forgot Password (`/auth/forgot-password`) | 1 | 0 | 1 |
+| Bookings (`/bookings`) | 1 | 0 | 1 |
+| Profile (`/profile`) | 1 | 0 | 1 |
+| Restaurants (`/restaurants`) | 1 | 0 | 1 |
+| Staff Dashboard (`/staff/dashboard`) | 1 | 0 | 1 |
+| Staff Orders (`/staff/orders`) | 1 | 0 | 1 |
+| Staff Tables (`/staff/tables`) | 1 | 0 | 1 |
+| Staff Employees (`/staff/employees`) | 1 | 0 | 1 |
+| Admin Stats (`/admin/stats`) | 1 | 0 | 1 |
+| Admin Subscriptions (`/admin/subscriptions`) | 1 | 0 | 1 |
+
+**Única violación**: `link-name` — elementos `<a href="#">` en el sidebar sin texto discernible. Es la misma violación en todas las páginas.
+
+### E2E Playwright
+
+15/15 tests pasaron. Flujos cubiertos:
+- Landing page carga, título correcto
+- Login/Register muestran formularios con campos
+- Forgot password redirige o muestra formulario
+- Login con credenciales inválidas muestra error
+- Staff/Admin pages redirigen a login sin sesión
+- Navegación a restaurantes funciona
+- Profile redirige a login sin sesión
 
 ---
 

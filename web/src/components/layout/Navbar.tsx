@@ -107,6 +107,7 @@ export function Navbar({ currentPath = "" }: NavbarProps) {
               href="/scan"
               className="flex h-10 w-10 items-center justify-center rounded-lg text-foreground hover:bg-secondary transition-colors"
               title="Escanear QR"
+              aria-label="Escanear QR"
             >
               <IoQrCode className="h-5 w-5" />
             </a>
@@ -116,6 +117,7 @@ export function Navbar({ currentPath = "" }: NavbarProps) {
             <a
               href="/order"
               className="relative flex h-10 w-10 items-center justify-center rounded-lg text-foreground hover:bg-secondary transition-colors"
+              aria-label="Carrito"
             >
               <IoCart className="h-5 w-5" />
               {itemCount > 0 && (

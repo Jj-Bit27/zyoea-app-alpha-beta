@@ -131,6 +131,7 @@ export function AdminSidebar({ currentPath }: AdminSidebarProps) {
                     ${isCollapsed ? "justify-center" : ""}
                   `}
                   title={isCollapsed ? item.label : undefined}
+                  aria-label={item.label}
                 >
                   {item.icon}
                   {!isCollapsed && <span>{item.label}</span>}
@@ -157,6 +158,7 @@ export function AdminSidebar({ currentPath }: AdminSidebarProps) {
               }
               `}
               title={isCollapsed ? "Volver al sitio" : undefined}
+              aria-label="Volver al sitio"
             >
               <FiLogOut size={20} />
               {!isCollapsed && <span>Volver al sitio</span>}

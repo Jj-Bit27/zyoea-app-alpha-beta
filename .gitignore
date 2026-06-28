@@ -11,6 +11,7 @@ api/*.env
 web/*.env
 
 api/*.exe
+api/api
 
 # Archivos de compilación (si usas TypeScript o NestJS)
 dist/
@@ -25,4 +26,4 @@ web/logs/
 
 api/database/database.sql
 web/src/files-inactive
-web/src/src-tauri
+web/src/src-tauriapi/api
