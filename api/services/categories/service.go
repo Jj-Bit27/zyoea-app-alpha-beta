@@ -16,12 +16,17 @@ import (
 )
 
 type Service struct {
-	DB    *pgxpool.Pool
-	Redis *redis.Client
+	DB     *pgxpool.Pool
+	DBRead *pgxpool.Pool
+	Redis  *redis.Client
 }
 
 func NewService(db *pgxpool.Pool, rdb *redis.Client) *Service {
-	return &Service{DB: db, Redis: rdb}
+	return &Service{DB: db, DBRead: db, Redis: rdb}
+}
+
+func (s *Service) readDB() *pgxpool.Pool {
+	return s.DBRead
 }
 
 const categorySelect = `SELECT c.id, c."name",
@@ -79,13 +84,13 @@ func (s *Service) Create(ctx context.Context, input model.CreateCategoryInput) (
 	return &b, nil
 }
 
-func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([]*model.Category, error) {
+func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string, limit int, offset int) ([]*model.Category, error) {
 	dbID, err := strconv.Atoi(restaurant)
 	if err != nil {
 		return nil, fmt.Errorf("el identificador del restaurante debe ser un número: %w", err)
 	}
 
-	key := fmt.Sprintf("categories:restaurant:%d", dbID)
+	key := fmt.Sprintf("categories:restaurant:%d:%d:%d", dbID, limit, offset)
 	val, err := s.Redis.Get(ctx, key).Result()
 	if err == nil {
 		var categories []*model.Category
@@ -94,9 +99,9 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([
 		}
 	}
 
-	sql := categorySelect + ` ` + categoryFrom + ` WHERE c.restaurant = $1`
+	sql := categorySelect + ` ` + categoryFrom + ` WHERE c.restaurant = $1 ORDER BY c.id LIMIT $2 OFFSET $3`
 
-	rows, err := s.DB.Query(ctx, sql, dbID)
+	rows, err := s.readDB().Query(ctx, sql, dbID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error al consultar categorías: %w", err)
 	}
@@ -127,7 +132,7 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Category, erro
 	var b model.Category
 	var idScanned, restID int
 
-	err = s.DB.QueryRow(ctx, sql, dbID).Scan(
+	err = s.readDB().QueryRow(ctx, sql, dbID).Scan(
 		&idScanned,
 		&restID,
 		&b.Name,
