@@ -3,6 +3,7 @@ package waittime
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -88,7 +89,7 @@ func (m *MetricsService) OnOrderStatusUpdate(
 		// Actualizar promedio de tiempos
 		err = calc.UpdateAveragePrepTime(ctx, restaurantID)
 		if err != nil {
-			fmt.Printf("Advertencia: error actualizando promedio de tiempos: %v\n", err)
+			slog.Warn("error actualizando promedio de tiempos", "error", err)
 			// No fallar si esto falla, es no-crítico
 		}
 	}
