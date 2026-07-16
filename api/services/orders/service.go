@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"api/graph/model"
+	"api/services/messaging"
 	"api/services/waittime"
 	websocket "api/libs"
 
@@ -16,8 +17,10 @@ import (
 )
 
 type Service struct {
-	DB        *pgxpool.Pool
-	Hub       *websocket.OrderHub
+	DB       *pgxpool.Pool
+	DBRead   *pgxpool.Pool
+	Hub      *websocket.OrderHub
+	Producer *messaging.Producer
 	WaitCalc  *waittime.Calculator
 	MetricsS  *waittime.MetricsService
 }
@@ -25,16 +28,21 @@ type Service struct {
 func NewService(db *pgxpool.Pool, hub *websocket.OrderHub) *Service {
 	return &Service{
 		DB:       db,
+		DBRead:   db,
 		Hub:      hub,
 		WaitCalc: waittime.NewCalculator(db),
 		MetricsS: waittime.NewMetricsService(db),
 	}
 }
 
+func (s *Service) readDB() *pgxpool.Pool {
+	return s.DBRead
+}
+
 // ---------------------------------------------------------
 // 1. FIND BY RESTAURANT
 // ---------------------------------------------------------
-func (s *Service) FindAllByRestaurant(ctx context.Context, restaurantID string) ([]*model.Order, error) {
+func (s *Service) FindAllByRestaurant(ctx context.Context, restaurantID string, limit int, offset int) ([]*model.Order, error) {
 	restID, err := strconv.Atoi(restaurantID)
 	if err != nil {
 		return nil, fmt.Errorf("restaurantID debe ser numérico: %w", err)
@@ -49,8 +57,10 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurantID string) 
 		LEFT JOIN users u ON o."user" = u.id
 		LEFT JOIN restaurants r ON o.restaurant = r.id
 		WHERE o.restaurant = $1
+		ORDER BY o.id DESC
+		LIMIT $2 OFFSET $3
 	`
-	rows, err := s.DB.Query(ctx, sql, restID)
+	rows, err := s.readDB().Query(ctx, sql, restID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +160,7 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Order, error) 
 		LEFT JOIN restaurants r ON o.restaurant = r.id
 		WHERE o.id = $1
 	`
-	err := s.DB.QueryRow(ctx, sql, id).Scan(
+	err := s.readDB().QueryRow(ctx, sql, id).Scan(
 		&o.ID, &o.UserID, &o.UserName, &o.RestaurantID, &o.Status,
 		&o.Type, &o.Total, &notes, &mesaId, &o.Date, &o.Paid,
 		&o.EstimatedWaitTime, &actualWait, &completedAt,
@@ -300,6 +310,20 @@ func (s *Service) Create(ctx context.Context, input model.CreateOrderInput) (*mo
 	RestID := strconv.Itoa(newOrder.RestaurantID)
 	s.Hub.BroadcastToRestaurant(RestID, newOrder)
 
+	// H. Publicar evento en RabbitMQ (best-effort, no bloquea)
+	if s.Producer != nil {
+		event := messaging.OrderEvent{
+			Type:         "order.created",
+			OrderID:      strconv.Itoa(newOrder.ID),
+			RestaurantID: newOrder.RestaurantID,
+			Status:       newOrder.Status,
+			Timestamp:    time.Now(),
+		}
+		if err := s.Producer.PublishOrderEvent(context.Background(), event); err != nil {
+			fmt.Printf("Advertencia: error publicando evento en RabbitMQ: %v\n", err)
+		}
+	}
+
 	return &newOrder, nil
 }
 
@@ -368,6 +392,20 @@ func (s *Service) Update(ctx context.Context, input model.UpdateOrderInput) (*mo
 	restID := strconv.Itoa(updated.RestaurantID)
 	s.Hub.BroadcastToRestaurant(restID, updated)
 
+	// Publicar evento en RabbitMQ
+	if s.Producer != nil {
+		event := messaging.OrderEvent{
+			Type:         "order.updated",
+			OrderID:      input.ID,
+			RestaurantID: updated.RestaurantID,
+			Status:       *input.Estado,
+			Timestamp:    time.Now(),
+		}
+		if err := s.Producer.PublishOrderEvent(context.Background(), event); err != nil {
+			fmt.Printf("Advertencia: error publicando evento en RabbitMQ: %v\n", err)
+		}
+	}
+
 	return updated, nil
 }
 
@@ -409,7 +447,7 @@ func (s *Service) Delete(ctx context.Context, id string) (bool, error) {
 func (s *Service) GetDetailsByOrderID(ctx context.Context, orderID string) ([]*model.OrderDetail, error) {
 	sql := `SELECT id, order_id, product_id, quantity, subtotal FROM order_details WHERE order_id = $1`
 
-	rows, err := s.DB.Query(ctx, sql, orderID)
+		rows, err := s.readDB().Query(ctx, sql, orderID)
 	if err != nil {
 		return nil, err
 	}
@@ -523,7 +561,7 @@ func (s *Service) FindOpenOrdersByRestaurant(ctx context.Context, restaurantID s
 		WHERE o.restaurant = $1 AND o.status IN ('ABIERTA', 'LISTA')
 		ORDER BY o.date DESC
 	`
-	rows, err := s.DB.Query(ctx, sql, restID)
+	rows, err := s.readDB().Query(ctx, sql, restID)
 	if err != nil {
 		return nil, err
 	}
@@ -643,7 +681,7 @@ func (s *Service) FindOpenOrdersWithDetails(ctx context.Context, restaurantID st
 		WHERE od.order_id = ANY($1)
 		ORDER BY od.id`
 
-	dRows, err := s.DB.Query(ctx, detailSQL, ids)
+	dRows, err := s.readDB().Query(ctx, detailSQL, ids)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching order details: %w", err)
 	}
@@ -710,7 +748,7 @@ func (s *Service) FindAllByUser(ctx context.Context, userID string) ([]*model.Or
 		WHERE o."user" = $1
 		ORDER BY o.date DESC
 	`
-	rows, err := s.DB.Query(ctx, sql, uid)
+	rows, err := s.readDB().Query(ctx, sql, uid)
 	if err != nil {
 		return nil, err
 	}
