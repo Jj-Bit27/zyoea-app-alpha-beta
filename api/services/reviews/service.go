@@ -17,12 +17,17 @@ import (
 )
 
 type Service struct {
-	DB    *pgxpool.Pool
-	Redis *redis.Client
+	DB     *pgxpool.Pool
+	DBRead *pgxpool.Pool
+	Redis  *redis.Client
 }
 
 func NewService(db *pgxpool.Pool, rdb *redis.Client) *Service {
-	return &Service{DB: db, Redis: rdb}
+	return &Service{DB: db, DBRead: db, Redis: rdb}
+}
+
+func (s *Service) readDB() *pgxpool.Pool {
+	return s.DBRead
 }
 
 const reviewSelect = `SELECT rv.id, rv.restaurant, rv."user", rv.rating, rv.comment, rv."date",
@@ -91,7 +96,7 @@ func (s *Service) Create(ctx context.Context, input model.CreateReviewInput) (*m
 	}
 
 	sqlGet := reviewSelect + ` ` + reviewJoins + ` WHERE rv.id = $1`
-	row := s.DB.QueryRow(ctx, sqlGet, id)
+	row := s.readDB().QueryRow(ctx, sqlGet, id)
 	b, err := scanReview(row)
 	if err != nil {
 		return nil, fmt.Errorf("error al obtener comentario creado: %w", err)
@@ -102,13 +107,13 @@ func (s *Service) Create(ctx context.Context, input model.CreateReviewInput) (*m
 	return b, nil
 }
 
-func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([]*model.Review, error) {
+func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string, limit int, offset int) ([]*model.Review, error) {
 	dbID, err := strconv.Atoi(restaurant)
 	if err != nil {
 		return nil, fmt.Errorf("el identificador del restaurante debe ser un número: %w", err)
 	}
 
-	key := fmt.Sprintf("reviews:restaurant:%d", dbID)
+	key := fmt.Sprintf("reviews:restaurant:%d:%d:%d", dbID, limit, offset)
 	val, err := s.Redis.Get(ctx, key).Result()
 	if err == nil {
 		var reviews []*model.Review
@@ -117,9 +122,9 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([
 		}
 	}
 
-	sql := reviewSelect + ` ` + reviewJoins + ` WHERE rv.restaurant = $1`
+	sql := reviewSelect + ` ` + reviewJoins + ` WHERE rv.restaurant = $1 ORDER BY rv."date" DESC LIMIT $2 OFFSET $3`
 
-	rows, err := s.DB.Query(ctx, sql, dbID)
+	rows, err := s.readDB().Query(ctx, sql, dbID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error al consultar comentarios: %w", err)
 	}
@@ -155,7 +160,7 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Review, error)
 	}
 
 	sql := reviewSelect + ` ` + reviewJoins + ` WHERE rv.id = $1`
-	row := s.DB.QueryRow(ctx, sql, dbID)
+	row := s.readDB().QueryRow(ctx, sql, dbID)
 	b, err := scanReview(row)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -217,7 +222,7 @@ func (s *Service) Update(ctx context.Context, id string, input model.UpdateRevie
 	}
 
 	sqlGet := reviewSelect + ` ` + reviewJoins + ` WHERE rv.id = $1`
-	row := s.DB.QueryRow(ctx, sqlGet, updatedID)
+	row := s.readDB().QueryRow(ctx, sqlGet, updatedID)
 	b, err := scanReview(row)
 	if err != nil {
 		return nil, fmt.Errorf("error al obtener comentario actualizado: %w", err)
