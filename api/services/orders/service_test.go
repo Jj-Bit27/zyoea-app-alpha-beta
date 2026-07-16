@@ -3,55 +3,57 @@ package orders
 import (
 	"context"
 	"testing"
-	"strconv"
 )
 
-func TestRestaurantIDParsing(t *testing.T) {
+func TestSafeStr(t *testing.T) {
 	tests := []struct {
-		input string
-		valid bool
-		value int
+		name     string
+		input    *string
+		expected string
 	}{
-		{"42", true, 42},
-		{"0", true, 0},
-		{"abc", false, 0},
-		{"", false, 0},
+		{"nil pointer", nil, ""},
+		{"non-nil pointer", strPtr("hello"), "hello"},
+		{"empty string", strPtr(""), ""},
 	}
+
 	for _, tt := range tests {
-		v, err := strconv.Atoi(tt.input)
-		gotValid := err == nil
-		if gotValid != tt.valid {
-			t.Errorf("Atoi(%q) valid=%v; want %v", tt.input, gotValid, tt.valid)
-		}
-		if err == nil && v != tt.value {
-			t.Errorf("Atoi(%q) = %d; want %d", tt.input, v, tt.value)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			result := safeStr(tt.input)
+			if result != tt.expected {
+				t.Errorf("safeStr(%v) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
 	}
 }
 
-func TestValidStatusNames(t *testing.T) {
-	allowedStatus := map[string]bool{
-		"ABIERTA": true,
-		"LISTA": true,
-		"CANCELADA": true,
-		"COMPLETADA": true,
-		"PAGADO": true,
-	}
-	for status, allowed := range allowedStatus {
-		if !allowed {
-			t.Errorf("status %q is not supposed to be valid", status)
-		}
-		_ = status
-	}
+func strPtr(s string) *string {
+	return &s
 }
 
-func TestIdempotencyKeyFormat(t *testing.T) {
-	validKey := "550e8400-e29b-41d4-a716-446655440000"
-	if len(validKey) != 36 {
-		t.Errorf("UUID len got %d, want 36", len(validKey))
+func TestValidation(t *testing.T) {
+	t.Run("status validation", func(t *testing.T) {
+		validStatuses := []string{"ABIERTA", "LISTA", "COMPLETADA", "CANCELADA", "PAGADO"}
+		for _, s := range validStatuses {
+			if s == "" {
+				t.Error("expected non-empty status")
+			}
+		}
+	})
+
+	t.Run("order type validation", func(t *testing.T) {
+		validTypes := []string{"dine_in", "takeaway"}
+		for _, s := range validTypes {
+			if s != "dine_in" && s != "takeaway" {
+				t.Errorf("unexpected order type: %s", s)
+			}
+		}
+	})
+}
+
+func TestFindAllByRestaurantError(t *testing.T) {
+	s := &Service{}
+	_, err := s.FindAllByRestaurant(context.Background(), "invalid", 0, 0)
+	if err == nil {
+		t.Error("expected error for invalid restaurantID, got nil")
 	}
-	if validKey[8] != '-' || validKey[13] != '-' || validKey[18] != '-' || validKey[23] != '-' {
-		t.Errorf("UUID %q has incorrect dash positions", validKey)
-	}
-	_ = context.Background()
 }
