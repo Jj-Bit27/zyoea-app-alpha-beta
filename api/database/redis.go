@@ -2,7 +2,7 @@ package database
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/url"
 	"os"
 	"strings"
@@ -48,9 +48,9 @@ func NewRedisClient() *redis.Client {
 	defer cancel()
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		log.Printf("⚠️ Redis no disponible en %s: %v — usando fallback in-memory", addr, err)
+		slog.Warn("redis no disponible, usando fallback in-memory", "addr", addr, "error", err)
 	} else {
-		log.Printf("✅ Redis conectado en %s", addr)
+		slog.Info("redis conectado", "addr", addr)
 	}
 
 	// Goroutine de health check periódico + reconexión automática
@@ -70,9 +70,8 @@ func redisHealthLoop(rdb *redis.Client, addr, password string) {
 		cancel()
 
 		if err != nil {
-			log.Printf("⚠️ Redis ping falló: %v — reintentando en %v", err, backoff)
+			slog.Warn("redis ping falló, reintentando", "error", err, "backoff", backoff)
 
-			// Intentar reconexión con backoff exponencial
 			for i := 0; i < 5; i++ {
 				time.Sleep(backoff)
 
@@ -92,7 +91,7 @@ func redisHealthLoop(rdb *redis.Client, addr, password string) {
 				cancel2()
 
 				if pingErr == nil {
-					log.Println("✅ Redis reconectado exitosamente")
+					slog.Info("redis reconectado exitosamente")
 					*rdb = *newRdb
 					backoff = 1 * time.Second
 					break
