@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -61,7 +61,7 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 			return fmt.Errorf("registrar %s: %w", f, err)
 		}
 
-		log.Printf("Migracion aplicada: %s", f)
+		slog.Info("migracion aplicada", "file", f)
 	}
 
 	return nil
