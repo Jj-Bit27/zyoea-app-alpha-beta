@@ -1,105 +1,180 @@
-package websocket // o el paquete donde lo vayas a poner
+package websocket
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"sync"
 
 	"github.com/gorilla/websocket"
+	"github.com/redis/go-redis/v9"
 )
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 
-// Client representa a un frontend conectado
 type Client struct {
 	Conn         *websocket.Conn
 	RestaurantID string
 }
 
-// OrderHub administra las conexiones agrupadas por restaurante
 type OrderHub struct {
-	// Un mapa donde la llave es el ID del restaurante,
-	// y el valor es un mapa de los clientes conectados a ese restaurante.
 	Rooms map[string]map[*Client]bool
-	mu    sync.RWMutex // Para evitar que el servidor colapse si dos se conectan al mismo tiempo
+	mu    sync.RWMutex
+
+	rdb        *redis.Client
+	pubsub     *redis.PubSub
+	subscribed map[string]bool
+	subMu      sync.Mutex
 }
 
-// NewHub crea el administrador vacío
 func NewHub() *OrderHub {
 	return &OrderHub{
-		Rooms: make(map[string]map[*Client]bool),
+		Rooms:      make(map[string]map[*Client]bool),
+		subscribed: make(map[string]bool),
 	}
 }
 
-// BroadcastToRestaurant envía una orden solo a los clientes de ese local específico
+func NewHubWithRedis(rdb *redis.Client) *OrderHub {
+	h := NewHub()
+	h.rdb = rdb
+	if rdb != nil {
+		h.pubsub = rdb.Subscribe(context.Background())
+		go h.redisListener()
+	}
+	return h
+}
+
 func (h *OrderHub) BroadcastToRestaurant(restaurantID string, newOrder interface{}) {
 	h.mu.RLock()
 	clients, exists := h.Rooms[restaurantID]
 	h.mu.RUnlock()
 
-	if !exists {
-		return // Nadie de este restaurante está conectado mirando la pantalla ahorita
-	}
-
-	// Convertimos la orden de Go a texto JSON
 	message, _ := json.Marshal(newOrder)
 
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	for client := range clients {
-		err := client.Conn.WriteMessage(websocket.TextMessage, message)
-		if err != nil {
-			// Si falla, es porque cerró la pestaña, lo desconectamos
-			client.Conn.Close()
-			delete(clients, client)
+	if exists {
+		h.mu.Lock()
+		for client := range clients {
+			err := client.Conn.WriteMessage(websocket.TextMessage, message)
+			if err != nil {
+				client.Conn.Close()
+				delete(clients, client)
+			}
+		}
+		h.mu.Unlock()
+	}
+
+	if h.rdb != nil {
+		channel := "orders:" + restaurantID
+		if err := h.rdb.Publish(context.Background(), channel, string(message)).Err(); err != nil {
+			log.Printf("Error publicando en Redis Pub/Sub: %v", err)
 		}
 	}
 }
 
+func (h *OrderHub) redisListener() {
+	if h.pubsub == nil {
+		return
+	}
+
+	ch := h.pubsub.Channel()
+	for msg := range ch {
+		if len(msg.Channel) > 7 {
+			restID := msg.Channel[7:]
+
+			h.mu.RLock()
+			clients, exists := h.Rooms[restID]
+			h.mu.RUnlock()
+
+			if exists {
+				h.mu.Lock()
+				for client := range clients {
+					err := client.Conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload))
+					if err != nil {
+						client.Conn.Close()
+						delete(clients, client)
+					}
+				}
+				h.mu.Unlock()
+			}
+		}
+	}
+}
+
+func (h *OrderHub) SubscribeToRestaurant(restaurantID string) {
+	if h.pubsub == nil {
+		return
+	}
+
+	h.subMu.Lock()
+	defer h.subMu.Unlock()
+
+	if !h.subscribed[restaurantID] {
+		channel := "orders:" + restaurantID
+		if err := h.pubsub.Subscribe(context.Background(), channel); err != nil {
+			log.Printf("Error suscribiendo a Redis channel %s: %v", channel, err)
+			return
+		}
+		h.subscribed[restaurantID] = true
+	}
+}
+
+func (h *OrderHub) UnsubscribeFromRestaurant(restaurantID string) {
+	if h.pubsub == nil {
+		return
+	}
+
+	h.subMu.Lock()
+	defer h.subMu.Unlock()
+
+	if h.subscribed[restaurantID] {
+		channel := "orders:" + restaurantID
+		if err := h.pubsub.Unsubscribe(context.Background(), channel); err != nil {
+			log.Printf("Error desuscribiendo de Redis channel %s: %v", channel, err)
+		}
+		delete(h.subscribed, restaurantID)
+	}
+}
+
 func (h *OrderHub) HandleConnection(w http.ResponseWriter, r *http.Request) {
-	// 1. Obtenemos el ID del restaurante desde la URL
 	restID := r.URL.Query().Get("restaurantId")
 	if restID == "" {
 		http.Error(w, "Se requiere el ID del restaurante", http.StatusBadRequest)
 		return
 	}
 
-	// 2. Convertimos a WebSocket
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Error de upgrade:", err)
 		return
 	}
 
-	// 3. Creamos el cliente
 	client := &Client{Conn: conn, RestaurantID: restID}
 
-	// 4. Lo registramos en la sala de su restaurante
 	h.mu.Lock()
 	if h.Rooms[restID] == nil {
 		h.Rooms[restID] = make(map[*Client]bool)
+		h.SubscribeToRestaurant(restID)
 	}
 	h.Rooms[restID][client] = true
 	h.mu.Unlock()
 
 	log.Printf("Nuevo cliente conectado al restaurante %s", restID)
 
-	// 5. Mantenemos la conexión viva esperando desconexión
 	defer func() {
 		h.mu.Lock()
 		delete(h.Rooms[restID], client)
 		if len(h.Rooms[restID]) == 0 {
-			delete(h.Rooms, restID) // Borramos la sala si quedó vacía
+			delete(h.Rooms, restID)
+			h.UnsubscribeFromRestaurant(restID)
 		}
 		h.mu.Unlock()
 		conn.Close()
 		log.Printf("Cliente desconectado del restaurante %s", restID)
 	}()
 
-	// Bucle infinito para escuchar (obligatorio para que la conexión no se cierre sola)
 	for {
 		if _, _, err := conn.ReadMessage(); err != nil {
 			break
