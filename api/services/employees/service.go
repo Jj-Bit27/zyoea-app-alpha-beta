@@ -46,10 +46,10 @@ func scanEmployee(scanner interface {
 	return &e, nil
 }
 
-func (s *Service) FindAllByRestaurant(ctx context.Context, restaurantID string) ([]*model.Employee, error) {
-	sql := employeeListSelect + ` ` + employeeListFrom + ` WHERE e.restaurant = $1`
+func (s *Service) FindAllByRestaurant(ctx context.Context, restaurantID string, limit int, offset int) ([]*model.Employee, error) {
+	sql := employeeListSelect + ` ` + employeeListFrom + ` WHERE e.restaurant = $1 ORDER BY e.id LIMIT $2 OFFSET $3`
 
-	rows, err := s.DB.Query(ctx, sql, restaurantID)
+	rows, err := s.DB.Query(ctx, sql, restaurantID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
