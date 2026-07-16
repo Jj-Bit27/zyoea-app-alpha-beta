@@ -3,7 +3,7 @@ package messaging
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -82,18 +82,18 @@ func (c *Consumer) Start(ctx context.Context, handler EventHandler) error {
 
 				var event OrderEvent
 				if err := json.Unmarshal(msg.Body, &event); err != nil {
-					log.Printf("Error deserializando evento: %v", err)
+					slog.Error("error deserializando evento", "error", err)
 					continue
 				}
 
 				if err := handler(ctx, event); err != nil {
-					log.Printf("Error procesando evento: %v", err)
+					slog.Error("error procesando evento", "error", err)
 				}
 			}
 		}
 	}()
 
-	log.Println("✅ RabbitMQ consumer iniciado")
+	slog.Info("rabbitmq consumer iniciado")
 	return nil
 }
 
