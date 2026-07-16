@@ -1,0 +1,142 @@
+services:
+  app:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    env_file:
+      - ./api/.env
+    environment:
+      PORT: "8080"
+      REDIS_ADDR: "redis:6379"
+      DATABASE_URL: "postgres://postgres:postgres@db:5432/suavus?sslmode=disable"
+      AMQP_URL: "amqp://guest:guest@rabbitmq:5672/"
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    environment:
+      PUBLIC_API_URL: "http://localhost:8080"
+      PUBLIC_GRAPHQL_URL: "http://localhost:8080/query"
+      PUBLIC_FRONTEND_URL: "http://localhost:4321"
+    ports:
+      - "4321:4321"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./api/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: suavus
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  kong-db:
+    image: postgres:13-alpine
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kong
+      POSTGRES_DB: kong
+    ports:
+      - "5433:5432"
+    volumes:
+      - kongdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kong"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  kong-migrations:
+    image: kong:3.8
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-db
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+      KONG_PG_DATABASE: kong
+    command: kong migrations bootstrap
+    depends_on:
+      kong-db:
+        condition: service_healthy
+    restart: on-failure
+
+  kong:
+    image: kong:3.8
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+      - "8443:8443"
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-db
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+      KONG_PG_DATABASE: kong
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    depends_on:
+      kong-migrations:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  rabbitmqdata:
+  kongdata:
