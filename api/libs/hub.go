@@ -3,7 +3,7 @@ package websocket
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"sync"
 
@@ -69,7 +69,7 @@ func (h *OrderHub) BroadcastToRestaurant(restaurantID string, newOrder interface
 	if h.rdb != nil {
 		channel := "orders:" + restaurantID
 		if err := h.rdb.Publish(context.Background(), channel, string(message)).Err(); err != nil {
-			log.Printf("Error publicando en Redis Pub/Sub: %v", err)
+			slog.Error("error publicando en redis pub/sub", "error", err)
 		}
 	}
 }
@@ -114,7 +114,7 @@ func (h *OrderHub) SubscribeToRestaurant(restaurantID string) {
 	if !h.subscribed[restaurantID] {
 		channel := "orders:" + restaurantID
 		if err := h.pubsub.Subscribe(context.Background(), channel); err != nil {
-			log.Printf("Error suscribiendo a Redis channel %s: %v", channel, err)
+			slog.Error("error suscribiendo a redis channel", "channel", channel, "error", err)
 			return
 		}
 		h.subscribed[restaurantID] = true
@@ -132,7 +132,7 @@ func (h *OrderHub) UnsubscribeFromRestaurant(restaurantID string) {
 	if h.subscribed[restaurantID] {
 		channel := "orders:" + restaurantID
 		if err := h.pubsub.Unsubscribe(context.Background(), channel); err != nil {
-			log.Printf("Error desuscribiendo de Redis channel %s: %v", channel, err)
+			slog.Error("error desuscribiendo de redis channel", "channel", channel, "error", err)
 		}
 		delete(h.subscribed, restaurantID)
 	}
@@ -147,7 +147,7 @@ func (h *OrderHub) HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Error de upgrade:", err)
+		slog.Error("error de upgrade websocket", "error", err)
 		return
 	}
 
@@ -161,7 +161,7 @@ func (h *OrderHub) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	h.Rooms[restID][client] = true
 	h.mu.Unlock()
 
-	log.Printf("Nuevo cliente conectado al restaurante %s", restID)
+	slog.Info("nuevo cliente conectado", "restaurant", restID)
 
 	defer func() {
 		h.mu.Lock()
@@ -172,7 +172,7 @@ func (h *OrderHub) HandleConnection(w http.ResponseWriter, r *http.Request) {
 		}
 		h.mu.Unlock()
 		conn.Close()
-		log.Printf("Cliente desconectado del restaurante %s", restID)
+		slog.Info("cliente desconectado", "restaurant", restID)
 	}()
 
 	for {
