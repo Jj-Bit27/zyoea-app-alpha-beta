@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"api/graph/model"
+	websocket "api/libs"
 	"api/services/messaging"
 	"api/services/waittime"
-	websocket "api/libs"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,8 +21,8 @@ type Service struct {
 	DBRead   *pgxpool.Pool
 	Hub      *websocket.OrderHub
 	Producer *messaging.Producer
-	WaitCalc  *waittime.Calculator
-	MetricsS  *waittime.MetricsService
+	WaitCalc *waittime.Calculator
+	MetricsS *waittime.MetricsService
 }
 
 func NewService(db *pgxpool.Pool, hub *websocket.OrderHub) *Service {
@@ -314,7 +314,7 @@ func (s *Service) Create(ctx context.Context, input model.CreateOrderInput) (*mo
 	if s.Producer != nil {
 		event := messaging.OrderEvent{
 			Type:         "order.created",
-			OrderID:      strconv.Itoa(newOrder.ID),
+			OrderID:      newOrder.ID,
 			RestaurantID: newOrder.RestaurantID,
 			Status:       newOrder.Status,
 			Timestamp:    time.Now(),
@@ -447,7 +447,7 @@ func (s *Service) Delete(ctx context.Context, id string) (bool, error) {
 func (s *Service) GetDetailsByOrderID(ctx context.Context, orderID string) ([]*model.OrderDetail, error) {
 	sql := `SELECT id, order_id, product_id, quantity, subtotal FROM order_details WHERE order_id = $1`
 
-		rows, err := s.readDB().Query(ctx, sql, orderID)
+	rows, err := s.readDB().Query(ctx, sql, orderID)
 	if err != nil {
 		return nil, err
 	}
