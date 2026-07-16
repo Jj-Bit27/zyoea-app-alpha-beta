@@ -1,6 +1,7 @@
 package graph
 
 import (
+	"api/graph/dataloaders"
 	"api/graph/model"
 	"api/services/auth"
 	"api/services/bookings"
@@ -35,6 +36,7 @@ type Resolver struct {
 	CloudinaryService        *cloudinary.Service
 	RestaurantPaymentService *payments.RestaurantPaymentService
 	SubscriptionService      *subscriptions.Service
+	UserLoader               *dataloaders.UserLoader
 	mu                       sync.Mutex
 	OrderObservers           map[int][]chan *model.Order
 }

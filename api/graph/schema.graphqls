@@ -344,25 +344,25 @@ type Query {
   user(id: ID!): User!
 
   # -- Restaurants (Restaurantes) --
-  restaurants: [Restaurant!]!
+  restaurants(limit: Int, offset: Int): [Restaurant!]!
   restaurant(id: ID!): Restaurant!
 
   # --- Payments (Pagos) ---
   payment(id: ID!): Payment
   payments(limit: Int, offset: Int): [Payment!]!
-  userPayments(userId: String!): [Payment!]!
+  userPayments(userId: String!, limit: Int, offset: Int): [Payment!]!
 
   # -- Bookings (Reservas) --
-  bookings(restaurantId: ID!): [Booking!]!
-  bookingsUser(userId: ID!): [Booking!]!
+  bookings(restaurantId: ID!, limit: Int, offset: Int): [Booking!]!
+  bookingsUser(userId: ID!, limit: Int, offset: Int): [Booking!]!
   booking(id: ID!): Booking!
 
   # -- Products (Productos) --
-  products(restaurantId: ID!): [Product!]!
+  products(restaurantId: ID!, limit: Int, offset: Int): [Product!]!
   product(id: ID!): Product!
 
   # -- Reviews (Reseñas) --
-  reviews(restaurantId: ID!): [Review!]!
+  reviews(restaurantId: ID!, limit: Int, offset: Int): [Review!]!
   review(id: ID!): Review!
 
   # --- Tables (Mesas) ---
@@ -370,15 +370,15 @@ type Query {
   table(id: ID!): Table!
 
   # --- Categories (Categorias) ---
-  categories(restaurantId: ID!): [Category!]!
+  categories(restaurantId: ID!, limit: Int, offset: Int): [Category!]!
   category(id: ID!): Category!
 
   # --- Employees (Empleados) ---
-  employeesByRestaurant(restaurantId: ID!): [Employee!]!
+  employeesByRestaurant(restaurantId: ID!, limit: Int, offset: Int): [Employee!]!
   employee(id: ID!): Employee!
 
    # --- Orders (Ordenes) ---
-  ordersByRestaurant(restaurantId: ID!): [Order!]!
+  ordersByRestaurant(restaurantId: ID!, limit: Int, offset: Int): [Order!]!
   ordersOpen(restaurantId: ID!): [Order!]!
   ordersByUser(userId: ID!): [Order!]!
   order(id: ID!): Order!

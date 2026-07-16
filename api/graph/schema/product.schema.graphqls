@@ -41,7 +41,7 @@ input UpdateProductInput {
 }
 
 type Query {
-  products(restaurantId: ID!): [Product!]!
+  products(restaurantId: ID!, limit: Int, offset: Int): [Product!]!
   product(id: ID!): Product!
 }
 

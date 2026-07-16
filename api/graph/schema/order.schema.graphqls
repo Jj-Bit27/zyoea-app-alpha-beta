@@ -64,7 +64,7 @@ extend type Subscription {
 }
 
 extend type Query {
-  ordersByRestaurant(restaurantId: ID!): [Order!]!
+  ordersByRestaurant(restaurantId: ID!, limit: Int, offset: Int): [Order!]!
   ordersOpen(restaurantId: ID!): [Order!]!
   order(id: ID!): Order!
 }

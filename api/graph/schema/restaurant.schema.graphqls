@@ -33,7 +33,7 @@ input UpdateRestaurantInput {
 }
 
 type Query {
-  restaurants: [Restaurant!]!
+  restaurants(limit: Int, offset: Int): [Restaurant!]!
 
   restaurant(id: ID!): Restaurant
 }

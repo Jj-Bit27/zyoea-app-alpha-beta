@@ -248,8 +248,16 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 // ---------------------------------------------------------
 // RESTAURANTS RESOLVERS (Restaurantes)
 // ---------------------------------------------------------
-func (r *queryResolver) Restaurants(ctx context.Context) ([]*model.Restaurant, error) {
-	return r.RestaurantService.FindAllByRestaurant(ctx)
+func (r *queryResolver) Restaurants(ctx context.Context, limit *int, offset *int) ([]*model.Restaurant, error) {
+	l := 50
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return r.RestaurantService.FindAllByRestaurant(ctx, l, o)
 }
 
 // Restaurant is the resolver for the restaurant field.
@@ -280,20 +288,44 @@ func (r *queryResolver) Payments(ctx context.Context, limit *int, offset *int) (
 }
 
 // UserPayments is the resolver for the userPayments field.
-func (r *queryResolver) UserPayments(ctx context.Context, userID string) ([]*model.Payment, error) {
-	return r.PaymentService.GetByUserID(ctx, userID)
+func (r *queryResolver) UserPayments(ctx context.Context, userID string, limit *int, offset *int) ([]*model.Payment, error) {
+	l := 50
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return r.PaymentService.GetByUserID(ctx, userID, l, o)
 }
 
 // ---------------------------------------------------------
 // BOOKINGS RESOLVERS (Reservas)
 // ---------------------------------------------------------
-func (r *queryResolver) Bookings(ctx context.Context, restaurantID string) ([]*model.Booking, error) {
-	return r.BookingService.FindAllByRestaurant(ctx, restaurantID)
+func (r *queryResolver) Bookings(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Booking, error) {
+	l := 50
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return r.BookingService.FindAllByRestaurant(ctx, restaurantID, l, o)
 }
 
 // BookingsUser is the resolver for the bookingsUser field.
-func (r *queryResolver) BookingsUser(ctx context.Context, userID string) ([]*model.Booking, error) {
-	return r.BookingService.FindAllByUser(ctx, userID)
+func (r *queryResolver) BookingsUser(ctx context.Context, userID string, limit *int, offset *int) ([]*model.Booking, error) {
+	l := 50
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return r.BookingService.FindAllByUser(ctx, userID, l, o)
 }
 
 // Booking is the resolver for the booking field.
@@ -304,8 +336,16 @@ func (r *queryResolver) Booking(ctx context.Context, id string) (*model.Booking,
 // ---------------------------------------------------------
 // PRODUCTS RESOLVERS (Productos)
 // ---------------------------------------------------------
-func (r *queryResolver) Products(ctx context.Context, restaurantID string) ([]*model.Product, error) {
-	return r.ProductService.FindAllByRestaurant(ctx, restaurantID)
+func (r *queryResolver) Products(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Product, error) {
+	l := 50
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return r.ProductService.FindAllByRestaurant(ctx, restaurantID, l, o)
 }
 
 // Product is the resolver for the product field.
@@ -316,8 +356,16 @@ func (r *queryResolver) Product(ctx context.Context, id string) (*model.Product,
 // ---------------------------------------------------------
 // Review RESOLVERS (Reseñas)
 // ---------------------------------------------------------
-func (r *queryResolver) Reviews(ctx context.Context, restaurantID string) ([]*model.Review, error) {
-	return r.ReviewService.FindAllByRestaurant(ctx, restaurantID)
+func (r *queryResolver) Reviews(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Review, error) {
+	l := 50
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return r.ReviewService.FindAllByRestaurant(ctx, restaurantID, l, o)
 }
 
 // Review is the resolver for the review field.
@@ -340,8 +388,16 @@ func (r *queryResolver) Table(ctx context.Context, id string) (*model.Table, err
 // ---------------------------------------------------------
 // CATEGORIES RESOLVERS (Categorias)
 // ---------------------------------------------------------
-func (r *queryResolver) Categories(ctx context.Context, restaurantID string) ([]*model.Category, error) {
-	return r.CategoryService.FindAllByRestaurant(ctx, restaurantID)
+func (r *queryResolver) Categories(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Category, error) {
+	l := 50
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return r.CategoryService.FindAllByRestaurant(ctx, restaurantID, l, o)
 }
 
 // Category is the resolver for the category field.
@@ -352,8 +408,16 @@ func (r *queryResolver) Category(ctx context.Context, id string) (*model.Categor
 // ---------------------------------------------------------
 // EMPLOYEES RESOLVERS (Empleados)
 // ---------------------------------------------------------
-func (r *queryResolver) EmployeesByRestaurant(ctx context.Context, restaurantID string) ([]*model.Employee, error) {
-	return r.EmployeeService.FindAllByRestaurant(ctx, restaurantID)
+func (r *queryResolver) EmployeesByRestaurant(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Employee, error) {
+	l := 50
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return r.EmployeeService.FindAllByRestaurant(ctx, restaurantID, l, o)
 }
 
 // Employee is the resolver for the employee field.
@@ -362,8 +426,16 @@ func (r *queryResolver) Employee(ctx context.Context, id string) (*model.Employe
 }
 
 // OrdersByRestaurant is the resolver for the ordersByRestaurant field.
-func (r *queryResolver) OrdersByRestaurant(ctx context.Context, restaurantID string) ([]*model.Order, error) {
-	return r.OrderService.FindAllByRestaurant(ctx, restaurantID)
+func (r *queryResolver) OrdersByRestaurant(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Order, error) {
+	l := 50
+	o := 0
+	if limit != nil {
+		l = *limit
+	}
+	if offset != nil {
+		o = *offset
+	}
+	return r.OrderService.FindAllByRestaurant(ctx, restaurantID, l, o)
 }
 
 // OrdersOpen is the resolver for the ordersOpen field.

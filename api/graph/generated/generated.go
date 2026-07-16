@@ -215,13 +215,13 @@ type ComplexityRoot struct {
 	Query struct {
 		AllSubscriptions                 func(childComplexity int) int
 		Booking                          func(childComplexity int, id string) int
-		Bookings                         func(childComplexity int, restaurantID string) int
-		BookingsUser                     func(childComplexity int, userID string) int
-		Categories                       func(childComplexity int, restaurantID string) int
+		Bookings                         func(childComplexity int, restaurantID string, limit *int, offset *int) int
+		BookingsUser                     func(childComplexity int, userID string, limit *int, offset *int) int
+		Categories                       func(childComplexity int, restaurantID string, limit *int, offset *int) int
 		Category                         func(childComplexity int, id string) int
 		CheckPendingTermsAcceptance      func(childComplexity int) int
 		Employee                         func(childComplexity int, id string) int
-		EmployeesByRestaurant            func(childComplexity int, restaurantID string) int
+		EmployeesByRestaurant            func(childComplexity int, restaurantID string, limit *int, offset *int) int
 		EstimatedWaitTime                func(childComplexity int, restaurantID string) int
 		GetCart                          func(childComplexity int, userID string) int
 		GetCloudinarySignature           func(childComplexity int, publicID string, timestamp int) int
@@ -243,13 +243,13 @@ type ComplexityRoot struct {
 		RestaurantWaitMetrics            func(childComplexity int, restaurantID string) int
 		Restaurants                      func(childComplexity int) int
 		Review                           func(childComplexity int, id string) int
-		Reviews                          func(childComplexity int, restaurantID string) int
+		Reviews                          func(childComplexity int, restaurantID string, limit *int, offset *int) int
 		SubscriptionPlans                func(childComplexity int) int
 		Table                            func(childComplexity int, id string) int
 		Tables                           func(childComplexity int, restaurantID string) int
 		TotalUsers                       func(childComplexity int) int
 		User                             func(childComplexity int, id string) int
-		UserPayments                     func(childComplexity int, userID string) int
+		UserPayments                     func(childComplexity int, userID string, limit *int, offset *int) int
 		VerifyToken                      func(childComplexity int, token *string) int
 	}
 
@@ -437,25 +437,25 @@ type MutationResolver interface {
 type QueryResolver interface {
 	VerifyToken(ctx context.Context, token *string) (*model.UserWithRestaurant, error)
 	User(ctx context.Context, id string) (*model.User, error)
-	Restaurants(ctx context.Context) ([]*model.Restaurant, error)
+	Restaurants(ctx context.Context, limit *int, offset *int) ([]*model.Restaurant, error)
 	Restaurant(ctx context.Context, id string) (*model.Restaurant, error)
 	Payment(ctx context.Context, id string) (*model.Payment, error)
 	Payments(ctx context.Context, limit *int, offset *int) ([]*model.Payment, error)
-	UserPayments(ctx context.Context, userID string) ([]*model.Payment, error)
-	Bookings(ctx context.Context, restaurantID string) ([]*model.Booking, error)
-	BookingsUser(ctx context.Context, userID string) ([]*model.Booking, error)
+	UserPayments(ctx context.Context, userID string, limit *int, offset *int) ([]*model.Payment, error)
+	Bookings(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Booking, error)
+	BookingsUser(ctx context.Context, userID string, limit *int, offset *int) ([]*model.Booking, error)
 	Booking(ctx context.Context, id string) (*model.Booking, error)
-	Products(ctx context.Context, restaurantID string) ([]*model.Product, error)
+	Products(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Product, error)
 	Product(ctx context.Context, id string) (*model.Product, error)
-	Reviews(ctx context.Context, restaurantID string) ([]*model.Review, error)
+	Reviews(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Review, error)
 	Review(ctx context.Context, id string) (*model.Review, error)
 	Tables(ctx context.Context, restaurantID string) ([]*model.Table, error)
 	Table(ctx context.Context, id string) (*model.Table, error)
-	Categories(ctx context.Context, restaurantID string) ([]*model.Category, error)
+	Categories(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Category, error)
 	Category(ctx context.Context, id string) (*model.Category, error)
-	EmployeesByRestaurant(ctx context.Context, restaurantID string) ([]*model.Employee, error)
+	EmployeesByRestaurant(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Employee, error)
 	Employee(ctx context.Context, id string) (*model.Employee, error)
-	OrdersByRestaurant(ctx context.Context, restaurantID string) ([]*model.Order, error)
+	OrdersByRestaurant(ctx context.Context, restaurantID string, limit *int, offset *int) ([]*model.Order, error)
 	OrdersOpen(ctx context.Context, restaurantID string) ([]*model.Order, error)
 	OrdersByUser(ctx context.Context, userID string) ([]*model.Order, error)
 	Order(ctx context.Context, id string) (*model.Order, error)
@@ -1594,7 +1594,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Query.Bookings(childComplexity, args["restaurantId"].(string)), true
+		return e.ComplexityRoot.Query.Bookings(childComplexity, args["restaurantId"].(string), nil, nil), true
 	case "Query.bookingsUser":
 		if e.ComplexityRoot.Query.BookingsUser == nil {
 			break
@@ -1605,7 +1605,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Query.BookingsUser(childComplexity, args["userId"].(string)), true
+		return e.ComplexityRoot.Query.BookingsUser(childComplexity, args["userId"].(string), nil, nil), true
 	case "Query.categories":
 		if e.ComplexityRoot.Query.Categories == nil {
 			break
@@ -1616,7 +1616,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Query.Categories(childComplexity, args["restaurantId"].(string)), true
+		return e.ComplexityRoot.Query.Categories(childComplexity, args["restaurantId"].(string), nil, nil), true
 	case "Query.category":
 		if e.ComplexityRoot.Query.Category == nil {
 			break
@@ -1655,7 +1655,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Query.EmployeesByRestaurant(childComplexity, args["restaurantId"].(string)), true
+		return e.ComplexityRoot.Query.EmployeesByRestaurant(childComplexity, args["restaurantId"].(string), nil, nil), true
 	case "Query.estimatedWaitTime":
 		if e.ComplexityRoot.Query.EstimatedWaitTime == nil {
 			break
@@ -1893,7 +1893,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Query.Reviews(childComplexity, args["restaurantId"].(string)), true
+		return e.ComplexityRoot.Query.Reviews(childComplexity, args["restaurantId"].(string), nil, nil), true
 	case "Query.subscriptionPlans":
 		if e.ComplexityRoot.Query.SubscriptionPlans == nil {
 			break
@@ -1949,7 +1949,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Query.UserPayments(childComplexity, args["userId"].(string)), true
+		return e.ComplexityRoot.Query.UserPayments(childComplexity, args["userId"].(string), nil, nil), true
 	case "Query.verifyToken":
 		if e.ComplexityRoot.Query.VerifyToken == nil {
 			break
@@ -4780,6 +4780,22 @@ func (ec *executionContext) field_Query_bookingsUser_args(ctx context.Context, r
 		return nil, err
 	}
 	args["userId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
 	return args, nil
 }
 
@@ -4794,6 +4810,22 @@ func (ec *executionContext) field_Query_bookings_args(ctx context.Context, rawAr
 		return nil, err
 	}
 	args["restaurantId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
 	return args, nil
 }
 
@@ -4808,6 +4840,22 @@ func (ec *executionContext) field_Query_categories_args(ctx context.Context, raw
 		return nil, err
 	}
 	args["restaurantId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
 	return args, nil
 }
 
@@ -4850,6 +4898,22 @@ func (ec *executionContext) field_Query_employeesByRestaurant_args(ctx context.C
 		return nil, err
 	}
 	args["restaurantId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
 	return args, nil
 }
 
@@ -4973,20 +5037,6 @@ func (ec *executionContext) field_Query_order_args(ctx context.Context, rawArgs 
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_ordersByRestaurant_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId",
-		func(ctx context.Context, v any) (string, error) {
-			return ec.unmarshalNID2string(ctx, v)
-		})
-	if err != nil {
-		return nil, err
-	}
-	args["restaurantId"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_ordersByUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5029,6 +5079,88 @@ func (ec *executionContext) field_Query_payment_args(ctx context.Context, rawArg
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_restaurants_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_products_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["restaurantId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_ordersByRestaurant_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["restaurantId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_payments_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5062,20 +5194,6 @@ func (ec *executionContext) field_Query_product_args(ctx context.Context, rawArg
 		return nil, err
 	}
 	args["id"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_products_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "restaurantId",
-		func(ctx context.Context, v any) (string, error) {
-			return ec.unmarshalNID2string(ctx, v)
-		})
-	if err != nil {
-		return nil, err
-	}
-	args["restaurantId"] = arg0
 	return args, nil
 }
 
@@ -5168,6 +5286,22 @@ func (ec *executionContext) field_Query_reviews_args(ctx context.Context, rawArg
 		return nil, err
 	}
 	args["restaurantId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
 	return args, nil
 }
 
@@ -5210,6 +5344,22 @@ func (ec *executionContext) field_Query_userPayments_args(ctx context.Context, r
 		return nil, err
 	}
 	args["userId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "offset",
+		func(ctx context.Context, v any) (*int, error) {
+			return ec.unmarshalOInt2ᚖint(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["offset"] = arg2
 	return args, nil
 }
 
@@ -9683,7 +9833,8 @@ func (ec *executionContext) _Query_restaurants(ctx context.Context, field graphq
 			return ec.fieldContext_Query_restaurants(ctx, field)
 		},
 		func(ctx context.Context) (any, error) {
-			return ec.Resolvers.Query().Restaurants(ctx)
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().Restaurants(ctx, fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []*model.Restaurant) graphql.Marshaler {
@@ -9693,7 +9844,7 @@ func (ec *executionContext) _Query_restaurants(ctx context.Context, field graphq
 		true,
 	)
 }
-func (ec *executionContext) fieldContext_Query_restaurants(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_restaurants(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -9702,6 +9853,14 @@ func (ec *executionContext) fieldContext_Query_restaurants(_ context.Context, fi
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return ec.childFields_Restaurant(ctx, field)
 		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	if fc.Args, err = ec.field_Query_restaurants_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 	}
 	return fc, nil
 }
@@ -9848,7 +10007,7 @@ func (ec *executionContext) _Query_userPayments(ctx context.Context, field graph
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().UserPayments(ctx, fc.Args["userId"].(string))
+			return ec.Resolvers.Query().UserPayments(ctx, fc.Args["userId"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []*model.Payment) graphql.Marshaler {
@@ -9892,7 +10051,7 @@ func (ec *executionContext) _Query_bookings(ctx context.Context, field graphql.C
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().Bookings(ctx, fc.Args["restaurantId"].(string))
+			return ec.Resolvers.Query().Bookings(ctx, fc.Args["restaurantId"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []*model.Booking) graphql.Marshaler {
@@ -9936,7 +10095,7 @@ func (ec *executionContext) _Query_bookingsUser(ctx context.Context, field graph
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().BookingsUser(ctx, fc.Args["userId"].(string))
+			return ec.Resolvers.Query().BookingsUser(ctx, fc.Args["userId"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []*model.Booking) graphql.Marshaler {
@@ -10024,7 +10183,7 @@ func (ec *executionContext) _Query_products(ctx context.Context, field graphql.C
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().Products(ctx, fc.Args["restaurantId"].(string))
+			return ec.Resolvers.Query().Products(ctx, fc.Args["restaurantId"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []*model.Product) graphql.Marshaler {
@@ -10112,7 +10271,7 @@ func (ec *executionContext) _Query_reviews(ctx context.Context, field graphql.Co
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().Reviews(ctx, fc.Args["restaurantId"].(string))
+			return ec.Resolvers.Query().Reviews(ctx, fc.Args["restaurantId"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []*model.Review) graphql.Marshaler {
@@ -10288,7 +10447,7 @@ func (ec *executionContext) _Query_categories(ctx context.Context, field graphql
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().Categories(ctx, fc.Args["restaurantId"].(string))
+			return ec.Resolvers.Query().Categories(ctx, fc.Args["restaurantId"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []*model.Category) graphql.Marshaler {
@@ -10376,7 +10535,7 @@ func (ec *executionContext) _Query_employeesByRestaurant(ctx context.Context, fi
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().EmployeesByRestaurant(ctx, fc.Args["restaurantId"].(string))
+			return ec.Resolvers.Query().EmployeesByRestaurant(ctx, fc.Args["restaurantId"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []*model.Employee) graphql.Marshaler {
@@ -10464,7 +10623,7 @@ func (ec *executionContext) _Query_ordersByRestaurant(ctx context.Context, field
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().OrdersByRestaurant(ctx, fc.Args["restaurantId"].(string))
+			return ec.Resolvers.Query().OrdersByRestaurant(ctx, fc.Args["restaurantId"].(string), fc.Args["limit"].(*int), fc.Args["offset"].(*int))
 		},
 		nil,
 		func(ctx context.Context, selections ast.SelectionSet, v []*model.Order) graphql.Marshaler {
