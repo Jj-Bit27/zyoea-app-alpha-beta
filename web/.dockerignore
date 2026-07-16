@@ -1,0 +1,6 @@
+.env
+.git
+*.md
+node_modules/
+src-tauri/
+tests/
