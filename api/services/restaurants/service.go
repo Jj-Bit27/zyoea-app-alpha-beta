@@ -17,11 +17,23 @@ import (
 
 type Service struct {
 	DB    *pgxpool.Pool
+	DBRead *pgxpool.Pool
 	Redis *redis.Client
 }
 
 func NewService(db *pgxpool.Pool, rdb *redis.Client) *Service {
-	return &Service{DB: db, Redis: rdb}
+	return &Service{DB: db, DBRead: db, Redis: rdb}
+}
+
+func NewServiceWithReadReplica(db *pgxpool.Pool, dbRead *pgxpool.Pool, rdb *redis.Client) *Service {
+	if dbRead == nil {
+		dbRead = db
+	}
+	return &Service{DB: db, DBRead: dbRead, Redis: rdb}
+}
+
+func (s *Service) readDB() *pgxpool.Pool {
+	return s.DBRead
 }
 
 const restaurantSelect = `SELECT id, name, address, email, description, image, phone, hours`
@@ -86,8 +98,8 @@ func (s *Service) Create(ctx context.Context, input model.CreateRestaurantInput)
 	return &b, nil
 }
 
-func (s *Service) FindAllByRestaurant(ctx context.Context) ([]*model.Restaurant, error) {
-	key := "restaurants:all"
+func (s *Service) FindAllByRestaurant(ctx context.Context, limit int, offset int) ([]*model.Restaurant, error) {
+	key := fmt.Sprintf("restaurants:all:%d:%d", limit, offset)
 
 	val, err := s.Redis.Get(ctx, key).Result()
 	if err == nil {
@@ -97,9 +109,9 @@ func (s *Service) FindAllByRestaurant(ctx context.Context) ([]*model.Restaurant,
 		}
 	}
 
-	sql := restaurantSelect + ` FROM restaurants`
+	sql := restaurantSelect + ` FROM restaurants ORDER BY id LIMIT $1 OFFSET $2`
 
-	rows, err := s.DB.Query(ctx, sql)
+	rows, err := s.readDB().Query(ctx, sql, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error al consultar restaurantes: %w", err)
 	}
@@ -136,7 +148,7 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Restaurant, er
 
 	sql := restaurantSelect + ` FROM restaurants WHERE id = $1`
 
-	row := s.DB.QueryRow(ctx, sql, dbID)
+	row := s.readDB().QueryRow(ctx, sql, dbID)
 	b, err := scanRestaurant(row)
 	if err != nil {
 		if err == pgx.ErrNoRows {
