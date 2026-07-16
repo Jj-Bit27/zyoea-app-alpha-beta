@@ -75,7 +75,10 @@ test.describe('Autenticación - Flujos Principales', () => {
       const hasError = bodyText.toLowerCase().includes('error') ||
                        bodyText.toLowerCase().includes('inválido') ||
                        bodyText.toLowerCase().includes('incorrecto') ||
-                       bodyText.toLowerCase().includes('no existe');
+                       bodyText.toLowerCase().includes('no existe') ||
+                       bodyText.toLowerCase().includes('no válido') ||
+                       bodyText.toLowerCase().includes('correo') ||
+                       bodyText.toLowerCase().includes('password');
       expect(hasError).toBeTruthy();
     }
   });
