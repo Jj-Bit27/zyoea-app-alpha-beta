@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
@@ -42,6 +45,13 @@ import (
 	"api/services/tables"
 	"api/services/terms"
 )
+
+func init() {
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
+}
 
 // --- Puerto por Defecto ---
 const defaultPort = "8080"
@@ -85,12 +95,14 @@ func main() {
 	// --- Configuracion y Inicializacion de la Base de Datos ---
 	dbPool, err := database.NewPostgresConnection()
 	if err != nil {
-		log.Fatalf("Error fatal en base de datos: %v", err)
+		slog.Error("error fatal en base de datos", "error", err)
+		os.Exit(1)
 	}
 	defer dbPool.Close()
 
 	if err := database.RunMigrations(context.Background(), dbPool); err != nil {
-		log.Fatalf("Error aplicando migraciones: %v", err)
+		slog.Error("error aplicando migraciones", "error", err)
+		os.Exit(1)
 	}
 
 	// Read replica pool (opcional)
@@ -111,7 +123,7 @@ func main() {
 		var err error
 		orderProducer, err = messaging.NewProducer(amqpURL)
 		if err != nil {
-			log.Printf("⚠️ RabbitMQ no disponible, continuando sin cola de mensajes: %v", err)
+			slog.Warn("rabbitmq no disponible, continuando sin cola de mensajes", "error", err)
 		} else {
 			defer orderProducer.Close()
 		}
@@ -132,7 +144,8 @@ func main() {
 	// Obtener la clave de Stripe de variables de entorno
 	stripeKey := os.Getenv("STRIPE_SECRET_KEY")
 	if stripeKey == "" {
-		log.Fatalf("STRIPE_SECRET_KEY no está configurada en variables de entorno")
+		slog.Error("STRIPE_SECRET_KEY no configurada")
+		os.Exit(1)
 	}
 	paymentService := payments.NewService(dbPool, stripeKey)
 
@@ -182,7 +195,7 @@ func main() {
 	rateLimiter := middleware.NewRateLimiter(rdb, dbPool)
 
 	// --- Inicializar Servidor GraphQL (Inyectando el servicio) ---
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+	gqlSrv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
 		Resolvers: &graph.Resolver{
 			AuthService:              authService,
 			PaymentService:           paymentService,
@@ -204,7 +217,13 @@ func main() {
 	}))
 
 	// --- Crear rutas con Gin --
-	router := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+	router.Use(gin.Recovery())
+	router.Use(gin.Logger())
+
+	// --- Security Headers ---
+	router.Use(middleware.SecurityHeaders())
 
 	// --- Configurar CORS ---
 	router.Use(cors.New(cors.Config{
@@ -214,17 +233,53 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	srv.AddTransport(transport.Options{})
-	srv.AddTransport(transport.GET{})
-	srv.AddTransport(transport.POST{})
-	srv.Use(extension.Introspection{})
+	gqlSrv.AddTransport(transport.Options{})
+	gqlSrv.AddTransport(transport.GET{})
+	gqlSrv.AddTransport(transport.POST{})
+	gqlSrv.Use(extension.Introspection{})
 
 	// --- Rutas ---
 	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		health := gin.H{
+			"status":  "ok",
+			"version": "2.0.0",
+		}
+
+		// DB check
+		if err := dbPool.Ping(c.Request.Context()); err != nil {
+			health["database"] = gin.H{"status": "error", "error": err.Error()}
+			health["status"] = "degraded"
+		} else {
+			health["database"] = gin.H{"status": "ok"}
+		}
+
+		// Redis check
+		if err := rdb.Ping(c.Request.Context()).Err(); err != nil {
+			health["redis"] = gin.H{"status": "error", "error": err.Error()}
+			health["status"] = "degraded"
+		} else {
+			health["redis"] = gin.H{"status": "ok"}
+		}
+
+		// Read replica check
+		if dbReadPool != nil {
+			if err := dbReadPool.Ping(c.Request.Context()); err != nil {
+				health["read_replica"] = gin.H{"status": "error", "error": err.Error()}
+			} else {
+				health["read_replica"] = gin.H{"status": "ok"}
+			}
+		} else {
+			health["read_replica"] = gin.H{"status": "not_configured"}
+		}
+
+		statusCode := http.StatusOK
+		if health["status"] != "ok" {
+			statusCode = http.StatusServiceUnavailable
+		}
+		c.JSON(statusCode, health)
 	})
 	router.POST("/query", rateLimiter.GinMiddleware(), func(c *gin.Context) {
-		srv.ServeHTTP(c.Writer, c.Request)
+		gqlSrv.ServeHTTP(c.Writer, c.Request)
 	})
 
 	// REST endpoint for kitchen orders with details
@@ -336,9 +391,44 @@ func main() {
 		c.Redirect(http.StatusFound, "https://suavus.app")
 	})
 
-	// --- Arrancar servidor ---
-	log.Printf("🚀 Servidor corriendo en http://localhost:%s/ 🚀", port)
-	if err := router.Run(":" + port); err != nil {
-		log.Fatal("Error al iniciar servidor:", err)
+	// --- Arrancar servidor con Graceful Shutdown ---
+	httpSrv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		slog.Info("servidor iniciado", "port", port)
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("error al iniciar servidor", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-ctx.Done()
+	slog.Info("apagando servidor...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := httpSrv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("error durante graceful shutdown", "error", err)
+	}
+
+	dbPool.Close()
+	if dbReadPool != nil {
+		dbReadPool.Close()
+	}
+	rdb.Close()
+	if orderProducer != nil {
+		orderProducer.Close()
+	}
+
+	slog.Info("servidor apagado correctamente")
 }
