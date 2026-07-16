@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -42,7 +42,7 @@ func NewProducer(amqpURL string) (*Producer, error) {
 		return nil, fmt.Errorf("error declarando queue: %w", err)
 	}
 
-	log.Printf("✅ Conectado a RabbitMQ, queue: %s", q.Name)
+	slog.Info("conectado a rabbitmq", "queue", q.Name)
 
 	return &Producer{
 		conn:    conn,
