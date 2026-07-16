@@ -119,10 +119,12 @@ func (s *Service) Create(ctx context.Context, input model.CreatePaymentInput) (*
 func (s *Service) GetAll(ctx context.Context, limit, offset int) ([]*model.Payment, error) {
 	sql := `
 		SELECT 
-			id, "user", order_id, stripe_payment_intent_id, stripe_payment_method_id,
-			amount, currency, status, description, created_at, updated_at
-		FROM payments
-		ORDER BY created_at DESC
+			p.id, p."user", p.order_id, p.stripe_payment_intent_id, p.stripe_payment_method_id,
+			p.amount, p.currency, p.status, p.description, p.created_at, p.updated_at,
+			u.id, u."name", u.email, u."role", u.is_verified
+		FROM payments p
+		LEFT JOIN users u ON p."user" = u.id::text
+		ORDER BY p.created_at DESC
 		LIMIT $1 OFFSET $2
 	`
 
@@ -134,7 +136,7 @@ func (s *Service) GetAll(ctx context.Context, limit, offset int) ([]*model.Payme
 
 	var results []*model.Payment
 	for rows.Next() {
-		payment, err := s.scanPayment(rows)
+		payment, err := s.scanPaymentWithUser(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -147,7 +149,7 @@ func (s *Service) GetAll(ctx context.Context, limit, offset int) ([]*model.Payme
 // ---------------------------------------------------------
 // OBTENER PAGOS POR USUARIO
 // ---------------------------------------------------------
-func (s *Service) GetByUserID(ctx context.Context, userID string) ([]*model.Payment, error) {
+func (s *Service) GetByUserID(ctx context.Context, userID string, limit int, offset int) ([]*model.Payment, error) {
 	dbUserID, err := strconv.Atoi(userID)
 	if err != nil {
 		return nil, fmt.Errorf("userID debe ser numérico: %w", err)
@@ -155,14 +157,17 @@ func (s *Service) GetByUserID(ctx context.Context, userID string) ([]*model.Paym
 
 	sql := `
 		SELECT 
-			id, "user", order_id, stripe_payment_intent_id, stripe_payment_method_id,
-			amount, currency, status, description, created_at, updated_at
-		FROM payments
-		WHERE "user" = $1
-		ORDER BY created_at DESC
+			p.id, p."user", p.order_id, p.stripe_payment_intent_id, p.stripe_payment_method_id,
+			p.amount, p.currency, p.status, p.description, p.created_at, p.updated_at,
+			u.id, u."name", u.email, u."role", u.is_verified
+		FROM payments p
+		LEFT JOIN users u ON p."user" = u.id::text
+		WHERE p."user" = $1
+		ORDER BY p.created_at DESC
+		LIMIT $2 OFFSET $3
 	`
 
-	rows, err := s.DB.Query(ctx, sql, dbUserID)
+	rows, err := s.DB.Query(ctx, sql, dbUserID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error al consultar pagos del usuario: %w", err)
 	}
@@ -170,7 +175,7 @@ func (s *Service) GetByUserID(ctx context.Context, userID string) ([]*model.Paym
 
 	var results []*model.Payment
 	for rows.Next() {
-		payment, err := s.scanPayment(rows)
+		payment, err := s.scanPaymentWithUser(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -191,14 +196,16 @@ func (s *Service) GetByID(ctx context.Context, id string) (*model.Payment, error
 
 	sql := `
 		SELECT 
-			id, "user", order_id, stripe_payment_intent_id, stripe_payment_method_id,
-			amount, currency, status, description, created_at, updated_at
-		FROM payments
-		WHERE id = $1
+			p.id, p."user", p.order_id, p.stripe_payment_intent_id, p.stripe_payment_method_id,
+			p.amount, p.currency, p.status, p.description, p.created_at, p.updated_at,
+			u.id, u."name", u.email, u."role", u.is_verified
+		FROM payments p
+		LEFT JOIN users u ON p."user" = u.id::text
+		WHERE p.id = $1
 	`
 
 	row := s.DB.QueryRow(ctx, sql, dbID)
-	payment, err := s.scanPaymentRow(row)
+	payment, err := s.scanPaymentRowWithUser(row)
 	if err != nil {
 		if err == pgx.ErrNoRows {
 			return nil, fmt.Errorf("pago con id %s no encontrado", id)
@@ -423,6 +430,118 @@ func (s *Service) scanPaymentRow(row pgx.Row) (*model.Payment, error) {
 	p.CreatedAt = createdAt.Format(time.RFC3339)
 	p.UpdatedAt = updatedAt.Format(time.RFC3339)
 	p.OrderID = orderID
+
+	return &p, nil
+}
+
+func (s *Service) scanPaymentWithUser(rows pgx.Rows) (*model.Payment, error) {
+	var p model.Payment
+	var id int
+	var createdAt, updatedAt time.Time
+	var stripePaymentMethodID, description *string
+	var userID int
+	var orderID *int
+
+	var uID *int
+	var uName, uEmail, uRole *string
+	var uVrf *bool
+
+	err := rows.Scan(
+		&id,
+		&userID,
+		&orderID,
+		&p.StripePaymentIntentID,
+		&stripePaymentMethodID,
+		&p.Amount,
+		&p.Currency,
+		&p.Status,
+		&description,
+		&createdAt,
+		&updatedAt,
+		&uID, &uName, &uEmail, &uRole, &uVrf,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	p.ID = fmt.Sprintf("%d", id)
+	p.UserID = fmt.Sprintf("%d", userID)
+	p.StripePaymentMethodID = stripePaymentMethodID
+	p.Description = description
+	p.CreatedAt = createdAt.Format(time.RFC3339)
+	p.UpdatedAt = updatedAt.Format(time.RFC3339)
+	p.OrderID = orderID
+
+	if uID != nil {
+		isVerified := false
+		if uVrf != nil {
+			isVerified = *uVrf
+		}
+		p.User = &model.User{
+			ID:         fmt.Sprintf("%d", *uID),
+			Name:       uName,
+			Email:      uEmail,
+			Role:       uRole,
+			IsVerified: isVerified,
+		}
+	}
+
+	return &p, nil
+}
+
+func (s *Service) scanPaymentRowWithUser(row pgx.Row) (*model.Payment, error) {
+	var p model.Payment
+	var id int
+	var createdAt, updatedAt time.Time
+	var stripePaymentMethodID, description *string
+	var userID int
+	var orderID *int
+
+	var uID *int
+	var uName, uEmail, uRole *string
+	var uVrf *bool
+
+	err := row.Scan(
+		&id,
+		&userID,
+		&orderID,
+		&p.StripePaymentIntentID,
+		&stripePaymentMethodID,
+		&p.Amount,
+		&p.Currency,
+		&p.Status,
+		&description,
+		&createdAt,
+		&updatedAt,
+		&uID, &uName, &uEmail, &uRole, &uVrf,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	p.ID = fmt.Sprintf("%d", id)
+	p.UserID = fmt.Sprintf("%d", userID)
+	p.StripePaymentMethodID = stripePaymentMethodID
+	p.Description = description
+	p.CreatedAt = createdAt.Format(time.RFC3339)
+	p.UpdatedAt = updatedAt.Format(time.RFC3339)
+	p.OrderID = orderID
+
+	if uID != nil {
+		isVerified := false
+		if uVrf != nil {
+			isVerified = *uVrf
+		}
+		p.User = &model.User{
+			ID:         fmt.Sprintf("%d", *uID),
+			Name:       uName,
+			Email:      uEmail,
+			Role:       uRole,
+			IsVerified: isVerified,
+		}
+	}
 
 	return &p, nil
 }
