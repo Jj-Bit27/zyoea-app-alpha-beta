@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"sync"
@@ -156,7 +156,7 @@ func (rl *RateLimiter) checkUserMemory(userID string) (bool, string) {
 
 	c.count++
 	if c.count > 100 {
-		log.Printf("[RATE LIMITER] User %s exceeded limit (in-memory)", userID)
+		slog.Warn("rate limit excedido (in-memory)", "user", userID)
 		return false, "Límite de solicitudes excedido."
 	}
 
@@ -214,7 +214,7 @@ func (rl *RateLimiter) checkIPMemory(masked string) (bool, string) {
 
 	c.count++
 	if c.count > 30 {
-		log.Printf("[RATE LIMITER] IP %s exceeded limit (in-memory)", masked)
+		slog.Warn("rate limit excedido (in-memory)", "ip", masked)
 		return false, "Límite de solicitudes excedido."
 	}
 
