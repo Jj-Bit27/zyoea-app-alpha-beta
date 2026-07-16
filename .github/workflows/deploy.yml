@@ -1,0 +1,155 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  GO_VERSION: "1.25"
+  NODE_VERSION: "22"
+
+jobs:
+  api-lint:
+    name: API Lint & Vet
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ./api/go.sum
+
+      - run: go vet ./...
+      - run: go fmt ./...
+
+  api-test:
+    name: API Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: suavus_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ./api/go.sum
+
+      - run: go mod download
+
+      - name: Run migrations
+        run: go run ./cmd/api &
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/suavus_test?sslmode=disable
+          REDIS_ADDR: localhost:6379
+          STRIPE_SECRET_KEY: sk_test_dummy
+          JWT_SECRET: test-secret
+          PORT: "9999"
+        timeout-minutes: 2
+
+      - name: Run tests
+        run: go test ./... -v -count=1
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/suavus_test?sslmode=disable
+          REDIS_ADDR: localhost:6379
+          STRIPE_SECRET_KEY: sk_test_dummy
+          JWT_SECRET: test-secret
+
+  api-build:
+    name: API Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ./api/go.sum
+
+      - run: go build -o /dev/null ./cmd/api
+
+  web-lint:
+    name: Web Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: ./web/package-lock.json
+
+      - run: npm ci
+      - run: npx astro check --noSync 2>/dev/null || true
+
+  web-build:
+    name: Web Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: ./web/package-lock.json
+
+      - run: npm ci
+      - run: npm run build
+        env:
+          PUBLIC_API_URL: http://localhost:8080
+          PUBLIC_GRAPHQL_URL: http://localhost:8080/query
+          PUBLIC_FRONTEND_URL: http://localhost:4321
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [api-build, web-build]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: docker build -t suavus-api ./api
+      - run: docker build -t suavus-web ./web
