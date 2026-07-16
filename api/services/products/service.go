@@ -16,12 +16,17 @@ import (
 )
 
 type Service struct {
-	DB    *pgxpool.Pool
-	Redis *redis.Client
+	DB     *pgxpool.Pool
+	DBRead *pgxpool.Pool
+	Redis  *redis.Client
 }
 
 func NewService(db *pgxpool.Pool, rdb *redis.Client) *Service {
-	return &Service{DB: db, Redis: rdb}
+	return &Service{DB: db, DBRead: db, Redis: rdb}
+}
+
+func (s *Service) readDB() *pgxpool.Pool {
+	return s.DBRead
 }
 
 const productSelect = `SELECT p.id, p."name", p."description", p.price, p.ingredients, p.allergens, p."status", p.image,
@@ -102,13 +107,13 @@ func (s *Service) Create(ctx context.Context, input model.CreateProductInput) (*
 	return &b, nil
 }
 
-func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([]*model.Product, error) {
+func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string, limit int, offset int) ([]*model.Product, error) {
 	dbID, err := strconv.Atoi(restaurant)
 	if err != nil {
 		return nil, fmt.Errorf("el identificador del restaurante debe ser un número: %w", err)
 	}
 
-	key := fmt.Sprintf("products:restaurant:%d", dbID)
+	key := fmt.Sprintf("products:restaurant:%d:%d:%d", dbID, limit, offset)
 	val, err := s.Redis.Get(ctx, key).Result()
 	if err == nil {
 		var products []*model.Product
@@ -117,9 +122,9 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([
 		}
 	}
 
-	sql := productSelect + ` ` + productFrom + ` WHERE p.restaurant = $1`
+	sql := productSelect + ` ` + productFrom + ` WHERE p.restaurant = $1 ORDER BY p.id LIMIT $2 OFFSET $3`
 
-	rows, err := s.DB.Query(ctx, sql, dbID)
+	rows, err := s.readDB().Query(ctx, sql, dbID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error al consultar productos: %w", err)
 	}
@@ -156,7 +161,7 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Product, error
 
 	sql := productSelect + ` ` + productFrom + ` WHERE p.id = $1`
 
-	row := s.DB.QueryRow(ctx, sql, dbID)
+	row := s.readDB().QueryRow(ctx, sql, dbID)
 	b, err := scanProduct(row)
 	if err != nil {
 		if err == pgx.ErrNoRows {
