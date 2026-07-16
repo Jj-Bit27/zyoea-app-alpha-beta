@@ -19,12 +19,14 @@ import (
 	//"github.com/joho/godotenv"
 
 	"api/database"
-	"api/middleware"
 	"api/graph"
+	"api/graph/dataloaders"
 	"api/graph/generated"
 	"api/graph/model"
+	"api/middleware"
 	websocket "api/libs"
 	"api/services/auth"
+	"api/services/messaging"
 	"api/services/bookings"
 	"api/services/carts"
 	"api/services/categories"
@@ -91,10 +93,29 @@ func main() {
 		log.Fatalf("Error aplicando migraciones: %v", err)
 	}
 
+	// Read replica pool (opcional)
+	dbReadPool := database.NewPostgresReadConnection()
+	if dbReadPool != nil {
+		defer dbReadPool.Close()
+	}
+
 	// cmd/api/main.go
 	rdb := database.NewRedisClient()
 
-	hub := websocket.NewHub()
+	hub := websocket.NewHubWithRedis(rdb)
+
+	// RabbitMQ producer (opcional)
+	var orderProducer *messaging.Producer
+	amqpURL := os.Getenv("AMQP_URL")
+	if amqpURL != "" {
+		var err error
+		orderProducer, err = messaging.NewProducer(amqpURL)
+		if err != nil {
+			log.Printf("⚠️ RabbitMQ no disponible, continuando sin cola de mensajes: %v", err)
+		} else {
+			defer orderProducer.Close()
+		}
+	}
 
 	frontendURL := os.Getenv("FRONTEND_URL")
 	if frontendURL == "" {
@@ -116,13 +137,34 @@ func main() {
 	paymentService := payments.NewService(dbPool, stripeKey)
 
 	restaurantService := restaurants.NewService(dbPool, rdb)
+	if dbReadPool != nil {
+		restaurantService.DBRead = dbReadPool
+	}
 	employeeService := employees.NewService(dbPool)
 	categoryService := categories.NewService(dbPool, rdb)
+	if dbReadPool != nil {
+		categoryService.DBRead = dbReadPool
+	}
 	productService := products.NewService(dbPool, rdb)
+	if dbReadPool != nil {
+		productService.DBRead = dbReadPool
+	}
 	tableService := tables.NewService(dbPool)
 	reviewService := reviews.NewService(dbPool, rdb)
+	if dbReadPool != nil {
+		reviewService.DBRead = dbReadPool
+	}
 	bookingService := bookings.NewService(dbPool, rdb)
+	if dbReadPool != nil {
+		bookingService.DBRead = dbReadPool
+	}
 	orderService := orders.NewService(dbPool, hub)
+	if dbReadPool != nil {
+		orderService.DBRead = dbReadPool
+	}
+	if orderProducer != nil {
+		orderService.Producer = orderProducer
+	}
 
 	// Nuevos servicios
 	subscriptionService := subscriptions.NewService(dbPool)
@@ -132,6 +174,9 @@ func main() {
 
 	cloudinaryURL := os.Getenv("CLOUDINARY_URL")
 	cloudinaryService, err := cloudinary.NewService(cloudinaryURL)
+
+	// Data loaders
+	userLoader := dataloaders.NewUserLoader(dbPool)
 
 	// Rate limiter
 	rateLimiter := middleware.NewRateLimiter(rdb, dbPool)
@@ -154,6 +199,7 @@ func main() {
 			CloudinaryService:        cloudinaryService,
 			RestaurantPaymentService: restaurantPaymentService,
 			SubscriptionService:      subscriptionService,
+			UserLoader:               userLoader,
 		},
 	}))
 
