@@ -17,12 +17,17 @@ import (
 )
 
 type Service struct {
-	DB    *pgxpool.Pool
-	Redis *redis.Client
+	DB     *pgxpool.Pool
+	DBRead *pgxpool.Pool
+	Redis  *redis.Client
 }
 
 func NewService(db *pgxpool.Pool, rdb *redis.Client) *Service {
-	return &Service{DB: db, Redis: rdb}
+	return &Service{DB: db, DBRead: db, Redis: rdb}
+}
+
+func (s *Service) readDB() *pgxpool.Pool {
+	return s.DBRead
 }
 
 const bookingJoinSelect = `SELECT 
@@ -103,13 +108,13 @@ func (s *Service) Create(ctx context.Context, input model.CreateBookingInput) (*
 	return &b, nil
 }
 
-func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([]*model.Booking, error) {
+func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string, limit int, offset int) ([]*model.Booking, error) {
 	dbID, err := strconv.Atoi(restaurant)
 	if err != nil {
 		return nil, fmt.Errorf("el identificador del restaurante debe ser un número: %w", err)
 	}
 
-	key := fmt.Sprintf("bookings:restaurant:%d", dbID)
+	key := fmt.Sprintf("bookings:restaurant:%d:%d:%d", dbID, limit, offset)
 
 	s.autoExpirePastBookings(ctx)
 
@@ -122,9 +127,9 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([
 		}
 	}
 
-	sql := bookingJoinSelect + ` ` + bookingJoinFrom + ` WHERE b.restaurant = $1`
+	sql := bookingJoinSelect + ` ` + bookingJoinFrom + ` WHERE b.restaurant = $1 ORDER BY b."time" DESC LIMIT $2 OFFSET $3`
 
-	rows, err := s.DB.Query(ctx, sql, dbID)
+	rows, err := s.readDB().Query(ctx, sql, dbID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error al consultar reservas: %w", err)
 	}
@@ -144,13 +149,13 @@ func (s *Service) FindAllByRestaurant(ctx context.Context, restaurant string) ([
 	return results, nil
 }
 
-func (s *Service) FindAllByUser(ctx context.Context, user string) ([]*model.Booking, error) {
+func (s *Service) FindAllByUser(ctx context.Context, user string, limit int, offset int) ([]*model.Booking, error) {
 	dbID, err := strconv.Atoi(user)
 	if err != nil {
 		return nil, fmt.Errorf("el identificador del usuario debe ser un número: %w", err)
 	}
 
-	key := fmt.Sprintf("bookings:user:%d", dbID)
+	key := fmt.Sprintf("bookings:user:%d:%d:%d", dbID, limit, offset)
 
 	s.autoExpirePastBookings(ctx)
 
@@ -163,9 +168,9 @@ func (s *Service) FindAllByUser(ctx context.Context, user string) ([]*model.Book
 		}
 	}
 
-	sql := bookingJoinSelect + ` ` + bookingJoinFrom + ` WHERE b."user" = $1`
+	sql := bookingJoinSelect + ` ` + bookingJoinFrom + ` WHERE b."user" = $1 ORDER BY b."time" DESC LIMIT $2 OFFSET $3`
 
-	rows, err := s.DB.Query(ctx, sql, dbID)
+	rows, err := s.readDB().Query(ctx, sql, dbID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error al consultar reservas: %w", err)
 	}
@@ -206,7 +211,7 @@ func (s *Service) FindOne(ctx context.Context, id string) (*model.Booking, error
 	var b model.Booking
 	var idScanned, restID, userID int
 
-	err = s.DB.QueryRow(ctx, sql, dbID).Scan(
+	err = s.readDB().QueryRow(ctx, sql, dbID).Scan(
 		&idScanned,
 		&restID,
 		&userID,
