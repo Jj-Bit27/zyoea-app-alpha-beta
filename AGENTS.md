@@ -383,17 +383,67 @@ Sin `<ClientRouter />`, el runtime cliente de Astro nunca se carga y los `<astro
 
 ---
 
-## Tareas Pendientes
+## Fase 2 — Producción y Observabilidad (Completada — 16 Jul 2026)
 
-- [ ] **Regenerar gqlgen**: Ejecutar `go run github.com/99designs/gqlgen generate` en `/api` para sincronizar `generated.go` con los cambios de schema
-- [ ] **Verificar compilación Go**: `go build ./cmd/api` después de regenerar
-- [ ] **Instalar dependencia Go**: `go mod tidy` si se agregan nuevos imports
-- [ ] **Configurar Resend**: Agregar RESEND_API_KEY y EMAIL_FROM al .env del backend
-- [ ] **Configurar Stripe subscription products**: Crear productos en Stripe y agregar stripe_price_id a subscription_plans
-- [ ] **Facebook/Twitter OAuth**: Descomentar rutas en main.go cuando se necesiten
-- [ ] **Paginación**: queries orders/payments/products sin paginación actualmente
-- [ ] **WebSocket Apollo**: No está configurado (usa raw WebSocket en useKitchen)
-- [ ] **Testing**: No hay tests unitarios actualmente
+### 1. Logging Estructurado (slog)
+- Migración completa de `log.Printf`/`fmt.Printf` a `slog` con salida JSON en todos los archivos.
+- `init()` en `main.go` configura `slog.NewJSONHandler(os.Stdout)` como logger por defecto.
+- Archivos migrados: `cmd/api/main.go`, `libs/hub.go`, `services/orders/service.go`, `services/waittime/metrics.go`, `services/messaging/producer.go`, `services/messaging/consumer.go`, `middleware/ratelimit.go`, `database/postgres.go`, `database/redis.go`, `database/migrate.go`.
+
+### 2. Graceful Shutdown
+- Captura de `SIGINT`/`SIGTERM` vía `signal.NotifyContext`.
+- Cierre ordenado: HTTP server → dbPool → dbReadPool → rdb → RabbitMQ producer.
+- Timeout de 10s para shutdown forzado.
+- Timeouts configurados en HTTP server: Read 15s, Write 30s, Idle 60s.
+
+### 3. Health Check Profundo
+- Endpoint `/health` verifica individualmente: DB write, Redis, read replica.
+- Devuelve `status: "ok"` solo si todo funciona, `"degraded"` si algún servicio falla.
+- HTTP 200 si ok, 503 si degradado.
+
+### 4. Seguridad (Security Headers)
+- Nuevo middleware `middleware/security.go`:
+  - `X-Content-Type-Options: nosniff`
+  - `X-Frame-Options: DENY`
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+  - `Content-Security-Policy` restringido (Stripe, Cloudinary, Google Fonts allowlisted)
+  - `Permissions-Policy` (camera, microphone, geolocation desactivados)
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+- `gin.ReleaseMode` activado, reemplazado `gin.Default()` por `gin.New()` + Recovery + Logger + SecurityHeaders.
+
+### 5. Connection Pooling Tuning
+- `database/postgres.go`: Nuevo `poolConfig()` con parámetros configurables vía env vars:
+  - `DB_MAX_CONNS` (write: 25, read: 50 por defecto)
+  - `DB_MIN_CONNS` (2 por defecto)
+  - `DB_MAX_CONN_LIFETIME` (30m por defecto)
+  - `DB_MAX_CONN_IDLE_TIME` (5m por defecto)
+  - `DB_HEALTH_CHECK_PERIOD` (30s por defecto)
+- Timeout de 10s para Ping inicial en ambos pools.
+
+### 6. GraphQL Error Codes Estandarizados
+- `graph/errors.go`: Códigos tipados (`NOT_FOUND`, `VALIDATION_ERROR`, `UNAUTHORIZED`, etc.)
+- Helper `MakeError(msg, code)` y `MakeErrorf(code, format, args...)` con extensions.
+
+### 7. Tests Unitarios
+| Archivo | Coverage |
+|---------|----------|
+| `services/auth/service_test.go` | Validación email, password, JWT generation |
+| `services/orders/service_test.go` | safeStr, validación status/types, FindAllByRestaurant error |
+| `middleware/ratelimit_test.go` | maskIP (IPv4, IPv6, edge cases), consistencia subnet |
+| `middleware/security_test.go` | Headers HTTP (X-Content-Type-Options, HSTS, CSP, etc.) |
+| `database/postgres_test.go` | Pool config defaults, env overrides, invalid URL/env |
+| `graph/errors_test.go` | MakeError, MakeErrorf, todos los códigos de error |
+
+### Pendientes (Fase 2 — no implementado)
+- [ ] **Integración E2E**: Playwright tests adicionales (flujos: crear orden, pagar, cancelar reserva)
+- [ ] **Métricas Prometheus**: Endpoint `/metrics` con contadores de negocio
+- [ ] **Tracing**: OpenTelemetry tracing Go → Postgres → Redis → RabbitMQ
+- [ ] **CSRF protection**: Doble cookie o token para mutaciones GraphQL
+- [ ] **Índices compuestos**: Revisar slow queries con EXPLAIN ANALYZE
+- [ ] **Migración K8s**: Manifiestos básicos (Deployment, Service, Ingress, HPA)
+
+### Dependencias Nuevas
+- `github.com/stretchr/testify v1.10.0` (solo para tests) — ejecutar `go mod tidy`
 
 ---
 
