@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -252,7 +253,7 @@ func (s *Service) Create(ctx context.Context, input model.CreateOrderInput) (*mo
 	estimatedWaitTime, err := s.WaitCalc.CalculateWaitTime(ctx, input.Restaurant, itemCount)
 	if err != nil {
 		// Si falla el cálculo, usar 0 pero no fallar toda la operación
-		fmt.Printf("Advertencia: error calculando tiempo de espera: %v\n", err)
+		slog.Warn("error calculando tiempo de espera", "error", err)
 		estimatedWaitTime = 0
 	}
 
@@ -320,7 +321,7 @@ func (s *Service) Create(ctx context.Context, input model.CreateOrderInput) (*mo
 			Timestamp:    time.Now(),
 		}
 		if err := s.Producer.PublishOrderEvent(context.Background(), event); err != nil {
-			fmt.Printf("Advertencia: error publicando evento en RabbitMQ: %v\n", err)
+			slog.Warn("error publicando evento en rabbitmq", "error", err)
 		}
 	}
 
@@ -378,7 +379,7 @@ func (s *Service) Update(ctx context.Context, input model.UpdateOrderInput) (*mo
 		if err == nil {
 			err := s.MetricsS.OnOrderStatusUpdate(ctx, currentOrder.RestaurantID, orderID, *input.Estado, currentOrder.Date)
 			if err != nil {
-				fmt.Printf("Advertencia: error registrando métricas: %v\n", err)
+				slog.Warn("error registrando métricas", "error", err)
 			}
 		}
 	}
@@ -402,7 +403,7 @@ func (s *Service) Update(ctx context.Context, input model.UpdateOrderInput) (*mo
 			Timestamp:    time.Now(),
 		}
 		if err := s.Producer.PublishOrderEvent(context.Background(), event); err != nil {
-			fmt.Printf("Advertencia: error publicando evento en RabbitMQ: %v\n", err)
+			slog.Warn("error publicando evento en rabbitmq", "error", err)
 		}
 	}
 
