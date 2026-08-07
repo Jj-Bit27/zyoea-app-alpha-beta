@@ -144,12 +144,63 @@ jobs:
           PUBLIC_FRONTEND_URL: http://localhost:4321
 
   docker:
-    name: Docker Build
+    name: Docker Build & Push
     runs-on: ubuntu-latest
     needs: [api-build, web-build]
+    if: github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
 
-      - run: docker build -t suavus-api ./api
-      - run: docker build -t suavus-web ./web
+      - name: Build images
+        run: |
+          docker build -t suavus-api ./api
+          docker build -t suavus-web ./web
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log in to DO Container Registry
+        run: doctl registry login --expiry-seconds 600
+
+      - name: Tag and push images
+        run: |
+          docker tag suavus-api registry.digitalocean.com/suavus/api:${{ github.sha }}
+          docker tag suavus-api registry.digitalocean.com/suavus/api:latest
+          docker tag suavus-web registry.digitalocean.com/suavus/web:${{ github.sha }}
+          docker tag suavus-web registry.digitalocean.com/suavus/web:latest
+          docker push registry.digitalocean.com/suavus/api:${{ github.sha }}
+          docker push registry.digitalocean.com/suavus/api:latest
+          docker push registry.digitalocean.com/suavus/web:${{ github.sha }}
+          docker push registry.digitalocean.com/suavus/web:latest
+
+  deploy:
+    name: Deploy to DOKS
+    runs-on: ubuntu-latest
+    needs: [docker]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Save DOKS kubeconfig
+        run: |
+          doctl kubernetes cluster kubeconfig save suavus-cluster
+
+      - name: Update image tags in manifests
+        run: |
+          sed -i "s|image: registry.digitalocean.com/suavus/api:latest|image: registry.digitalocean.com/suavus/api:${{ github.sha }}|" k8s/api-deployment.yaml
+          sed -i "s|image: registry.digitalocean.com/suavus/web:latest|image: registry.digitalocean.com/suavus/web:${{ github.sha }}|" k8s/web-deployment.yaml
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/
+          kubectl rollout status deployment/api -n suavus --timeout=120s
+          kubectl rollout status deployment/web -n suavus --timeout=120s
