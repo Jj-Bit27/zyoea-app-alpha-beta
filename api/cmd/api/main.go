@@ -26,15 +26,15 @@ import (
 	"api/graph/dataloaders"
 	"api/graph/generated"
 	"api/graph/model"
-	"api/middleware"
 	websocket "api/libs"
+	"api/middleware"
 	"api/services/auth"
-	"api/services/messaging"
 	"api/services/bookings"
 	"api/services/carts"
 	"api/services/categories"
 	cloudinary "api/services/cloudinary"
 	"api/services/employees"
+	"api/services/messaging"
 	"api/services/oauth"
 	"api/services/orders"
 	"api/services/payments"
@@ -98,12 +98,13 @@ func main() {
 		slog.Error("error fatal en base de datos", "error", err)
 		os.Exit(1)
 	}
-	defer dbPool.Close()
 
 	if err := database.RunMigrations(context.Background(), dbPool); err != nil {
 		slog.Error("error aplicando migraciones", "error", err)
 		os.Exit(1)
 	}
+
+	defer dbPool.Close()
 
 	// Read replica pool (opcional)
 	dbReadPool := database.NewPostgresReadConnection()
