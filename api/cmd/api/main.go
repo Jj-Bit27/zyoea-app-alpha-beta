@@ -99,11 +99,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := database.RunMigrations(context.Background(), dbPool); err != nil {
-		slog.Error("error aplicando migraciones", "error", err)
-		os.Exit(1)
-	}
-
 	defer dbPool.Close()
 
 	// Read replica pool (opcional)
