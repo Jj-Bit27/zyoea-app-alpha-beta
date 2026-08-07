@@ -134,7 +134,7 @@ export function LoginForm() {
                 type="button"
                 className="w-full"
                 onClick={() => {
-                  window.location.href = `${API_URL}/auth/google`;
+                  window.location.href = `https://zyoea-app-alpha-beta.onrender.com/auth/google`;
                 }}
               >
                 <IoLogoGoogle className="mr-2 h-4 w-4" />
